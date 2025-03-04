@@ -1,0 +1,43 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+ 
+
+ 
+ 
+*.log
+ 
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+ 
+
+#pydev
+.pydevproject
+.project
+.settings
+ 
+
+#VS Code
+*.code-workspace
+
+#Qgis 
+*.gpkg-wal
+*.gpkg-shm
+*.aux.xml
+
+#windows shortcuts
+*.lnk
+
+#cef build files
+definitions.py
+
+

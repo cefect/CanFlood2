@@ -53,7 +53,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>CanCurve</string>
+   <string>CanFlood2</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QPushButton {
@@ -852,7 +852,7 @@ p, li { white-space: pre-wrap; }
             <x>0</x>
             <y>0</y>
             <width>934</width>
-            <height>735</height>
+            <height>545</height>
            </rect>
           </property>
           <property name="styleSheet">

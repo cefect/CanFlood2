@@ -91,7 +91,7 @@ class Canflood_plugin:
         text,
         callback,
         enabled_flag=True,
-        add_to_menu=True,
+        add_to_menu=False,
         add_to_toolbar=True,
         status_tip=None,
         whats_this=None,
@@ -168,7 +168,9 @@ class Canflood_plugin:
             icon_path,
             text=self.tr(u'CanFlood2'),
             callback=self.launch_dialog,
-            parent=self.iface.mainWindow())
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,
+            )
 
         # will be set False in run()
         self.first_start = True
@@ -193,11 +195,9 @@ class Canflood_plugin:
         if self.first_start:
             self.first_start = False
             self.dlg = Main_dialog(iface = self.iface,
-                                   #parent=self, #not what is meant by parent I guess
-                                   pluginObject=self,
+                                   parent=self, 
                                    )
-            
-            #self.dlg.connect_slots()
+ 
             
 
         # show the dialog

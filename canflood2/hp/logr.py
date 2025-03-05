@@ -38,6 +38,10 @@ def get_log_stream(name=None, level=None):
         
         logger.addHandler(handler)
     return logger
+"""
+logger.log('test')
+help(logger.log)
+"""
     
 def get_new_file_logger(
         logger_name='log',

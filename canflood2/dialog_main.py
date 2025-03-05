@@ -27,6 +27,8 @@ import os, sys
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 
+from .hp.plug import plugLogger
+
 #===============================================================================
 # load UI and resources
 #===============================================================================
@@ -40,7 +42,7 @@ if not os.path.dirname(resources_module_fp) in sys.path:
     sys.path.append(os.path.dirname(resources_module_fp))
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
-ui_fp = os.path.join(os.path.dirname(__file__), 'dialog_main.ui')
+ui_fp = os.path.join(os.path.dirname(__file__), 'canflood2_dialog_main.ui')
 assert os.path.exists(ui_fp), f'UI file not found: {ui_fp}'
 FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='')
 
@@ -50,12 +52,70 @@ FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='')
 # Dialog class
 #===============================================================================
 class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
-        """Constructor."""
-        super(Main_dialog, self).__init__(parent)
+    def __init__(self, parent=None,iface=None,debug_logger=None,                 ):
+        """dialog for main CanFlood window
+        
+        
+        Parameters
+        ----------
+        parent : QWidget
+            parent widget
+        iface : QgsInterface
+            QGIS interface
+            
+        debug_logger : logging.Logger
+            logger pytests
+        """
+        #not sure why the template passes parent here
+        #super(Main_dialog, self).__init__(parent)
+        super(Main_dialog, self).__init__()
         # Set up the user interface from Designer through FORM_CLASS.
         # After self.setupUi() you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+        self.parent=parent
+        self.iface=iface 
+        
+        #setup logger
+        self.logger = plugLogger(
+            self.iface, parent=self, statusQlab=self.progressText,debug_logger=debug_logger)
+        
+        self.connect_slots()
+        
+        self.logger.debug('Main_dialog initialized')
+        
+    def connect_slots(self):
+        """on launch of ui, populate and connect"""
+ 
+        log = self.logger.getChild('connect_slots')
+        log.debug('connecting slots')
+        
+        #=======================================================================
+        # general----------------
+        #=======================================================================
+        def close_dialog():
+            self.logger.push(f'dialog reset')
+            if not self.parent is None:
+                self.parent.dlg=None
+                self.parent.first_start=True #not ideal
+            self.close()
+        
+        self.close_pushButton.clicked.connect(close_dialog)
+        
+        """not using 
+        self.cancel_pushButton.clicked.connect(self.action_cancel_process)"""
+        
+        from canflood2 import __version__
+        self.label_version.setText(f'v{__version__}')
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

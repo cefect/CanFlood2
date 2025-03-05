@@ -3,7 +3,7 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=canflood
+name=CanFlood2
 qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
 description=Open source flood risk modelling toolbox for Canada v2

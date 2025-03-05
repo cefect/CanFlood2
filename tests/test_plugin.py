@@ -7,59 +7,37 @@ Created on Apr. 26, 2024
 testing QGIS plugin
     see test_dialog for dialog tests
 '''
-import pytest, logging
+import pytest, logging, os
 from qgis.core import QgsApplication, QgsProject, Qgis, QgsLogger, QgsMessageLog
-
 
 
 from canflood2.hp.logr import get_log_stream
 
+print(os.environ.get('PYTHONPATH'))
+
+#from .conftest import mod_logger #needed to connect to QgsMessageLog
+ 
  
 
-
-#===============================================================================
-# configure QGIS loggers for testing
-#===============================================================================
-logger = get_log_stream(level = logging.DEBUG)
-
-def log_to_python(message, tag, level):
-    """build action to connect to QgsMessageLog"""
-    # Map QgsMessageLog level to Python logging level
-    level_map = {
-        Qgis.Info: logging.INFO,
-        Qgis.Warning: logging.WARNING,
-        Qgis.Critical: logging.ERROR,
-    } 
-
-    # Log the message using Python's logging module
-    logger.log(level_map.get(level, logging.DEBUG), "[%s] %s", tag, message)
  
-# Connect the function to QgsMessageLog
-QgsApplication.messageLog().messageReceived.connect(log_to_python)
-
-"""not sure how to capture this
-QgsLogger.messageReceived.connect(log_to_python)"""
-
-
-
-
-
+ 
+ 
 #===============================================================================
 # tests --------
 #===============================================================================
-
-
-
+ 
+ 
+ 
 @pytest.mark.parametrize('qlevel',[Qgis.Info], indirect=False) 
-def test_logging(qlevel, qgis_app):
+def test_logging(qlevel, qgis_app, logger):
     #caplog.set_level(logging.DEBUG)
-    
+     
     msg='test_message'
     QgsMessageLog.logMessage(msg, 'tabName', level=qlevel)
     #QgsLogger.debug('%i_%s'%(qlevel, msg)) #also send to file
-    
+     
     #assert "Test message" in caplog.text
-    
+     
     #print(f'finished test for {msg}')
  
 
@@ -70,6 +48,7 @@ def test_plugin_loads(qgis_app, qgis_iface, mocker):
     
     import pytest_mock #required for overriding QGIS settings
     from canflood2.plugin import Canflood_plugin as Plugin
+    from canflood2.dialog_main import Main_dialog as Dialog
   
     mocker.patch('PyQt5.QtCore.QSettings.value', return_value='en_EN') # Corrected import path 
    
@@ -79,5 +58,14 @@ def test_plugin_loads(qgis_app, qgis_iface, mocker):
     
     assert len(plugin.actions) == 1  # Expecting one action 
     assert plugin.actions[0].text() == "CanFlood2", f'got unexpected string: {plugin.actions[0].text()}'  # Check the action's text
+    
+    
+    # Ensure first_start is True so that the dialog will be created on launch
+    plugin.first_start = True
+    plugin.launch_dialog()
+
+    # Verify that the dialog was created and is of the correct type.
+    assert hasattr(plugin, 'dlg')
+    assert isinstance(plugin.dlg, Dialog)
     
  

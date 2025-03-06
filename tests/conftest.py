@@ -3,7 +3,7 @@ Created on Apr. 16, 2024
 
 @author: cef
 '''
-print(f'sarting conftest.py')
+ 
 import os, logging, sys
 import pytest
  

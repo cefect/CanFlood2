@@ -67,11 +67,9 @@ def test_init(dialog,):
     
     
     """uncomment the below to use pytest to launch the dialog interactively"""
-    #===========================================================================
-    # dialog.show()
-    # QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
-    # sys.exit(QApp.exec_()) #wrap
-    #===========================================================================
+    dialog.show()
+    QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+    sys.exit(QApp.exec_()) #wrap
  
  
     

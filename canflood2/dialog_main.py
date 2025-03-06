@@ -63,6 +63,7 @@ FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qg
 
 
 
+
 #===============================================================================
 # Dialog class
 #===============================================================================
@@ -261,9 +262,54 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         # Model Suite---------
         #=======================================================================
         
+        #populate a model instance into each of the 7 categories, using 'horizontalLayout_MS_modelTemplate' as a template
+ 
+        
+        #retrieve all the group boxes inside the model set:
+        modelSet_groupBoxes = self.groupBox_MS_modelSet.findChildren(QtWidgets.QGroupBox)
+        
+        # Loop through each group box, and load the model template into it.
+        for gb in modelSet_groupBoxes:
+            model_template_widget = load_model_widget_template()
+            
+            # Create a new layout for the group box if it doesn't have one
+            if gb.layout() is None:
+                gb.setLayout(QtWidgets.QVBoxLayout())
+        
+            # Add the loaded widget to the group box's layout
+            gb.layout().addWidget(model_template_widget)
+            
+        """stopped here... need to dynamically rename things ad collect in a contaoiner
+        to access later"""
+            
+
+            
+            
+        log.debug("populated model suite")
+        """
+        self.show()
+        """
         
         
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.debug('slots connected')
         
         
-        
+#===============================================================================
+# helpers-----
+#===============================================================================
+# Load the widget from the .ui file
+def load_model_widget_template(
+    model_template_ui = os.path.join(os.path.dirname(__file__), 'canflood2_model_widget.ui'), 
+    parent=None):
+    """load the model widget template"""
+    assert os.path.exists(model_template_ui), f'bad model_template_ui: {model_template_ui}'
+    widget = QtWidgets.QWidget(parent)
+    uic.loadUi(model_template_ui, widget)
+    return widget
+
+# Path to the model template UI file
+
         

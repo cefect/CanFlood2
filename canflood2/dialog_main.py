@@ -21,14 +21,29 @@
  *                                                                         *
  ***************************************************************************/
 """
+#===============================================================================
+# IMPORTS-------------
+#===============================================================================
+
 
 import os, sys
 
-from qgis.PyQt import uic
-from qgis.PyQt import QtWidgets
+#PyQt
+from PyQt5 import uic, QtWidgets
+from PyQt5.QtWidgets import (
+    QAction, QFileDialog, QListWidget, QTableWidgetItem, QDoubleSpinBox
+    )
 
-from .hp.plug import plugLogger
+#qgis
+#from qgis.core import *
+from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel, \
+    QgsWkbTypes, QgsMapLayer, QgsLogger
 
+ 
+
+from .hp.plug import plugLogger, bind_layersListWidget
+
+from .parameters import (home_dir)
 #===============================================================================
 # load UI and resources
 #===============================================================================
@@ -44,7 +59,7 @@ if not os.path.dirname(resources_module_fp) in sys.path:
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 ui_fp = os.path.join(os.path.dirname(__file__), 'canflood2_dialog_main.ui')
 assert os.path.exists(ui_fp), f'UI file not found: {ui_fp}'
-FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='')
+FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qgis
 
 
 
@@ -110,8 +125,141 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         from canflood2 import __version__
         self.label_version.setText(f'v{__version__}')
         
+        #=======================================================================
+        # Project Setup tab-----------
+        #=======================================================================
+        
+        #=======================================================================
+        # project database file
+        #=======================================================================
+        def load_project_database_ui():
+            filename, _ = QFileDialog.getOpenFileName(
+                self,  # Parent widget (your dialog)
+                "Open project database (sqlite) file",  # Dialog title
+                home_dir,  # Initial directory (optional, use current working dir by default)
+                "sqlite database files (*.db)"  # Example file filters
+                )
+            if filename:
+                self.lineEdit_PS_projDB_fp.setText(filename) 
+            
+        self.pushButton_PS_projDB_load.clicked.connect(load_project_database_ui)
         
         
+        
+        
+        
+        def create_new_project_database_ui():
+            filename, _ = QFileDialog.getSaveFileName(
+                self,  # Parent widget (your dialog)
+                "Save project database (sqlite) file",  # Dialog title
+                home_dir,  # Initial directory (optional, use current working dir by default)
+                "sqlite database files (*.db)"  # Example file filters
+                )
+            if filename:
+                self.lineEdit_PS_projDB_fp.setText(filename)
+                
+        self.pushButton_PS_projDB_new.clicked.connect(create_new_project_database_ui)
+        
+        #=======================================================================
+        # Study Area Polygon
+        #=======================================================================
+        self.comboBox_aoi.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.comboBox_aoi.setCurrentIndex(-1)
+        
+        
+        #=======================================================================
+        # DEM Raster
+        #=======================================================================
+        self.comboBox_dem.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.comboBox_dem.setCurrentIndex(-1)
+        
+        #=======================================================================
+        # Hazard scenario tab------------
+        #=======================================================================
+        
+        #=======================================================================
+        # Hazard Scenario Database File
+        #=======================================================================
+        def load_hazard_database_ui():
+            filename, _ = QFileDialog.getOpenFileName(
+                self,  # Parent widget (your dialog)
+                "Open hazard database (sqlite) file",  # Dialog title
+                home_dir,  # Initial directory (optional, use current working dir by default)
+                "sqlite database files (*.db)"  # Example file filters
+                )
+            if filename:
+                self.lineEdit_HZ_hazDB_fp.setText(filename)
+                
+        self.pushButton_HZ_hazDB_load.clicked.connect(load_hazard_database_ui)
+        
+        def create_new_hazard_database_ui():
+            filename, _ = QFileDialog.getSaveFileName(
+                self,  # Parent widget (your dialog)
+                "Save hazard database (sqlite) file",  # Dialog title
+                home_dir,  # Initial directory (optional, use current working dir by default)
+                "sqlite database files (*.db)"  # Example file filters
+                )
+            if filename:
+                self.lineEdit_HZ_hazDB_fp.setText(filename)
+                
+        self.pushButton_HZ_hazDB_new.clicked.connect(create_new_hazard_database_ui)
+        
+        
+        
+        #=======================================================================
+        # #Hazard Event Rasters
+        #=======================================================================
+        #setup the list widget and add some special methods
+        lv = self.listView_HZ_hrlay 
+        bind_layersListWidget(lv, log, iface=self.iface,layerType=QgsMapLayer.RasterLayer)
+        
+        #connect standard hazars selection buttons
+        self.pushButton_HZ_hrlay_selectAll.clicked.connect(lv.check_all)
+        self.pushButton_HZ_hrlay_selectVis.clicked.connect(lv.select_visible)
+        self.pushButton_HZ_hrlay_canvas.clicked.connect(lv.select_canvas)
+        self.pushButton_HZ_hrlay_clear.clicked.connect(lv.clear_checks)
+        self.pushButton_HZ_refresh.clicked.connect(lambda x: lv.populate_layers())
+        
+        #TODO: add a button to select all layers matching some string (e.g., 'haz')
+        
+        lv.populate_layers() #do an intial popluation.
+        
+        #connect loading intot he event metadata view
+        def load_selected_rasters_to_event_metadata():
+ 
+            #retrieve the selected layers from teh above table
+            layers = self.listView_HZ_hrlay.get_selected_layers()
+            
+            w = self.fieldsTable_HZ_eventMeta
+            
+            # Clear any existing contents and rows.
+            w.clearContents()
+            w.setRowCount(len(layers))
+        
+            # Set up the table with 3 columns and appropriate header labels.
+            w.setColumnCount(3)
+            w.setHorizontalHeaderLabels(["Event Name", "Probability", "Metadata (optional)"])
+        
+            # Loop through the layers list and create a new row for each.
+            for rindx, ename in enumerate(layers):
+                w.setItem(rindx, 0, QTableWidgetItem(ename)) 
+                
+                # Create a QDoubleSpinBox for the Probability column
+                probability_spinbox = QDoubleSpinBox()
+                probability_spinbox.setRange(0.0, 9999)  # Set range for probability values
+                probability_spinbox.setDecimals(4)  # Set the number of decimal places
+                w.setCellWidget(rindx, 1, probability_spinbox)
+                
+            # Set the third column to expand to the remaining space
+            header = w.horizontalHeader()
+            header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        
+        self.pushButton_HZ_hrlay_load.clicked.connect(load_selected_rasters_to_event_metadata)
+        
+        
+        #=======================================================================
+        # Model Suite---------
+        #=======================================================================
         
         
         

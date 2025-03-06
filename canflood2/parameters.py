@@ -11,7 +11,7 @@ from datetime import datetime
 #===============================================================================
 src_dir = os.path.dirname(os.path.dirname(__file__))
 plugin_dir = os.path.dirname(__file__)
-home_dir = os.path.join(os.path.expanduser('~'), 'CanCurve')
+home_dir = os.path.join(os.path.expanduser('~'), 'CanFlood2')
 
 #===============================================================================
 # logging

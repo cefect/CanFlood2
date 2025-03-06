@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>962</width>
+    <width>979</width>
     <height>1000</height>
    </rect>
   </property>
@@ -125,9 +125,9 @@ QTabBar::tab:selected { /* Style for selected tabs */
 </string>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
-     <widget class="QWidget" name="tab1welcome">
+     <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">
        <palette>
         <active/>
@@ -264,7 +264,7 @@ p, li { white-space: pre-wrap; }
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab2ProjectSetup">
+     <widget class="QWidget" name="tab_02_PS">
       <attribute name="title">
        <string>Project Setup</string>
       </attribute>
@@ -279,13 +279,13 @@ p, li { white-space: pre-wrap; }
        <item>
         <widget class="QGroupBox" name="groupBox_2">
          <property name="title">
-          <string>Project File</string>
+          <string>Project Database File</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_9">
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_2">
             <item>
-             <widget class="QLineEdit" name="lineEdit">
+             <widget class="QLineEdit" name="lineEdit_PS_projDB_fp">
               <property name="text">
                <string/>
               </property>
@@ -295,28 +295,24 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_13">
+             <widget class="QPushButton" name="pushButton_PS_projDB_new">
               <property name="text">
                <string>New</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_3">
-              <property name="text">
-               <string>Browse</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_4">
+             <widget class="QPushButton" name="pushButton_PS_projDB_load">
               <property name="text">
                <string>Load</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_14">
+             <widget class="QPushButton" name="pushButton_PS_projDB_export">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="text">
                <string>Export</string>
               </property>
@@ -330,7 +326,7 @@ p, li { white-space: pre-wrap; }
        <item>
         <widget class="QGroupBox" name="groupBox_5">
          <property name="title">
-          <string>Metadata</string>
+          <string>Project Metadata</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_14">
           <item>
@@ -371,11 +367,18 @@ p, li { white-space: pre-wrap; }
        <item>
         <widget class="QGroupBox" name="groupBox_9">
          <property name="title">
-          <string>Study Area Polygon</string>
+          <string>Study Area Polygon (optional)</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
           <item>
-           <widget class="QgsMapLayerComboBox" name="mMapLayerComboBox"/>
+           <widget class="QgsMapLayerComboBox" name="comboBox_aoi">
+            <property name="toolTip">
+             <string>Select the polygon vector layer to use for the study area</string>
+            </property>
+            <property name="showCrs">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -389,14 +392,30 @@ p, li { white-space: pre-wrap; }
           </sizepolicy>
          </property>
          <property name="title">
-          <string>DEM raster:</string>
+          <string>DEM raster (optional)</string>
          </property>
          <layout class="QVBoxLayout" name="_16">
           <item>
-           <widget class="QgsMapLayerComboBox" name="comboBox_dtm"/>
+           <widget class="QgsMapLayerComboBox" name="comboBox_dem">
+            <property name="toolTip">
+             <string>Select the raster layer to use for the Digital Elevation Model</string>
+            </property>
+            <property name="showCrs">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
           <item alignment="Qt::AlignHCenter">
            <widget class="QGroupBox" name="groupBox_10">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="title">
              <string>DEM metadata</string>
             </property>
@@ -411,7 +430,14 @@ p, li { white-space: pre-wrap; }
                 </widget>
                </item>
                <item row="0" column="1">
-                <widget class="QLineEdit" name="sourceLineEdit"/>
+                <widget class="QLineEdit" name="sourceLineEdit">
+                 <property name="minimumSize">
+                  <size>
+                   <width>800</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item row="1" column="0">
                 <widget class="QLabel" name="cRSLabel">
@@ -448,6 +474,19 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_5">
                <item>
+                <spacer name="horizontalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
                 <widget class="QPushButton" name="pushButton_8">
                  <property name="text">
                   <string>Edit file metadata</string>
@@ -460,6 +499,19 @@ p, li { white-space: pre-wrap; }
                   <string>Load from raster</string>
                  </property>
                 </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
                </item>
               </layout>
              </item>
@@ -484,7 +536,7 @@ p, li { white-space: pre-wrap; }
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab">
+     <widget class="QWidget" name="tab_03_HZ">
       <attribute name="title">
        <string>Hazard</string>
       </attribute>
@@ -492,7 +544,7 @@ p, li { white-space: pre-wrap; }
        <item>
         <widget class="QLabel" name="label_3">
          <property name="text">
-          <string>Configure hazard scenario</string>
+          <string>Configure your hazard scenario</string>
          </property>
         </widget>
        </item>
@@ -505,7 +557,7 @@ p, li { white-space: pre-wrap; }
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_6">
             <item>
-             <widget class="QLineEdit" name="lineEdit_2">
+             <widget class="QLineEdit" name="lineEdit_HZ_hazDB_fp">
               <property name="text">
                <string/>
               </property>
@@ -515,21 +567,14 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_12">
+             <widget class="QPushButton" name="pushButton_HZ_hazDB_new">
               <property name="text">
                <string>New</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_10">
-              <property name="text">
-               <string>Browse</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_11">
+             <widget class="QPushButton" name="pushButton_HZ_hazDB_load">
               <property name="text">
                <string>Load</string>
               </property>
@@ -644,7 +689,7 @@ p, li { white-space: pre-wrap; }
           <item>
            <widget class="QLabel" name="label_8">
             <property name="text">
-             <string>Select the raster layers to include in the hazard scenario, then click Load to enter the metadata.</string>
+             <string>Select the raster layers to include in the hazard scenario, then click &quot;Load&quot; to enter the metadata. Click &quot;Refresh&quot; to update the layer set.</string>
             </property>
            </widget>
           </item>
@@ -653,35 +698,41 @@ p, li { white-space: pre-wrap; }
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_11">
               <item>
-               <widget class="QPushButton" name="pushButton_expo_sAll">
+               <widget class="QPushButton" name="pushButton_HZ_hrlay_selectAll">
                 <property name="text">
                  <string>Select All</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButton_expo_sVis">
+               <widget class="QPushButton" name="pushButton_HZ_hrlay_selectVis">
+                <property name="toolTip">
+                 <string>Select all layers visible in the canvas</string>
+                </property>
                 <property name="text">
                  <string>Select Visible</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButton_expo_canvas">
+               <widget class="QPushButton" name="pushButton_HZ_hrlay_canvas">
+                <property name="toolTip">
+                 <string>Set the selection to match the selection from the main QGIS canvas</string>
+                </property>
                 <property name="text">
                  <string>Canvas Selection</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButton_expo_clear">
+               <widget class="QPushButton" name="pushButton_HZ_hrlay_clear">
                 <property name="text">
                  <string>Clear Selection</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButton_expo_refr">
+               <widget class="QPushButton" name="pushButton_HZ_refresh">
                 <property name="text">
                  <string>Refresh</string>
                 </property>
@@ -701,7 +752,7 @@ p, li { white-space: pre-wrap; }
                </spacer>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButton_6">
+               <widget class="QPushButton" name="pushButton_HZ_hrlay_load">
                 <property name="text">
                  <string>Load</string>
                 </property>
@@ -710,7 +761,7 @@ p, li { white-space: pre-wrap; }
              </layout>
             </item>
             <item>
-             <widget class="QListView" name="listView_expo_rlays">
+             <widget class="QListView" name="listView_HZ_hrlay">
               <property name="toolTip">
                <string>Select the rasters to 'Prep' or 'Sample'</string>
               </property>
@@ -791,7 +842,7 @@ p, li { white-space: pre-wrap; }
            </layout>
           </item>
           <item>
-           <widget class="QTableWidget" name="fieldsTable_EL">
+           <widget class="QTableWidget" name="fieldsTable_HZ_eventMeta">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
@@ -838,23 +889,8 @@ p, li { white-space: pre-wrap; }
              <number>0</number>
             </property>
             <property name="columnCount">
-             <number>3</number>
+             <number>0</number>
             </property>
-            <column>
-             <property name="text">
-              <string>Event Name</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Probability</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Metadata</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -862,7 +898,7 @@ p, li { white-space: pre-wrap; }
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab2bldgDetils">
+     <widget class="QWidget" name="tab_04_MS">
       <attribute name="title">
        <string>Model Suite</string>
       </attribute>
@@ -908,7 +944,7 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>924</width>
+            <width>941</width>
             <height>647</height>
            </rect>
           </property>
@@ -1315,7 +1351,7 @@ QGroupBox {
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_2">
+     <widget class="QWidget" name="tab_05_rpt">
       <attribute name="title">
        <string>Reporting</string>
       </attribute>
@@ -1789,7 +1825,7 @@ QGroupBox {
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>754</width>
+             <width>771</width>
              <height>58</height>
             </rect>
            </property>

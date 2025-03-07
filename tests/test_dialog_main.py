@@ -63,13 +63,15 @@ def dialog(qgis_iface, logger):
 
 
 @pytest.mark.dev
-def test_init(dialog,):
+def test_dial_main_00_init(dialog,):
     
     
-    """uncomment the below to use pytest to launch the dialog interactively"""
-    dialog.show()
-    QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
-    sys.exit(QApp.exec_()) #wrap
+    #===========================================================================
+    # """uncomment the below to use pytest to launch the dialog interactively"""
+    # dialog.show()
+    # QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+    # sys.exit(QApp.exec_()) #wrap
+    #===========================================================================
  
  
     
@@ -85,7 +87,7 @@ def test_init(dialog,):
 #     QTest.mouseClick(w, Qt.LeftButton)
 #===============================================================================
 
-def test_01_load_project_database(monkeypatch, dialog):
+def test_dial_main_01_load_project_database(monkeypatch, dialog):
     """Test that clicking the 'load project database' button sets the lineEdit with the dummy file path.
 
     This test overrides QFileDialog.getOpenFileName to return a dummy file path,
@@ -106,7 +108,7 @@ def test_01_load_project_database(monkeypatch, dialog):
 
 
  
-def test_02_create_new_project_database(monkeypatch, dialog):
+def test_dial_main_02_create_new_project_database(monkeypatch, dialog):
     """Test that clicking the 'create new project database' button sets the lineEdit with the dummy file path.
 
     This test overrides QFileDialog.getSaveFileName to return a dummy file path,

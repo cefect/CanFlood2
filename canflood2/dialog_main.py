@@ -26,7 +26,7 @@
 #===============================================================================
 
 
-import os, sys
+import os, sys, re
 
 #PyQt
 from PyQt5 import uic, QtWidgets
@@ -43,14 +43,17 @@ from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerPro
 
 from .hp.plug import plugLogger, bind_layersListWidget
 
-from .parameters import (home_dir)
+from .parameters import (home_dir, plugin_dir)
+
+from .core import Model
+from .dialog_model import Model_config_dialog
 #===============================================================================
 # load UI and resources
 #===============================================================================
 
 #append the path (resources_rc workaround)
 """TODO: figure out if this is still needed or if there is a more elegant solution"""
-from .parameters import plugin_dir
+
 resources_module_fp = os.path.join(plugin_dir, 'resources.py')
 assert os.path.exists(resources_module_fp), resources_module_fp 
 if not os.path.dirname(resources_module_fp) in sys.path:
@@ -68,7 +71,10 @@ FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qg
 # Dialog class
 #===============================================================================
 class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None,iface=None,debug_logger=None,                 ):
+    
+ 
+    
+    def __init__(self, parent=None,iface=None,debug_logger=None):
         """dialog for main CanFlood window
         
         
@@ -93,6 +99,9 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.parent=parent
         self.iface=iface 
+        
+        self.model_index_d = dict() #for tracking the model instances
+        #{category_code:{modelid:Model}}
         
         #setup logger
         self.logger = plugLogger(
@@ -261,6 +270,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # Model Suite---------
         #=======================================================================
+        self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
         
         #populate a model instance into each of the 7 categories, using 'horizontalLayout_MS_modelTemplate' as a template
  
@@ -270,14 +280,19 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Loop through each group box, and load the model template into it.
         for gb in modelSet_groupBoxes:
-            model_template_widget = load_model_widget_template()
+            #groupbox_name = gb.objectName()
+            groupbox_title = gb.title()
+            
+            category_code, category_desc = extract_gropubox_codes(groupbox_title)
+            
             
             # Create a new layout for the group box if it doesn't have one
             if gb.layout() is None:
                 gb.setLayout(QtWidgets.QVBoxLayout())
         
             # Add the loaded widget to the group box's layout
-            gb.layout().addWidget(model_template_widget)
+            self.add_model(gb.layout(), category_code, category_desc)
+ 
             
         """stopped here... need to dynamically rename things ad collect in a contaoiner
         to access later"""
@@ -296,6 +311,40 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         log.debug('slots connected')
         
+    def add_model(self, layout, category_code, category_desc, logger=None):
+        """start a model object, then add the template to the layout"""
+        if logger is None: logger=self.logger.getChild('add_model')
+        
+        #setup the UI        
+        widget = load_model_widget_template() #load the model template
+        layout.addWidget(widget) #add it to the widget
+        
+        #retrieve the modelid
+        if not category_code in self.model_index_d:
+            self.model_index_d[category_code] = dict()
+            
+        modelid = len(self.model_index_d[category_code])
+        
+        
+        #setup the model object
+        wrkr = Model(parent=self,
+                     widget_suite=widget, 
+                     category_code=category_code, category_desc=category_desc, modelid=modelid,
+                     logger=self.logger)
+        
+        #connect the buttons
+        widget.pushButton_mod_run.clicked.connect(wrkr.run_model)
+        widget.pushButton_mod_config.clicked.connect(wrkr.launch_config_ui)
+ 
+ 
+        
+        #add to the index
+        assert not modelid in self.model_index_d[category_code]
+        self.model_index_d[category_code][modelid] = wrkr
+        
+        
+        
+        
         
 #===============================================================================
 # helpers-----
@@ -311,5 +360,23 @@ def load_model_widget_template(
     return widget
 
 # Path to the model template UI file
+def extract_gropubox_codes(input_string):
+    """
+    Extracts 'c1' and the remaining text from the input string.
 
+    Parameters:
+    input_string (str): The input string in the format '[c1] remaining text'.
+
+    Returns:
+    tuple: A tuple containing 'c1' and the remaining text.
+    """
+    pattern = r'\[(.*?)\]\s*(.*)'
+    match = re.match(pattern, input_string)
+
+    if match:
+        c1 = match.group(1)
+        remaining_text = match.group(2)
+        return c1, remaining_text
+    else:
+        return None, None
         

@@ -6,12 +6,59 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>770</width>
+    <width>978</width>
     <height>702</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Model Configuration</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QPushButton {
+  background-color: #2B403F;
+  color: white;
+}
+
+QPushButton:disabled { 
+    background-color: #99B7B3; /* Example: Gray background for disabled state */
+	color:#DDDDDD
+}
+
+ 
+QTextEdit {
+    background-color: #99B7B3; 
+}
+
+
+ 
+QWidget { /* Targets most widgets */
+    font-size: 14px;  
+} 
+
+/* For more specific elements */
+QLabel {
+    font-size: 14px; 
+}
+
+QToolBox {
+    background-color: #99B7B3;
+}
+QDialog {
+    background-color: #99B7B3;
+}
+QToolBox &gt; QWidget {
+    background-color: #99B7B3;
+}
+QToolBox::tab:selected {
+  background-color: #99B7B3;
+  color: #2B403F;
+}
+
+/* Style the selected tab */
+QToolBox::tab {
+  background-color: #2B403F;
+  color: white;
+}</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -24,8 +71,15 @@
        <layout class="QHBoxLayout" name="horizontalLayout_19">
         <item>
          <widget class="QLabel" name="label_34">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="font">
            <font>
+            <pointsize>-1</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>
@@ -34,10 +88,17 @@
            <enum>QFrame::StyledPanel</enum>
           </property>
           <property name="text">
-           <string> Category: [c1] People (Health and Safety)</string>
+           <string> Category:</string>
           </property>
           <property name="margin">
            <number>1</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_category">
+          <property name="text">
+           <string/>
           </property>
          </widget>
         </item>
@@ -48,21 +109,60 @@
         <item>
          <widget class="QLabel" name="label_35">
           <property name="text">
-           <string>Model: ??</string>
+           <string>Model:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_mod_modelid">
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QLabel" name="label_36">
           <property name="text">
-           <string>Consequence: ??      </string>
+           <string>Consequence:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_mod_consq">
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QLabel" name="label_37">
           <property name="text">
-           <string>Asset: ??</string>
+           <string>Asset:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_mod_asset">
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
           </property>
          </widget>
         </item>
@@ -82,7 +182,20 @@
         <item>
          <widget class="QLabel" name="label_39">
           <property name="text">
-           <string>Status: ready</string>
+           <string>Status:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_mod_status">
+          <property name="minimumSize">
+           <size>
+            <width>75</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
           </property>
          </widget>
         </item>
@@ -135,15 +248,15 @@
       <enum>QFrame::Raised</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>733</width>
-        <height>445</height>
+        <width>941</width>
+        <height>485</height>
        </rect>
       </property>
       <attribute name="label">
@@ -545,8 +658,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>750</width>
-        <height>367</height>
+        <width>958</width>
+        <height>336</height>
        </rect>
       </property>
       <attribute name="label">
@@ -696,8 +809,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>750</width>
-        <height>367</height>
+        <width>958</width>
+        <height>336</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1176,32 +1289,22 @@
          </layout>
         </item>
         <item>
-         <widget class="QDialogButtonBox" name="buttonBox">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="layoutDirection">
-           <enum>Qt::LeftToRight</enum>
-          </property>
-          <property name="autoFillBackground">
-           <bool>false</bool>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="standardButtons">
-           <set>QDialogButtonBox::Close|QDialogButtonBox::Ok</set>
-          </property>
-          <property name="centerButtons">
-           <bool>false</bool>
-          </property>
-         </widget>
+         <layout class="QVBoxLayout" name="verticalLayout_10">
+          <item>
+           <widget class="QPushButton" name="pushButton_ok">
+            <property name="text">
+             <string>OK</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_close">
+            <property name="text">
+             <string>Close</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>

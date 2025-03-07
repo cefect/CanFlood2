@@ -74,7 +74,7 @@ QLabel {
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_MS_c1_modelid">
+      <widget class="QLabel" name="label_mod_modelid">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -112,7 +112,7 @@ QLabel {
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_12">
+      <widget class="QLabel" name="label_mod_consq">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -150,7 +150,7 @@ QLabel {
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_MS_c1_asset">
+      <widget class="QLabel" name="label_mod_asset">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -190,7 +190,7 @@ QLabel {
     </spacer>
    </item>
    <item>
-    <widget class="QProgressBar" name="progressBar_MS">
+    <widget class="QProgressBar" name="progressBar_mod">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -212,7 +212,7 @@ QLabel {
     </widget>
    </item>
    <item>
-    <widget class="QPushButton" name="pushButton_MS_run">
+    <widget class="QPushButton" name="pushButton_mod_run">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -231,7 +231,7 @@ QLabel {
     </widget>
    </item>
    <item>
-    <widget class="QPushButton" name="pushButton_MS_config">
+    <widget class="QPushButton" name="pushButton_mod_config">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -250,7 +250,7 @@ QLabel {
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="label_MS_c1_status">
+    <widget class="QLabel" name="label_mod_status">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -275,7 +275,7 @@ QLabel {
     </widget>
    </item>
    <item>
-    <widget class="QPushButton" name="pushButton_MS_minus">
+    <widget class="QPushButton" name="pushButton_mod_minus">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -294,7 +294,7 @@ QLabel {
     </widget>
    </item>
    <item>
-    <widget class="QPushButton" name="pushButton_MS_plus">
+    <widget class="QPushButton" name="pushButton_mod_plus">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>

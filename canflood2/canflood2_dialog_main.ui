@@ -16,43 +16,6 @@
     <height>1000</height>
    </size>
   </property>
-  <property name="palette">
-   <palette>
-    <active>
-     <colorrole role="Window">
-      <brush brushstyle="SolidPattern">
-       <color alpha="255">
-        <red>153</red>
-        <green>183</green>
-        <blue>179</blue>
-       </color>
-      </brush>
-     </colorrole>
-    </active>
-    <inactive>
-     <colorrole role="Window">
-      <brush brushstyle="SolidPattern">
-       <color alpha="255">
-        <red>153</red>
-        <green>183</green>
-        <blue>179</blue>
-       </color>
-      </brush>
-     </colorrole>
-    </inactive>
-    <disabled>
-     <colorrole role="Window">
-      <brush brushstyle="SolidPattern">
-       <color alpha="255">
-        <red>153</red>
-        <green>183</green>
-        <blue>179</blue>
-       </color>
-      </brush>
-     </colorrole>
-    </disabled>
-   </palette>
-  </property>
   <property name="font">
    <font>
     <pointsize>-1</pointsize>
@@ -88,7 +51,9 @@ QLabel {
     font-size: 14px; 
 }
 
-</string>
+QMainWindow {
+    background-color: #99B7B3;
+}</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -125,7 +90,7 @@ QTabBar::tab:selected { /* Style for selected tabs */
 </string>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">

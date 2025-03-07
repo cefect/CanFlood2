@@ -90,7 +90,7 @@ QTabBar::tab:selected { /* Style for selected tabs */
 </string>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">
@@ -269,7 +269,7 @@ p, li { white-space: pre-wrap; }
             <item>
              <widget class="QPushButton" name="pushButton_PS_projDB_load">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>Load</string>
@@ -912,8 +912,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>941</width>
-            <height>647</height>
+            <width>275</width>
+            <height>356</height>
            </rect>
           </property>
           <property name="styleSheet">

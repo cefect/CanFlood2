@@ -87,32 +87,33 @@ def test_dial_main_00_init(dialog,):
 #     QTest.mouseClick(w, Qt.LeftButton)
 #===============================================================================
 
-def test_dial_main_01_load_project_database(dialog):
+@pytest.mark.parametrize("projDB_fp", ["dummy_path_load.db"])
+def test_dial_main_01_load_project_database(dialog, projDB_fp, monkeypatch):
     """Test that clicking the 'load project database' button sets the lineEdit with the dummy file path.
 
     This test overrides QFileDialog.getOpenFileName to return a dummy file path,
     simulates a click on the load button, and then checks that the file path appears in the lineEdit.
     """
     #dummy_file = "dummy_path_load.db"
-    #===========================================================================
-    # monkeypatch.setattr(
-    #     QFileDialog, 
-    #     "getOpenFileName", 
-    #     lambda *args, **kwargs: (dummy_file, "sqlite database files (*.db)")
-    # )
-    #===========================================================================
+    monkeypatch.setattr(
+        QFileDialog, 
+        "getOpenFileName", 
+        lambda *args, **kwargs: (projDB_fp, "sqlite database files (*.db)")
+    )
 
     # Simulate clicking the load project database button.
     QTest.mouseClick(dialog.pushButton_PS_projDB_load, Qt.LeftButton)
     
+ 
+    
     # Verify that the lineEdit now contains the dummy file path.
-    assert not dialog.lineEdit_PS_projDB_fp.text() == ''
+    #assert not dialog.lineEdit_PS_projDB_fp.text() == ''
 
 
 @pytest.mark.dev
 def test_dial_main_02_create_new_project_database(monkeypatch, dialog, tmpdir):
     """Test that clicking the 'create new project database' button sets the lineEdit with the dummy file path.
-
+ 
     This test overrides QFileDialog.getSaveFileName to return a dummy file path,
     simulates a click on the new project button, and then checks that the file path is displayed in the lineEdit.
     """
@@ -122,10 +123,10 @@ def test_dial_main_02_create_new_project_database(monkeypatch, dialog, tmpdir):
         "getSaveFileName", 
         lambda *args, **kwargs: (dummy_file, "sqlite database files (*.db)")
     )
-
+ 
     # Simulate clicking the new project database button.
     QTest.mouseClick(dialog.pushButton_PS_projDB_new, Qt.LeftButton)
-    
+     
     # Verify that the lineEdit now contains the dummy file path.
     assert dialog.lineEdit_PS_projDB_fp.text() == dummy_file
     

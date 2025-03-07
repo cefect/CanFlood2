@@ -71,7 +71,7 @@ class Model(object):
         self.consq_label=consq_label
         self.status_label=status_label
         self.name = f'{category_code}_{modelid}'
-        self.logger = logger.getChild(self.name)
+        self.logger = logger.getChild(f'M.{self.name}')
         
         if not widget_suite is None:
             self._attach_widget(widget_suite)            
@@ -79,7 +79,7 @@ class Model(object):
         
         
         
-        self.logger.debug(f'created Model {self.name}')
+        self.logger.debug(f'Model {self.name} initialized')
         
     def _attach_widget(self, widget):
         """Identify the widget children and assign pointers to myself using a recursive search."""

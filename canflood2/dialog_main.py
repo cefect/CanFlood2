@@ -162,9 +162,8 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 self.lineEdit_PS_projDB_fp.setText(filename) 
                 self._load_project_database()
             
-        def test_it():
-            print('test')
-        self.pushButton_PS_projDB_load.clicked.connect(test_it)
+ 
+        self.pushButton_PS_projDB_load.clicked.connect(load_project_database_ui)
         
         
         

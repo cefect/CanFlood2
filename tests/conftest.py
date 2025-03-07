@@ -24,7 +24,10 @@ from canflood2.hp.logr import get_log_stream
 conftest_logger = get_log_stream(name='conftest', level = logging.DEBUG) #special name to not conflict with fixture
  
 def log_to_python(message, tag, level):
-    """build action to connect to QgsMessageLog"""
+    """build action to connect to QgsMessageLog
+    
+    NOTE: Qgis.Critical seems to be printed twice. 
+    """
     # Map QgsMessageLog level to Python logging level
     level_map = {
         #note there is no Debug level in QgsMessageLog
@@ -36,12 +39,21 @@ def log_to_python(message, tag, level):
     # Log the message using Python's logging module
     conftest_logger.log(level_map.get(level, logging.DEBUG), "[%s] %s", tag, message)
   
-# Connect the function to QgsMessageLog
-"""seems to only be called when contest is explicitly imported"""
-#QgsApplication.messageLog().messageReceived.connect(log_to_python)
+
+
+#===============================================================================
+# pytest custom config
+#===============================================================================
  
-"""not sure how to capture this
-QgsLogger.messageReceived.connect(log_to_python)"""
+
+def pytest_runtest_teardown(item, nextitem):
+    """custom teardown message"""
+    test_name = item.name
+    print(f"\n{'='*20} Test completed: {test_name} {'='*20}\n\n\n")
+    
+def pytest_report_header(config):
+    """modifies the pytest header to show all of the arguments"""
+    return f"pytest arguments: {' '.join(config.invocation_params.args)}"
 
 
 #===============================================================================
@@ -50,14 +62,13 @@ QgsLogger.messageReceived.connect(log_to_python)"""
 
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='session')
 def logger():    
-    """fixture for QGIS indepednetn logger"""
+    """fixture for QGIS indepednetn logger
     
-    #connect to QgsApplication
-    """redundant in some cases, but seems to be the simplest way to 
-    connect the logger for cases where conftest is not imported
-    just need to ensure the logger fixture is called"""
+    """
+    
+    #connect to QgsApplication/QgsMessageLog
     QgsApplication.messageLog().messageReceived.connect(log_to_python)
     
     #===========================================================================

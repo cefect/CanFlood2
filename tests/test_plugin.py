@@ -33,12 +33,17 @@ def test_logging(qlevel, qgis_app, logger, test_name):
      
     print(f'print test message')
     logger.info(f'logger.info message')
+    logger.debug(f'logger.debug message')
     log = logger.getChild('testChild')
     log.info(f'child logger.info message')
     QgsMessageLog.logMessage('QgsMessageLog message', 'tabName', level=qlevel)
     
+    #===========================================================================
+    # if qlevel==Qgis.Critical:
+    #     assert False
+    #===========================================================================
     
-    print(f'finished {test_name}\n===========================\n\n')
+ 
  
  
 

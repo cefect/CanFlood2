@@ -94,6 +94,7 @@ def test_dial_main_01_load_project_database(dialog, projDB_fp, monkeypatch):
     This test overrides QFileDialog.getOpenFileName to return a dummy file path,
     simulates a click on the load button, and then checks that the file path appears in the lineEdit.
     """
+    raise IOError('need to add a test database')
     #dummy_file = "dummy_path_load.db"
     monkeypatch.setattr(
         QFileDialog, 

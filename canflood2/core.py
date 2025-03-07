@@ -44,7 +44,8 @@ class Model(object):
                   
                  category_code='c1', category_desc='desc',
                  modelid=0, logger=None,
-                 asset_label='', consq_label='',status_label='incomplete'
+                 asset_label='', consq_label='',status_label='incomplete',
+
                  ):
         """Constructor for the model class.
         
@@ -80,6 +81,10 @@ class Model(object):
         
         
         self.logger.debug(f'Model {self.name} initialized')
+        
+    def get_index_d(self):
+        return {'category_code':self.category_code, 'modelid':self.modelid, 'category_desc':self.category_desc,
+                'name':self.name}
         
     def _attach_widget(self, widget):
         """Identify the widget children and assign pointers to myself using a recursive search."""

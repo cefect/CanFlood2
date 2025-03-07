@@ -32,18 +32,34 @@ today_str = datetime.now().strftime("%Y%m%d")
 # project database
 #===============================================================================
 project_db_schema_d = {
-    'project_parameters': None,
-    'project_meta': None,
-    'model_suite_index': pd.DataFrame(
+    '01_project_meta': None,
+    '02_project_parameters': None,
+
+    '03_model_suite_index': pd.DataFrame(
             columns={
                 'modelid': int,
                 'category_code': str,
                 'category_desc': str,
                 'name': str,
-                'model_parameter_table_name': str,
+                'result_ead': float, #resulting integrated EAD
+                
+                
+                
             }
         )
     }
 
+project_db_schema_nested_d = {
+    'table_parameters': None,  # name of parameter table: simple key, value for the parameters in the model config UI
+    'table_vfunc_index': None,  # name of table for: index of vfunc tables
+    'table_finv': None,  # name of table for: asset inventory (scale, elev, tag, cap)
+    'tabel_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
+    'table_gels': None,  # name of table for: ground elevation data (columns: dem name, rows: assets)
+    'table_dmgs': None,  # name of table for: damage data (columns: hazard event names, rows: assets, values: exposure and curve intersect)
+}
+
+#add each entry from project_db_schema_nested_d as a string column to the project_db_schema_d['00_model_suite_index']
+for key in project_db_schema_nested_d.keys():
+    project_db_schema_d['03_model_suite_index'][key] = ''
 
 project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_template.csv')

@@ -29,6 +29,7 @@
 import os, sys, re
 import sqlite3
 import pandas as pd
+import numpy as np
 
 #PyQt
 from PyQt5 import uic, QtWidgets
@@ -394,29 +395,39 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # #build the project metadata
         #=======================================================================
+        table_name='01_project_meta'
         d = _get_proj_meta_d(log)
         d.update(dict(function_name='_create_new_project_database', misc=''))
-        df_d['project_meta'] = pd.DataFrame(d)
+        df_d[table_name] = pd.DataFrame(d)
         
+        """
+        table
+        tabel
+        """
         #=======================================================================
         # #build the project parameters
         #=======================================================================
-        df_d['project_parameters'] = pd.read_csv(project_parameters_template_fp)
+        table_name='02_project_parameters'
+        df_d[table_name] = pd.read_csv(project_parameters_template_fp)
         
         #check the widget names match
-        for widgetName in df_d['project_parameters']['widgetName']:
+        for widgetName in df_d[table_name]['widgetName']:
             assert hasattr(self, widgetName), f'widgetName not found: {widgetName}'
         
         
         #=======================================================================
         # model suite template
         #=======================================================================
-        df_d['model_suite_index'] = project_db_schema_d['model_suite_index'].copy()
+        """this will be over-written in _save_ui_to_project_database
+        but we need it here to pass the check
+        """
+        table_name='03_model_suite_index'
+        df_d[table_name] = project_db_schema_d[table_name].copy()
         
         #=======================================================================
         # #build/write to the database
         #=======================================================================
-        log.info(f'init project SQLite db at\n    {fp}')
+        log.debug(f'init project SQLite db at\n    {fp}')
         with sqlite3.connect(fp) as conn:
             for k, df in df_d.items():
                 assert k in project_db_schema_d.keys(), k
@@ -425,6 +436,112 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
             assert_proj_db(conn)
                 
         log.info(f'created new project database w/ {len(df_d)} tables at\n    {fp}')
+        
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        self._save_ui_to_project_database(projDB_fp=fp)
+        
+        
+    def _save_ui_to_project_database(self, projDB_fp=None):
+        """save the current UI state to the project database"""
+        log = self.logger.getChild('_save_ui_to_project_database')
+        if projDB_fp is None:
+            projDB_fp = self.lineEdit_PS_projDB_fp.text()
+        
+        df_d=dict()
+        with sqlite3.connect(projDB_fp) as conn:
+            assert_proj_db(conn)
+            
+            #===================================================================
+            # update project metadata
+            #===================================================================
+            table_name='01_project_meta'
+            d = _get_proj_meta_d(log)
+            d.update(dict(function_name='_save_ui_to_project_database', misc=''))
+            df_d[table_name] = pd.DataFrame(d)
+            
+            #===================================================================
+            # #update the project parameters
+            #===================================================================
+            table_name='02_project_parameters'
+            df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
+            
+            d = dict()
+            for i, row in df_d[table_name].iterrows():
+                widgetName = row['widgetName']
+                #get the widget
+                widget = getattr(self, widgetName)
+                
+                #retrieve value from widget
+                if isinstance(widget, QtWidgets.QLineEdit):
+                    v = widget.text()
+                elif isinstance(widget, QtWidgets.QComboBox):
+                    v = widget.currentText()
+                else:
+                    raise NotImplementedError(f'widget type not implemented: {widget}')
+                
+                if (not v is None) and (v != ''):
+                    d[i] = v
+                else:
+                    d[i] = np.nan
+                
+            #update the table
+            if not df_d[table_name].index.equals(pd.Series(d).index):
+                raise ValueError("Indexes do not match")
+            
+            df_d[table_name]['value'] = pd.Series(d)
+ 
+            
+            
+            #===================================================================
+            # update the model suite index
+            #===================================================================
+            table_name='03_model_suite_index'
+            """no... always just start a new one
+            df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
+            """
+            blank_df = project_db_schema_d[table_name].copy()
+ 
+            d=dict()
+ 
+        
+            for category_code, modelid_d in self.model_index_d.items():
+ 
+                for modelid, wrkr in modelid_d.items():
+                    #add the model
+                    d[f'{category_code}_{modelid}'] = wrkr.get_index_d()
+            
+            # Convert the dictionary to a DataFrame and concatenate with the blank DataFrame
+            result_df = pd.concat([blank_df, pd.DataFrame(d).T], ignore_index=True)
+            
+            # Reindex the result DataFrame to match the blank DataFrame's columns
+            df_d[table_name] = result_df.reindex(columns=blank_df.columns).astype(blank_df.dtypes.to_dict())
+            
+ 
+ 
+            
+            #===================================================================
+            # write all the tables
+            #===================================================================
+            for k, df in df_d.items():
+                assert k in project_db_schema_d.keys(), k
+                df.to_sql(k, conn, if_exists='replace', index=False)
+                log.debug(f'updated table \'{k}\' w/ {df.shape}')
+                
+            log.debug(f'updated {len(df_d)} tables in project database at\n    {projDB_fp}')
+            
+            return
+            
+        
+        
+        
+        
+        
+        
+        
+        
+        
  
                 
 
@@ -432,8 +549,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
     def _load_project_database(self):
         """load an existing project database file"""
         fp =  self.lineEdit_PS_projDB_fp.text()
-        assert_proj_db_fp(fp)
-        raise IOError('stopped here')
+ 
         #=======================================================================
         # load data tables
         #=======================================================================
@@ -444,7 +560,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
             model_suite_index_df = pd.read_sql('SELECT * FROM model_suite_index', conn)
             
         #=======================================================================
-        # set the project paraters
+        # set the ui state from the project parameters
         #=======================================================================
         for k, row in project_parameters_df.iterrows():
             widgetName = row['widgetName']
@@ -465,6 +581,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #clear the model suite
         self._clear_all_models()
         
+        raise NotImplementedError('stopped here')
         for k, row in model_suite_index_df.iterrows():
             category_code = row['category_code']
             modelid = row['modelid']

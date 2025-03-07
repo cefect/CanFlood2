@@ -13,6 +13,7 @@ import pandas as pd
 src_dir = os.path.dirname(os.path.dirname(__file__))
 plugin_dir = os.path.dirname(__file__)
 home_dir = os.path.join(os.path.expanduser('~'), 'CanFlood2')
+os.makedirs(home_dir, exist_ok=True)
 
 #===============================================================================
 # logging
@@ -63,3 +64,9 @@ for key in project_db_schema_nested_d.keys():
     project_db_schema_d['03_model_suite_index'][key] = ''
 
 project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_template.csv')
+
+
+#===============================================================================
+# generic params
+#===============================================================================
+fileDialog_filter_str="CanFlood2 database files (*.canflood2)" 

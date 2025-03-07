@@ -11,11 +11,13 @@ import pytest
 from qgis.core import QgsApplication, QgsProject, Qgis, QgsLogger, QgsMessageLog
 from canflood2.hp.logr import get_log_stream
 
+from canflood2.parameters import src_dir
+ 
  
 #===============================================================================
 # data
 #===============================================================================
-
+test_data_dir = os.path.join(src_dir, 'tests', 'data')
 
 
 #===============================================================================

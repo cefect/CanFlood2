@@ -90,7 +90,7 @@ QTabBar::tab:selected { /* Style for selected tabs */
 </string>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">
@@ -912,8 +912,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>275</width>
-            <height>356</height>
+            <width>941</width>
+            <height>647</height>
            </rect>
           </property>
           <property name="styleSheet">
@@ -1633,7 +1633,7 @@ QLabel {
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_16">
           <item>
-           <widget class="QPushButton" name="close_pushButton">
+           <widget class="QPushButton" name="pushButton_close">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -1646,7 +1646,10 @@ QLabel {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_17">
+           <widget class="QPushButton" name="pushButton_save">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="text">
              <string>Save</string>
             </property>

@@ -47,7 +47,8 @@ from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerPro
 from .hp.plug import plugLogger, bind_layersListWidget
 
 from .parameters import (
-    home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d
+    home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d,
+    fileDialog_filter_str
                          )
 
 from .assertions import assert_proj_db_fp, assert_proj_db
@@ -128,6 +129,8 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # general----------------
         #=======================================================================
+        
+        
         def close_dialog():
             self.logger.push(f'dialog reset')
             if not self.parent is None:
@@ -135,7 +138,11 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 self.parent.first_start=True #not ideal
             self.close()
         
-        self.close_pushButton.clicked.connect(close_dialog)
+        self.pushButton_close.clicked.connect(close_dialog)
+        
+        
+        self.pushButton_save.clicked.connect(self._save_ui_to_project_database)
+        
         
         """not using 
         self.cancel_pushButton.clicked.connect(self.action_cancel_process)"""
@@ -157,11 +164,15 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 self,  # Parent widget (your dialog)
                 "Open project database (sqlite) file",  # Dialog title
                 home_dir,  # Initial directory (optional, use current working dir by default)
-                "sqlite database files (*.db)"  # Example file filters
+                fileDialog_filter_str  # Example file filters
                 )
             if filename:
                 self.lineEdit_PS_projDB_fp.setText(filename) 
                 self._load_project_database()
+                
+                #activate the save button
+                self.pushButton_save.setEnabled(True)
+                
             
  
         self.pushButton_PS_projDB_load.clicked.connect(load_project_database_ui)
@@ -169,14 +180,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         
         
-        
-        
-        
-        
-        
-        
-        
-        
+ 
         
         
         def create_new_project_database_ui():
@@ -185,11 +189,12 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 self,  # Parent widget (your dialog)
                 "Save project database (sqlite) file",  # Dialog title
                 home_dir,  # Initial directory (optional, use current working dir by default)
-                "sqlite database files (*.db)"  # Example file filters
+                fileDialog_filter_str
                 )
             if filename:
                 self.lineEdit_PS_projDB_fp.setText(filename)
                 self._create_new_project_database(filename)
+                self.pushButton_save.setEnabled(True)
                 
         self.pushButton_PS_projDB_new.clicked.connect(create_new_project_database_ui)
         
@@ -367,6 +372,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         
     def _clear_all_models(self):
         """clear all the models"""
+
         log = self.logger.getChild('_clear_all_models')
         cnt=0
         log.debug('clearing all models')
@@ -443,12 +449,23 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         self._save_ui_to_project_database(projDB_fp=fp)
         
         
-    def _save_ui_to_project_database(self, projDB_fp=None):
+    def _save_ui_to_project_database(self, *args, projDB_fp=None):
         """save the current UI state to the project database"""
+        #=======================================================================
+        # defaults
+        #=======================================================================
         log = self.logger.getChild('_save_ui_to_project_database')
         if projDB_fp is None:
             projDB_fp = self.lineEdit_PS_projDB_fp.text()
         
+        if projDB_fp == '' or projDB_fp is None:
+            raise ValueError('no project database file path specified')
+        
+        assert_proj_db_fp(projDB_fp)
+        log.debug(f'saving UI to project database at\n    {projDB_fp}')
+        #=======================================================================
+        # open and load
+        #=======================================================================
         df_d=dict()
         with sqlite3.connect(projDB_fp) as conn:
             assert_proj_db(conn)
@@ -529,9 +546,31 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 df.to_sql(k, conn, if_exists='replace', index=False)
                 log.debug(f'updated table \'{k}\' w/ {df.shape}')
                 
-            log.debug(f'updated {len(df_d)} tables in project database at\n    {projDB_fp}')
+        #close sqlite
+        log.debug(f'updated {len(df_d)} tables in project database at\n    {projDB_fp}')
             
-            return
+        return
+        
+    def _projDB_get_tables(self, *table_names, projDB_fp=None):
+        """Convenience wrapper to get multiple tables as DataFrames.
+    
+        Parameters:
+        *table_names: Variable number of table names (str) to fetch.
+        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+    
+        Returns:
+        If a single table name is passed, returns a DataFrame; otherwise, returns a tuple of DataFrames in the same order as table_names.
+        """
+        if projDB_fp is None:
+            projDB_fp = self.lineEdit_PS_projDB_fp.text()
+    
+        assert_proj_db_fp(projDB_fp)
+    
+        with sqlite3.connect(projDB_fp) as conn:
+            dfs = tuple(pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names)
+    
+        return dfs[0] if len(dfs) == 1 else dfs
+        
             
         
         
@@ -555,47 +594,53 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         with sqlite3.connect(fp) as conn:
             assert_proj_db(conn)
-            #load the project parameters
-            project_parameters_df = pd.read_sql('SELECT * FROM project_parameters', conn)
-            model_suite_index_df = pd.read_sql('SELECT * FROM model_suite_index', conn)
+ 
+ 
             
-        #=======================================================================
-        # set the ui state from the project parameters
-        #=======================================================================
-        for k, row in project_parameters_df.iterrows():
-            widgetName = row['widgetName']
-            value = row['value']
+            #=======================================================================
+            # set the ui state from the project parameters
+            #=======================================================================
+            table_name='02_project_parameters'
+            df = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
             
-            #get the widget
-            widget = getattr(self, widgetName)
+            for k, row in df.iterrows():
+                widgetName = row['widgetName']
+                value = row['value']
+                
+                #get the widget
+                widget = getattr(self, widgetName)
+                
+                #set the value
+                if isinstance(widget, QtWidgets.QLineEdit):
+                    widget.setText(value)
+                elif isinstance(widget, QtWidgets.QComboBox):
+                    widget.setCurrentText(value)
+                else:
+                    raise NotImplementedError(f'widget type not implemented: {widget}')
+                
+            #=======================================================================
+            # set the model suite
+            #=======================================================================
+            table_name='03_model_suite_index'
+            df = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
+            #clear the model suite
+            self._clear_all_models()
             
-            #set the value
-            if isinstance(widget, QtWidgets.QLineEdit):
-                widget.setText(value)
-            else:
-                raise NotImplementedError(f'widget type not implemented: {widget}')
-            
-        #=======================================================================
-        # set the model suite
-        #=======================================================================
-        #clear the model suite
-        self._clear_all_models()
-        
-        raise NotImplementedError('stopped here')
-        for k, row in model_suite_index_df.iterrows():
-            category_code = row['category_code']
-            modelid = row['modelid']
-            model_parameter_table_name = row['model_parameter_table_name']
-            
-            #get this group box
-            
-            
-            #add the model                        
-            wrkr = self.add_model()
-            
-            #load the model from teh table
-            #load the table
-            wrkr.load_from_table()
+            raise NotImplementedError('stopped here')
+            for k, row in model_suite_index_df.iterrows():
+                category_code = row['category_code']
+                modelid = row['modelid']
+                model_parameter_table_name = row['model_parameter_table_name']
+                
+                #get this group box
+                
+                
+                #add the model                        
+                wrkr = self.add_model()
+                
+                #load the model from teh table
+                #load the table
+                wrkr.load_from_table()
             
             
 

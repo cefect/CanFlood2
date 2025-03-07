@@ -27,6 +27,8 @@
 
 
 import os, sys, re
+import sqlite3
+import pandas as pd
 
 #PyQt
 from PyQt5 import uic, QtWidgets
@@ -35,7 +37,7 @@ from PyQt5.QtWidgets import (
     )
 
 #qgis
-#from qgis.core import *
+ 
 from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel, \
     QgsWkbTypes, QgsMapLayer, QgsLogger
 
@@ -43,9 +45,13 @@ from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerPro
 
 from .hp.plug import plugLogger, bind_layersListWidget
 
-from .parameters import (home_dir, plugin_dir)
+from .parameters import (
+    home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d
+                         )
 
-from .core import Model
+from .assertions import assert_proj_db_fp, assert_proj_db
+
+from .core import Model, _get_proj_meta_d
 from .dialog_model import Model_config_dialog
 #===============================================================================
 # load UI and resources
@@ -143,6 +149,8 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         # project database file
         #=======================================================================
         def load_project_database_ui():
+            log.debug('create_new_project_database_ui')
+            print('create_new_project_database_ui')
             filename, _ = QFileDialog.getOpenFileName(
                 self,  # Parent widget (your dialog)
                 "Open project database (sqlite) file",  # Dialog title
@@ -151,14 +159,27 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 )
             if filename:
                 self.lineEdit_PS_projDB_fp.setText(filename) 
+                self._load_project_database()
             
-        self.pushButton_PS_projDB_load.clicked.connect(load_project_database_ui)
+        def test_it():
+            print('test')
+        self.pushButton_PS_projDB_load.clicked.connect(test_it)
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
         
         
         def create_new_project_database_ui():
+            
             filename, _ = QFileDialog.getSaveFileName(
                 self,  # Parent widget (your dialog)
                 "Save project database (sqlite) file",  # Dialog title
@@ -167,6 +188,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 )
             if filename:
                 self.lineEdit_PS_projDB_fp.setText(filename)
+                self._create_new_project_database(filename)
                 
         self.pushButton_PS_projDB_new.clicked.connect(create_new_project_database_ui)
         
@@ -311,7 +333,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         log.debug('slots connected')
         
-    def add_model(self, layout, category_code, category_desc, logger=None):
+    def add_model(self, layout, category_code, category_desc=None, logger=None):
         """start a model object, then add the template to the layout"""
         if logger is None: logger=self.logger.getChild('add_model')
         
@@ -341,6 +363,129 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #add to the index
         assert not modelid in self.model_index_d[category_code]
         self.model_index_d[category_code][modelid] = wrkr
+        
+    def _clear_all_models(self):
+        """clear all the models"""
+        log = self.logger.getChild('_clear_all_models')
+        cnt=0
+        log.debug('clearing all models')
+        for category_code, modelid_d in self.model_index_d.items():
+            for modelid, wrkr in modelid_d.items():
+                wrkr.__exit__()
+                del wrkr
+                
+        self.model_index_d = dict()
+        log.info(f'cleared {cnt} models')
+        
+    
+    def _create_new_project_database(self, fp, overwrite=False):
+        """create a new project database file"""
+        log = self.logger.getChild('_create_new_project_database')
+        
+        #file check
+        if os.path.exists(fp):
+            if overwrite:
+                log.warning(f'specified project database already exists and will be overwritten')
+                os.remove(fp)
+            else:
+                raise FileExistsError(f'specified project database already exists and overwrite is not set')
+            
+        df_d = dict()
+        #=======================================================================
+        # #build the project metadata
+        #=======================================================================
+        d = _get_proj_meta_d(log)
+        d.update(dict(function_name='_create_new_project_database', misc=''))
+        df_d['project_meta'] = pd.DataFrame(d)
+        
+        #=======================================================================
+        # #build the project parameters
+        #=======================================================================
+        df_d['project_parameters'] = pd.read_csv(project_parameters_template_fp)
+        
+        #check the widget names match
+        for widgetName in df_d['project_parameters']['widgetName']:
+            assert hasattr(self, widgetName), f'widgetName not found: {widgetName}'
+        
+        
+        #=======================================================================
+        # model suite template
+        #=======================================================================
+        df_d['model_suite_index'] = project_db_schema_d['model_suite_index'].copy()
+        
+        #=======================================================================
+        # #build/write to the database
+        #=======================================================================
+        log.info(f'init project SQLite db at\n    {fp}')
+        with sqlite3.connect(fp) as conn:
+            for k, df in df_d.items():
+                assert k in project_db_schema_d.keys(), k
+                df.to_sql(k, conn, if_exists='replace', index=False)
+                
+            assert_proj_db(conn)
+                
+        log.info(f'created new project database w/ {len(df_d)} tables at\n    {fp}')
+ 
+                
+
+        
+    def _load_project_database(self):
+        """load an existing project database file"""
+        fp =  self.lineEdit_PS_projDB_fp.text()
+        assert_proj_db_fp(fp)
+        raise IOError('stopped here')
+        #=======================================================================
+        # load data tables
+        #=======================================================================
+        with sqlite3.connect(fp) as conn:
+            assert_proj_db(conn)
+            #load the project parameters
+            project_parameters_df = pd.read_sql('SELECT * FROM project_parameters', conn)
+            model_suite_index_df = pd.read_sql('SELECT * FROM model_suite_index', conn)
+            
+        #=======================================================================
+        # set the project paraters
+        #=======================================================================
+        for k, row in project_parameters_df.iterrows():
+            widgetName = row['widgetName']
+            value = row['value']
+            
+            #get the widget
+            widget = getattr(self, widgetName)
+            
+            #set the value
+            if isinstance(widget, QtWidgets.QLineEdit):
+                widget.setText(value)
+            else:
+                raise NotImplementedError(f'widget type not implemented: {widget}')
+            
+        #=======================================================================
+        # set the model suite
+        #=======================================================================
+        #clear the model suite
+        self._clear_all_models()
+        
+        for k, row in model_suite_index_df.iterrows():
+            category_code = row['category_code']
+            modelid = row['modelid']
+            model_parameter_table_name = row['model_parameter_table_name']
+            
+            #get this group box
+            
+            
+            #add the model                        
+            wrkr = self.add_model()
+            
+            #load the model from teh table
+            #load the table
+            wrkr.load_from_table()
+            
+            
+
+            
+        
+            
+        
         
         
         

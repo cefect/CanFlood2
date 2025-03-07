@@ -9,17 +9,25 @@ usually best to call this before any standard imports
 '''
 import os, logging, logging.config, pprint, sys
  
-from ..parameters import log_format_str
+ 
 
+log_format_str_d = {
+    'StreamHandler':"%(asctime)s.%(levelname)s.%(name)s:  %(message)s",
+    'FileHandler':  '%(asctime)s.%(levelname)s.%(name)s:  %(message)s',
+    }
  
 
 
-def get_log_stream(name=None, level=None):
+def get_log_stream(name=None, level=None,
+                   log_format_str = None,
+                   ):
     """get a logger with stream handler"""
     if name is None:
         name = str(os.getpid())
     if level is None:
         level = logging.DEBUG
+    if log_format_str is None:
+        log_format_str = log_format_str_d['StreamHandler']
 
             
 
@@ -31,17 +39,14 @@ def get_log_stream(name=None, level=None):
         
         handler = logging.StreamHandler(
             stream=sys.stdout,  # send to stdout (supports colors)
-        )  # Create a file handler at the passed filename
-        formatter = logging.Formatter(log_format_str, datefmt="%H:%M:%S", validate=True)
+        )   
+        formatter = logging.Formatter(log_format_str, datefmt="%M:%S", validate=True)
         handler.setFormatter(formatter)
         handler.setLevel(level)
         
         logger.addHandler(handler)
     return logger
-"""
-logger.log('test')
-help(logger.log)
-"""
+ 
     
 def get_new_file_logger(
         logger_name='log',
@@ -67,7 +72,7 @@ def get_new_file_logger(
     #===========================================================================
     assert fp.endswith('.log')
     
-    formatter = logging.Formatter('%(levelname)s.%(name)s.%(asctime)s:  %(message)s')        
+    formatter = logging.Formatter(log_format_str_d['FileHandler'], datefmt='%H:%M:%S', validate=True)       
     handler = logging.FileHandler(fp, mode='w') #Create a file handler at the passed filename 
     handler.setFormatter(formatter) #attach teh formater object
     handler.setLevel(level) #set the level of the handler

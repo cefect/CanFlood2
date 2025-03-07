@@ -3,9 +3,13 @@ Created on Mar 6, 2025
 
 @author: cef
 '''
-
+import os, sys, platform
+import pandas as pd
+from datetime import datetime
 
 from PyQt5.QtWidgets import QLabel, QPushButton, QProgressBar
+
+from . import __version__
 
 class Model(object):
     """Model class for CANFlood2
@@ -75,7 +79,7 @@ class Model(object):
         
         
         
-        self.logger.debug(f'created {self.name}')
+        self.logger.debug(f'created Model {self.name}')
         
     def _attach_widget(self, widget):
         """Identify the widget children and assign pointers to myself using a recursive search."""
@@ -83,7 +87,7 @@ class Model(object):
         d = dict()
         
         # Loop through the widget dictionary and assign the widgets to the model.
-        log.debug(f'iterating through widget dictionary w/ {len(self.widget_d)} entries') 
+        #log.debug(f'iterating through widget dictionary w/ {len(self.widget_d)} entries') 
         for name, widget_type in self.widget_d.items():
             # Recursive search: findChild is recursive by default in PyQt.
             child_widget = widget.findChild(widget_type, name)
@@ -92,7 +96,7 @@ class Model(object):
             setattr(self, name, child_widget)
             d[name] = {'name': name, 'widget': child_widget}
             
-        log.debug(f'attached {len(d)} widgets')
+        #log.debug(f'attached {len(d)} widgets')
         
         self.widget_suite=widget
             
@@ -127,6 +131,58 @@ class Model(object):
     def run_model(self):
         """run the risk model"""
         
+    def __exit__(self):
+        self.logger.debug(f'destroying {self.name}')
         
+        #remove the widget
+        #get the parent la yout of the widget
+        parent = self.widget_suite.parent()
+        parent.removeWidget(self.widget_suite)
+        self.widget_suite.deleteLater()
+        
+        del self
+        
+
+def _get_proj_meta_d(log, 
+ 
+                   ):
+    """database metadata for tracking progress of db edits
+    
+ 
+    """
+    
+    d = {
+ 
+            'script_name':[os.path.basename(__file__)],
+            'script_path':[os.path.dirname(__file__)],
+            'now':[datetime.now()], 
+            'username':[os.getlogin()], 
+
+            'cancurve_version':[__version__], 
+            'python_version':[sys.version.split()[0]],
+            'platform':f"{platform.system()} {platform.release()}"            
+            
+            }
+    #add qgis
+    try:
+        from qgis.core import Qgis
+        d['qgis_version'] = Qgis.QGIS_VERSION
+    except Exception as e:
+        log.warning(f'failed to retrieve QGIS version\n    {e}')
+        
+ 
+    return d
+
+def _update_proj_meta(log, conn, meta_d=dict()):
+    
+    #retrieve data
+    d = _get_proj_meta_d(log)
+    d.update(meta_d) #overwrite/update
+    
+    #push to database
+    proj_meta_df = pd.DataFrame(d)
+    proj_meta_df.to_sql('project_meta', conn, if_exists='append', index=False)    
+    log.debug(f'updated \'project_meta\' w/ {proj_meta_df.shape}')
+    return proj_meta_df
         
         

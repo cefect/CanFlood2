@@ -1,0 +1,6 @@
+varName,widgetName,value,note
+studyArea,studyAreaLineEdit,,
+userName,userLineEdit,,
+aoi_vlay_name,comboBox_aoi,,just the layer nam e
+dem_rlay_name,comboBox_dem,,
+hazDB_fp,lineEdit_HZ_hazDB_fp,,

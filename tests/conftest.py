@@ -21,7 +21,7 @@ from canflood2.hp.logr import get_log_stream
 #===============================================================================
 # configure QGIS loggers for testing
 #===============================================================================
-conftest_logger = get_log_stream(name='conftest', level = logging.DEBUG) #special name to not conflict with fixture
+conftest_logger = get_log_stream(name='pytest', level = logging.DEBUG) #special name to not conflict with fixture
  
 def log_to_python(message, tag, level):
     """build action to connect to QgsMessageLog

@@ -52,12 +52,18 @@ class plugLogger(object):
         self.iface=iface
         self.statusQlab = statusQlab
         self.parent=parent
-        self.debug_logger=debug_logger
+        
         
         if  log_nm is None: #normal calls
             self.log_nm = '%s.%s'%(self.log_nm, self.parent.__class__.__name__)
+            if not debug_logger is None:
+                debug_logger = debug_logger.getChild(self.parent.__class__.__name__)
         else: #getChild calls
             self.log_nm = log_nm
+            
+ 
+        
+        self.debug_logger=debug_logger
         
         
     def getChild(self, new_childnm):
@@ -66,12 +72,18 @@ class plugLogger(object):
             log_nm = '%s.%s'%(self.parent.logger.log_nm, new_childnm)
         else:
             log_nm = new_childnm
+            
+        #configure debug logger
+        try: #should only work during tests?
+            debug_logger = self.debug_logger.getChild(new_childnm)
+        except:
+            debug_logger = None
         
         #build a new logger
         child_log = plugLogger(self.parent, 
                            statusQlab=self.statusQlab,
                            log_nm=log_nm,
-                           debug_logger=self.debug_logger)
+                           debug_logger=debug_logger)
         
 
         

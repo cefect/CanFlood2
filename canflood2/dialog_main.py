@@ -111,7 +111,8 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         #setup logger
         self.logger = plugLogger(
-            self.iface, parent=self, statusQlab=self.progressText,debug_logger=debug_logger)
+            self.iface, parent=self, statusQlab=self.progressText,debug_logger=debug_logger,
+            )
         
         self.connect_slots()
         

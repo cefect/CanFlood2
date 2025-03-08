@@ -10,6 +10,7 @@ Created on Mar 5, 2025
 #===============================================================================
 import pytest, time, sys, inspect, os, shutil
 from pytest_qgis.utils import clean_qgis_layer
+import pandas as pd
 
 from PyQt5.QtTest import QTest
 from PyQt5.Qt import Qt, QApplication, QPoint
@@ -23,14 +24,15 @@ from qgis.PyQt import QtWidgets
 
 
 import tests.conftest as conftest
-from tests.conftest import conftest_logger
+from tests.conftest import conftest_logger, assert_intersecting_values_match_verbose
 
 from canflood2.assertions import assert_proj_db_fp, assert_haz_db_fp
 
 from canflood2.dialog_main import Main_dialog
-from canflood2.parameters import fileDialog_filter_str
+from canflood2.parameters import fileDialog_filter_str, eventMeta_control_d
 
 from canflood2.hp.basic import sanitize_filename
+from canflood2.hp.basic import view_web_df as view
 
 #===============================================================================
 # DATA--------
@@ -76,7 +78,7 @@ def _dialog_preloader(dialog,
                       aoi_vlay=None, dem_rlay=None,
                       widget_data_d = None,
                       haz_rlay_d=None,
-                      eval_d=None,
+                      eventMeta_df=None,
                       ):
     """
     Helper to preload the dialog with some data.
@@ -137,10 +139,22 @@ def _dialog_preloader(dialog,
     #===========================================================================
     # event values in tableWidget_HZ_eventMeta
     #===========================================================================
-    if eval_d is not None:
-        #populate the table
-        pass
+    if eventMeta_df is not None:
+        assert not haz_rlay_d is None, 'must provide haz_rlay_d to load eval_d'
+        #check the keys match
+        assert set(eventMeta_df.iloc[:,0]) == set(haz_rlay_d.keys()), 'eval_d keys do not match haz_rlay_d keys'
+
+        """just ignoring what is set above        
+        #populate hte new event meta data
+        eventMeta_df = dialog.tableWidget_HZ_eventMeta.get_df_from_QTableWidget()
+        eventMeta_df[eventMeta_df.columns[1]] = eventMeta_df.iloc[:, 0].map(pd.Series(eval_d))
+        """
         
+        #eventMeta_df.to_csv(r'l:\09_REPOS\04_TOOLS\CanFlood2\tests\data\cf1_tutorial_02\eventMeta_df.csv', index=False)
+        #set the updated on the widget
+
+        dialog.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(
+            eventMeta_df,widget_type_d=eventMeta_control_d)        
  
         
 
@@ -363,6 +377,9 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, p
 
 
 
+
+
+
 @pytest.mark.dev
 @pytest.mark.parametrize("projDB_fp", [
     oj('01_create_new_projDB', 'projDB.canflood2')
@@ -372,12 +389,12 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, p
     {'scenarioNameLineEdit': 'some scenario', 'climateStateLineEdit': 'some climate', 'hazardTypeLineEdit': 'some hazard'}
     ])
 @pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02']) 
-def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eval_d, widget_data_d):
+def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eventMeta_df, widget_data_d):
     """test entering in some data and saving to an existing hazDB"""
     
     _dialog_preloader(dialog, 
                       projDB_fp=projDB_fp, hazDB_fp=hazDB_fp,
-                      haz_rlay_d=haz_rlay_d,eval_d=eval_d,
+                      haz_rlay_d=haz_rlay_d,eventMeta_df=eventMeta_df,
                       widget_data_d=widget_data_d)
     
     #===========================================================================
@@ -388,11 +405,19 @@ def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, 
     #===========================================================================
     # check
     #===========================================================================
-    #check hazard database contents
+ 
+
+    # Retrieve the table from the database.
     df = dialog._hazDB_get_tables('04_haz_meta')
+    # view(df)
+ 
+    # Build the expected and actual series.
+    expected_series = pd.Series(widget_data_d)
+    actual_series = df.set_index('widgetName')['value']
     
-    for widgetName, v in widget_data_d.items():
-        assert df.loc[0, widgetName] == v, f'failed to set {widgetName}'
+    assert_intersecting_values_match_verbose(expected_series, actual_series)
+
+
     
     
     

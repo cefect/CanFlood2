@@ -92,3 +92,40 @@ def assert_haz_db(conn,expected_tables=list(hazDB_schema_d.keys())):
 
     if missing_tables:
         raise AssertionError(f"Missing tables in hazard database: {', '.join(missing_tables)}")
+    
+    
+#===============================================================================
+# hazard event metadata
+#===============================================================================
+def assert_eventMeta_df(df):
+    """check this is an eventMeta_df"""
+    assert isinstance(df, pd.DataFrame)
+    #check the column names and dtypes match that of the schema
+
+    assert set(df.columns) == set(hazDB_schema_d['05_haz_events'].columns), \
+        f"Column mismatch: expected {set(hazDB_schema_d['05_haz_events'].columns)}, got {set(df.columns)}"
+    
+    assert all(df.dtypes == hazDB_schema_d['05_haz_events'].dtypes), \
+        f"Dtype mismatch: expected {hazDB_schema_d['05_haz_events'].dtypes}, got {df.dtypes}"
+        
+
+    # Check if there are any empty strings (instead of pd.NA)
+    violating_columns = df.columns[df.isin(['']).any()].tolist()
+    violating_counts = df.isin(['']).sum()
+    
+    if violating_columns:
+        details = ', '.join([f"{col}: {violating_counts[col]}" for col in violating_columns])
+        raise AssertionError(f"Empty strings found in eventMeta_df in columns: {details}")
+
+        
+ 
+
+
+
+
+
+
+
+
+
+ 

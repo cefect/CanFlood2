@@ -48,14 +48,15 @@ from .hp.plug import (
     plugLogger, bind_layersListWidget, get_layer_info_from_combobox, bind_tableWidget
     )
 
+from .hp.basic import view_web_df as view
+
 from .parameters import (
     home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d,
     fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp,
-    eventMeta_df_template, eventMeta_tableWidget_type_d
-                         )
+    eventMeta_control_d)
 
 from .assertions import (
-    assert_proj_db_fp, assert_proj_db, assert_haz_db, assert_haz_db_fp
+    assert_proj_db_fp, assert_proj_db, assert_haz_db, assert_haz_db_fp, assert_eventMeta_df
     )
 
 from .core import Model, _get_proj_meta_d
@@ -166,23 +167,41 @@ class Main_dialog_haz(object):
             #===================================================================
             table_name='05_haz_events'
             """always starting fresh"""
-            df_d[table_name] = hazDB_schema_d[table_name].copy()
+ 
             
             #read the dataframe from the table widget
-            eventMeta_df = self.tableWidget_HZ_eventMeta.get_df_from_QTableWidget()
-            
-            if len(eventMeta_df)>0:
-                raise NotImplementedError('stopped here')
-                #update the haz_events with the user entered event metadata
-                pd.concat([df_d[table_name],eventMeta_df])
-            
-            #write the tables
+            df_raw = self.tableWidget_HZ_eventMeta.get_df_from_QTableWidget()
+            if len(df_raw)>0:
+                df_d[table_name] = df_raw.rename(
+                    columns={v['label']:k for k,v in eventMeta_control_d.items()})
+                
+ 
+                #clean up the extraction
+                df_d[table_name] = df_d[table_name].replace('', pd.NA).astype(hazDB_schema_d[table_name].dtypes.to_dict())
+                
+                assert_eventMeta_df(df_d[table_name])
+                
+                            #warn on empties
+                for columnName, col in df_d[table_name].items():
+                    if columnName in ['metadata']:continue
+                    if col.isna().any():
+                        log.warning(f'empty values in column \'{columnName}\'')
+                    
+            else:
+                log.warning(f'no hazard event data entered')
+ 
+ 
+            #===================================================================
+            # #write the tables
+            #===================================================================
             for k, df in df_d.items():
                 assert k in hazDB_schema_d.keys(), k
                 df.to_sql(k, conn, if_exists='replace', index=False)
                 log.debug(f'    updated hazDB table \'{k}\' w/ {df.shape}')
                 
             assert_haz_db(conn)
+            
+            #close the connection
         log.debug(f'finished saving UI to hazard database at\n    {hazDB_fp}')
         #=======================================================================
         # update the project database as well
@@ -438,7 +457,8 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
         
         #bind some methods to the tableWidget_HZ_eventMeta
         bind_tableWidget(self.tableWidget_HZ_eventMeta, self.logger, iface=self.iface,
-                         table_column_type_d=eventMeta_tableWidget_type_d)
+                         table_column_type_d=eventMeta_control_d,
+                         )
         
         #connect loading into the event metadata view
         def load_selected_rasters_to_eventMeta_widget():
@@ -447,12 +467,17 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
             layers_d = self.listView_HZ_hrlay.get_selected_layers()
             
             #use the layer names and the eventMeta_df_template to build a new dataframe
-            eventMeta_df = eventMeta_df_template.copy()
-            eventMeta_df[eventMeta_df.columns[0]] = layers_d.keys()
-            eventMeta_df[eventMeta_df.columns[1]] = 0.0 #probability]]            
+            eventMeta_df = hazDB_schema_d['05_haz_events'].copy()
+            eventMeta_df['event_name'] = layers_d.keys()
+            eventMeta_df['layer_id'] = [layer.id() for layer in layers_d.values()]
+            eventMeta_df['layer_fp'] = [layer.source() for layer in layers_d.values()]
+            eventMeta_df['prob'] = 0.0 #probability]]    
+            
+            assert_eventMeta_df(eventMeta_df)        
             
             #load this dataframe into the table widget
-            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)
+            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(
+                eventMeta_df,widget_type_d=eventMeta_control_d)
             
  
         

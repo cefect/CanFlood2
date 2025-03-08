@@ -234,66 +234,125 @@ def bind_tableWidget(widget, logger, iface=None, table_column_type_d=dict()):
         Returns:
             pandas.DataFrame: A DataFrame populated with the table's data.
         """
+
+        # Retrieve column and row labels.
         columns = get_axis_labels(axis=1)
         rows = get_axis_labels(axis=0)
         df = pd.DataFrame(columns=columns, index=rows)
-
+    
         for i in range(widget.rowCount()):
             for j in range(widget.columnCount()):
-                item = widget.item(i, j)
-                if item is not None:
-                    df.iloc[i, j] = item.text()
-
-        log.debug(f'Extracted dataframe {df.shape}')
-        return df
+                # Try to retrieve a widget from the cell.
+                cell_widget = widget.cellWidget(i, j)
+                if cell_widget is not None:
+                    # Check for QDoubleSpinBox to get a float value.
+                    if isinstance(cell_widget, QDoubleSpinBox):
+                        value = cell_widget.value()
+                    # If the widget has a text() method, use that.
+                    elif hasattr(cell_widget, 'text'):
+                        value = cell_widget.text()
+                    else:
+                        value = None
+                else:
+                    # Otherwise, use the QTableWidgetItem's text.
+                    item = widget.item(i, j)
+                    value = item.text() if item is not None else None
     
-    def set_df_to_QTableWidget_spinbox(df):
+                df.iloc[i, j] = value
+    
+        log.debug(f'Extracted dataframe {df.shape}')
+        return df.reset_index(drop=True)
+    
+    def set_df_to_QTableWidget_spinbox(df, widget_type_d=dict()):
+        """
+        Populate the QTableWidget with the contents of the DataFrame using widget types
+        defined in widget_type_d.
+    
+        The mapping widget_type_d specifies for each column:
+          - 'type': either "string" (for text) or "spinbox" (for a QDoubleSpinBox)
+          - 'locked': whether the column should be non-editable
+    
+        Additionally, the function:
+          - Hides the fourth (last) column.
+          - Sets the third column to expand.
+        
+        Parameters:
+            df (pandas.DataFrame): The DataFrame containing the data.
+            widget_type_d (dict): A dictionary mapping column indices to a dict with keys 'type' and 'locked'.
+    
+        Raises:
+            TypeError: if df is not a pandas DataFrame.
+        """
+ 
+    
         if not isinstance(df, pd.DataFrame):
             raise TypeError("df must be a pandas DataFrame")
-    
+        
         # Clear the table and set its dimensions.
         widget.clearContents()
         num_rows, num_cols = df.shape
         widget.setRowCount(num_rows)
         widget.setColumnCount(num_cols)
-        widget.setHorizontalHeaderLabels(df.columns.tolist())
-    
-        # Loop through each cell in the DataFrame.
+        
+        header_labels = df.copy().rename(columns={k: v['label'] for k, v in widget_type_d.items()}).columns.tolist()
+        widget.setHorizontalHeaderLabels(header_labels)
+        
+        cnt = 0
+        # Populate each cell.
         for row_index, row in df.iterrows():
-            for col_index in range(num_cols):
-                cell_type = table_column_type_d.get(col_index, "text")
+            for col_index, col_name in enumerate(df.columns):
+                # Retrieve column options from the mapping; default to string & unlocked if not provided.
+                #col_opts = widget_type_d.get(col_index, {'widgetType': 'string', 'widgetLock': False})
+                col_opts = widget_type_d[col_name]
+                cell_type = col_opts.get('widgetType', 'string')
+                locked = col_opts.get('widgetLock', False)
                 cell_value = row.iloc[col_index]
                 
-
+                if not pd.isnull(cell_value):
+                    cnt+=1
                 
                 if cell_type == "spinbox":
-                    # Check for an existing spinbox widget in this cell.
+                    # Retrieve existing spinbox widget or create one.
                     spinbox = widget.cellWidget(row_index, col_index)
                     if spinbox is None:
                         spinbox = QDoubleSpinBox()
                         spinbox.setRange(0.0, 9999)
                         spinbox.setDecimals(5)
                         widget.setCellWidget(row_index, col_index, spinbox)
-                        
-                    #set the value from teh frame
-                    if pd.isnull(cell_value):
+                    try:
+                        spinbox.setValue(0.0 if pd.isnull(cell_value) else float(cell_value))
+                    except (ValueError, TypeError):
                         spinbox.setValue(0.0)
-                    else:
-                        try:
-                            spinbox.setValue(float(cell_value))
-                        except (ValueError, TypeError):
-                            spinbox.setValue(0.0)
+                    # Lock the spinbox if specified.
+                    if locked:
+                        spinbox.setReadOnly(True)
+                    
+                     
                 else:
-                    # For "text" type cells, simply create or update the QTableWidgetItem.
+                    # For text cells, create/update a QTableWidgetItem.
                     if pd.isnull(cell_value):
-                        continue
+                        cell_value = ""
                     item = QTableWidgetItem(str(cell_value))
+                    # Remove the editable flag if the cell should be locked.
+                    if locked:
+                        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                     widget.setItem(row_index, col_index, item)
+                
     
-        # Optionally, set any specific column (e.g., the last column) to stretch.
-        # For example, if you want the last column to expand:
+        # Configure header behavior:
         header = widget.horizontalHeader()
-        header.setSectionResizeMode(num_cols - 1, QHeaderView.Stretch)
+        # Set the third column (index 2) to expand.
+        if num_cols >= 3:
+            header.setSectionResizeMode(2, QHeaderView.Stretch)
+        # Hide the fourth (last) column if present.
+        
+        for col_index, (col_name, widgetHide) in enumerate({k:v['widgetHide'] for k,v in widget_type_d.items()}.items()):
+            if widgetHide:
+                widget.setColumnHidden(col_index, True)
+        
+ 
+        
+        log.debug(f'Updated QTableWidget with {cnt} cells')
 
     # Bind the helper methods to the widget for later use.
     widget.get_df_from_QTableWidget = get_df_from_QTableWidget

@@ -18,7 +18,9 @@ from qgis.core import (
 
 from canflood2.hp.logr import get_log_stream
 
-from canflood2.parameters import src_dir
+from canflood2.parameters import src_dir, hazDB_schema_d
+
+from canflood2.assertions import assert_eventMeta_df
  
  
 #===============================================================================
@@ -72,9 +74,9 @@ def get_test_data_filepaths_for_tutorials(
                     d['finv'] = os.path.join(root, file)
                     
                 #evals from CanFloodf1
-                elif file.startswith('evals'):
+                elif file.startswith('eventMeta'):
                     assert file.endswith('.csv'), f'bad file: {file}'
-                    d['evals'] = os.path.join(root, file)
+                    d['eventMeta'] = os.path.join(root, file)
                     
             data_lib[tutorial_name] = d
             
@@ -188,8 +190,8 @@ def haz_fp_d(tutorial_name):
     return tutorial_data_lib[tutorial_name]['haz']
 
 @pytest.fixture
-def eval_fp(tutorial_name):
-    return tutorial_data_lib[tutorial_name]['evals']
+def eventMeta_fp(tutorial_name):
+    return tutorial_data_lib[tutorial_name]['eventMeta']
 
 
 @pytest.fixture(scope='function')
@@ -214,14 +216,39 @@ def aoi_vlay(aoi_fp):
 def haz_rlay_d(haz_fp_d):
     d = dict()
     for ari, fp in haz_fp_d.items():
-        layer = QgsRasterLayer(fp, f'haz_rlay_{ari}')
+        layer = QgsRasterLayer(fp, os.path.basename(fp).split('.')[0])
         QgsProject.instance().addMapLayer(layer)
-        d[ari] = layer
+        d[layer.name()] = layer
     return d
 
 @pytest.fixture(scope='function')
-def eval_d(eval_fp):    
-    return pd.read_csv(eval_fp).to_dict(orient='records')
+def eventMeta_df(eventMeta_fp, haz_rlay_d):    
+    df =  pd.read_csv(eventMeta_fp, dtype=hazDB_schema_d['05_haz_events'].dtypes.to_dict())
     
+    #set the layer_ids
+    df['layer_id'] = df.iloc[:,0].map(pd.Series({k:v.id() for k,v in haz_rlay_d.items()}))
+    df['layer_fp'] = df.iloc[:,0].map(pd.Series({k:v.source() for k,v in haz_rlay_d.items()}))
+    
+    assert_eventMeta_df(df)
+    
+    return df
  
+ 
+    
+
+#===============================================================================
+# HERLPERS---------
+#===============================================================================
+
+def assert_intersecting_values_match_verbose(expected_series, actual_series):
+    # Determine the intersecting indexes.
+    common_index = expected_series.index.intersection(actual_series.index)
+    assert len(common_index) > 0, 'no common indexes found'
+# Subset both series to only include intersecting keys.
+    filtered_expected_series = expected_series.loc[common_index]
+    filtered_actual_series = actual_series.loc[common_index]
+# Compare the filtered series using pandas' compare().
+    diff = filtered_expected_series.compare(filtered_actual_series, result_names=("expected", "actual"))
+    if not diff.empty:
+        raise AssertionError("Value mismatches found for common keys:\n" + diff.to_string())
  

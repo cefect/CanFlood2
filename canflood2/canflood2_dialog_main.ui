@@ -79,12 +79,7 @@ QTabBar::tab:selected { /* Style for selected tabs */
 }
 
  
-QGroupBox::title {
-    subcontrol-origin: margin;
-    subcontrol-position: top left;
-    padding: 0 3px;
-    font: bold 14px;
-}
+
 </string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -249,13 +244,6 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_2">
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
          <property name="title">
           <string>Project Database File</string>
          </property>
@@ -306,13 +294,6 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_5">
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
          <property name="title">
           <string>Project Metadata</string>
          </property>
@@ -321,6 +302,11 @@ p, li { white-space: pre-wrap; }
            <layout class="QFormLayout" name="formLayout">
             <item row="0" column="0">
              <widget class="QLabel" name="studyAreaLabel">
+              <property name="font">
+               <font>
+                <pointsize>-1</pointsize>
+               </font>
+              </property>
               <property name="text">
                <string>Study Area</string>
               </property>
@@ -335,6 +321,11 @@ p, li { white-space: pre-wrap; }
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="userLabel">
+              <property name="font">
+               <font>
+                <pointsize>-1</pointsize>
+               </font>
+              </property>
               <property name="text">
                <string>User(s)</string>
               </property>
@@ -354,13 +345,6 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_9">
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
          <property name="title">
           <string>Study Area Polygon (optional)</string>
          </property>
@@ -385,13 +369,6 @@ p, li { white-space: pre-wrap; }
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
-         </property>
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
          </property>
          <property name="title">
           <string>DEM raster (optional)</string>
@@ -552,13 +529,6 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_24">
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
          <property name="title">
           <string>Hazard Scenario Database File</string>
          </property>
@@ -596,13 +566,6 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_8">
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
          <property name="title">
           <string>Hazard Scenario Metadata</string>
          </property>
@@ -611,6 +574,11 @@ p, li { white-space: pre-wrap; }
            <layout class="QFormLayout" name="formLayout_2">
             <item row="0" column="0">
              <widget class="QLabel" name="scenarioNameLabel">
+              <property name="font">
+               <font>
+                <pointsize>-1</pointsize>
+               </font>
+              </property>
               <property name="text">
                <string>Scenario Name</string>
               </property>
@@ -631,6 +599,11 @@ p, li { white-space: pre-wrap; }
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="climateStateLabel">
+              <property name="font">
+               <font>
+                <pointsize>-1</pointsize>
+               </font>
+              </property>
               <property name="text">
                <string>Climate State</string>
               </property>
@@ -645,6 +618,11 @@ p, li { white-space: pre-wrap; }
             </item>
             <item row="2" column="0">
              <widget class="QLabel" name="hazardVariableLabel">
+              <property name="font">
+               <font>
+                <pointsize>-1</pointsize>
+               </font>
+              </property>
               <property name="text">
                <string>Hazard Variable</string>
               </property>
@@ -664,6 +642,11 @@ p, li { white-space: pre-wrap; }
             </item>
             <item row="3" column="0">
              <widget class="QLabel" name="hazardTypeLabel">
+              <property name="font">
+               <font>
+                <pointsize>-1</pointsize>
+               </font>
+              </property>
               <property name="text">
                <string>Hazard Type</string>
               </property>
@@ -700,13 +683,6 @@ p, li { white-space: pre-wrap; }
            <width>16777215</width>
            <height>9999</height>
           </size>
-         </property>
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
          </property>
          <property name="title">
           <string>Hazard Event Rasters</string>
@@ -803,13 +779,6 @@ p, li { white-space: pre-wrap; }
        </item>
        <item alignment="Qt::AlignVCenter">
         <widget class="QGroupBox" name="groupBox_3">
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
          <property name="title">
           <string>Event Metadata</string>
          </property>
@@ -941,8 +910,11 @@ p, li { white-space: pre-wrap; }
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>120</height>
+           <height>130</height>
           </size>
+         </property>
+         <property name="verticalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
          </property>
          <property name="html">
           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
@@ -951,9 +923,8 @@ p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:14px; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;Use this tab to configure and run your models. Each &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;model&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; is configured individually. These are organized using the seven categories from the guidelines. Each category can have between zero and five models.&lt;/span&gt;&lt;/p&gt;
 &lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot;&quot; style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;Use the&lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt; &lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;&amp;quot;+&amp;quot; button to create a copy and the &amp;quot;-&amp;quot; to remove a model.&lt;/span&gt;&lt;/li&gt;
-&lt;li style=&quot;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;Configure each model's parameters individually, specifying the inventory vector layer and other inputs.&lt;/span&gt;&lt;/li&gt;
-&lt;li style=&quot;&quot; style=&quot; margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;Click the &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;Run&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; button to execute the configured model individually, or the &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;Run All&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; button to run the suite.&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;li style=&quot;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;Configure each model's parameters individually, specifying the asset inventory layer and other inputs.&lt;/span&gt;&lt;/li&gt;
+&lt;li style=&quot;&quot; style=&quot; margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;Click the &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;Run&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; button to execute the configured model individually, or the &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;Run All&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; button to run the suite.&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
         </widget>
        </item>
@@ -978,7 +949,7 @@ p, li { white-space: pre-wrap; }
             <x>0</x>
             <y>0</y>
             <width>941</width>
-            <height>647</height>
+            <height>637</height>
            </rect>
           </property>
           <property name="styleSheet">
@@ -1166,13 +1137,6 @@ QGroupBox {
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
          <property name="title">
           <string>Output Directory:</string>
          </property>
@@ -1219,13 +1183,6 @@ QGroupBox {
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_19">
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
          <property name="title">
           <string>Narative Report Template</string>
          </property>
@@ -1255,13 +1212,6 @@ QGroupBox {
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_11">
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
          <property name="title">
           <string>Results Maps and Figures</string>
          </property>
@@ -1270,6 +1220,11 @@ QGroupBox {
            <layout class="QHBoxLayout" name="horizontalLayout">
             <item>
              <widget class="QGroupBox" name="groupBox_18">
+              <property name="font">
+               <font>
+                <pointsize>-1</pointsize>
+               </font>
+              </property>
               <property name="title">
                <string>Model Selection</string>
               </property>

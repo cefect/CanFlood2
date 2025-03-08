@@ -259,7 +259,7 @@ QLabel {
      </property>
      <property name="minimumSize">
       <size>
-       <width>50</width>
+       <width>75</width>
        <height>0</height>
       </size>
      </property>

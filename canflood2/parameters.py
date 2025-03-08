@@ -66,19 +66,59 @@ for key in project_db_schema_nested_d.keys():
 project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_template.csv')
 
 #===============================================================================
-# hazard database
+# hazards: event metadata
+#===============================================================================
+# Control dictionary with metadata for each field, including display label, widget type, lock status, and dtype.
+eventMeta_control_d = {
+    "event_name": {
+        "label": "Event Name",
+        "widgetType": "string",
+        "widgetLock": True,
+        'widgetHide': False,
+        "dtype": "str"
+    },
+    "prob": {
+        "label": "Probability",
+        "widgetType": "spinbox",
+        "widgetLock": False,
+        'widgetHide': False,
+        "dtype": "float"
+    },
+    "metadata": {
+        "label": "Metadata (optional)",
+        "widgetType": "string",
+        "widgetLock": False,
+        'widgetHide': False,
+        "dtype": "str"
+    },
+    "layer_id": {
+        "label": "layer_id",
+        "widgetType": "string",
+        "widgetLock": True,
+        'widgetHide': True,
+        "dtype": "str"
+    },
+    "layer_fp": {
+        "label": "layer_fp",
+        "widgetType": "string",
+        "widgetLock": True,
+        'widgetHide': True,
+        "dtype": "str"
+    }
+}
+
+# Programmatically create the DataFrame template using the 'dtype' defined in the control dictionary.
+df_columns = {}
+for col, meta in eventMeta_control_d.items():
+    df_columns[col] = pd.Series(dtype=meta["dtype"])
+ 
+
+#===============================================================================
+# hazards: database
 #===============================================================================
 hazDB_schema_d = {
     '04_haz_meta': None,
-    '05_haz_events': pd.DataFrame(
-        columns={
-            'event_name':str,
-            'prob':float,
-            'metadata':str,
-            'layer_id':str,
-            'layer_fp':str,
-            }
-        )
+    '05_haz_events': pd.DataFrame(df_columns)
     }
 
 hazDB_meta_template_fp = os.path.join(plugin_dir, 'hazDB_meta_template.csv')
@@ -90,16 +130,9 @@ for k,v in hazDB_schema_d.items():
     else:
         project_db_schema_d[k] = v.copy()
         
-eventMeta_df_template = pd.DataFrame(
-    columns={
-        "Event Name":str,
-        "Probability":float,
-        "Metadata (optional)":str
-        })
 
-eventMeta_tableWidget_type_d = {
-    0:'string', 1:'spinbox', 2:'string'
-    }
+
+
  
 #===============================================================================
 # generic params

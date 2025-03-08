@@ -167,17 +167,21 @@ class ListModel(QStandardItemModel): #wrapper for list functions with check boxe
         return [i for i in self.get_items() if i.checkState()==state]
 
     def set_checked_byVal(self, val_l): #assign check state to items based on those matching the values
+        cnt=0
         for item in self.get_items():
             if item.text() in val_l:
                 item.setCheckState(Qt.Checked)
+                cnt+=1
             else:
                 item.setCheckState(Qt.Unchecked)
+                
+        assert cnt==len(val_l), f'failed to match  values ({len(val_l)}/{cnt}) in \n {val_l}'
                 
     def set_checked_all(self, state=Qt.Unchecked):
         for item in self.get_items():
             item.setCheckState(state)
             
-def bind_tableWidget(widget, logger, iface=None):
+def bind_tableWidget(widget, logger, iface=None, table_column_type_d=dict()):
     """
     Bind custom methods to a QTableWidget.
 
@@ -240,10 +244,50 @@ def bind_tableWidget(widget, logger, iface=None):
 
         log.debug(f'Extracted dataframe {df.shape}')
         return df
+    
+    def set_df_to_QTableWidget_spinbox(df):
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("df must be a pandas DataFrame")
+    
+        # Clear the table and set its dimensions.
+        table.clearContents()
+        num_rows, num_cols = df.shape
+        table.setRowCount(num_rows)
+        table.setColumnCount(num_cols)
+        table.setHorizontalHeaderLabels(df.columns.tolist())
+    
+        # Loop through each cell in the DataFrame.
+        for row_index, row in df.iterrows():
+            for col_index in range(num_cols):
+                cell_type = table_column_type_d.get(col_index, "text")
+                cell_value = row.iloc[col_index]
+                
+                if cell_type == "spinbox":
+                    # Check for an existing spinbox widget in this cell.
+                    spinbox = table.cellWidget(row_index, col_index)
+                    if spinbox is None:
+                        spinbox = QDoubleSpinBox()
+                        spinbox.setRange(0.0, 9999)
+                        spinbox.setDecimals(4)
+                        table.setCellWidget(row_index, col_index, spinbox)
+                    try:
+                        spinbox.setValue(float(cell_value))
+                    except (ValueError, TypeError):
+                        spinbox.setValue(0.0)
+                else:
+                    # For "text" type cells, simply create or update the QTableWidgetItem.
+                    item = QTableWidgetItem(str(cell_value))
+                    table.setItem(row_index, col_index, item)
+    
+        # Optionally, set any specific column (e.g., the last column) to stretch.
+        # For example, if you want the last column to expand:
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(num_cols - 1, QHeaderView.Stretch)
 
     # Bind the helper methods to the widget for later use.
     widget.get_df_from_QTableWidget = get_df_from_QTableWidget
     widget.get_axis_labels = get_axis_labels
+    widget.set_df_to_QTableWidget_spinbox=set_df_to_QTableWidget_spinbox
 
     return widget
     
@@ -310,6 +354,7 @@ def bind_layersListWidget(widget, #instanced widget
         
     def check_byName(self, layName_l):
         self.model().set_checked_byVal(layName_l)
+        
  
     def get_selected_layers(self):
         """get the selected layers from the list widget"""

@@ -227,21 +227,25 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
 
 
 @pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
-@pytest.mark.parametrize("aoi_fp", [
-    os.path.join(conftest.test_data_dir, 'cf1_tutorial_02', 'aoi_vlay.geojson')
-    ])
-@pytest.mark.parametrize("dem_fp", [
-    os.path.join(conftest.test_data_dir, 'cf1_tutorial_02',  'dem_rlay.tif')]
-    )
+@pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
+#===============================================================================
+# @pytest.mark.parametrize("aoi_fp", [
+#     os.path.join(conftest.test_data_dir, 'cf1_tutorial_02', 'aoi_vlay.geojson')
+#     ])
+# @pytest.mark.parametrize("dem_fp", [
+#     os.path.join(conftest.test_data_dir, 'cf1_tutorial_02',  'dem_rlay.tif')]
+#     )
+#===============================================================================
+@pytest.mark.parametrize("widget_data_d", [{'studyAreaLineEdit': 'test_study_area', 'userLineEdit': 'test_user'}])
 def test_dial_main_02_save_ui_to_project_database(dialog, projDB_fp,
-                                                  aoi_vlay, dem_rlay):
+                                                  aoi_vlay, dem_rlay, widget_data_d):
     """Test that clicking the 'save' button saves the UI to the project database.
  
     """
     #===========================================================================
     # prep
     #===========================================================================
-    widget_data_d = {'studyAreaLineEdit': 'test_study_area', 'userLineEdit': 'test_user'}
+ 
     _ = _dialog_preloader(dialog, projDB_fp=projDB_fp, aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
                           widget_data_d=widget_data_d)
  
@@ -327,6 +331,19 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, p
     #write test data
     if not projDB_fp is None:
         write_sqlite(result, oj_out(test_name, result))
+
+
+@pytest.mark.dev
+@pytest.mark.parametrize("projDB_fp", [
+    oj('01_create_new_projDB', 'projDB.canflood2')
+    ])
+@pytest.mark.parametrize("hazDB_fp", [oj('04_create_new_hazDB_L___09_REP', 'hazDB.db')])
+@pytest.mark.parametrize("widget_data_d", [
+    {'scenarioNameLineEdit': 'some scenario', 'climateStateLineEdit': 'some climate', 'hazardTypeLineEdit': 'some hazard'}
+    ])
+@pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02']) 
+def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, widget_data_d):
+    """test entering in some data and saving to an existing hazDB"""
     
     
     

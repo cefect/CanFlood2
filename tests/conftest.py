@@ -25,6 +25,56 @@ from canflood2.parameters import src_dir
 #===============================================================================
 test_data_dir = os.path.join(src_dir, 'tests', 'data')
 
+def get_test_data_filepaths_for_tutorials(
+        search_dirs = ['cf1_tutorial_01', 'cf1_tutorial_02']
+        ):
+    """for each tutorial, build a hierarchiceal dicationary of filepaths
+    search the contents and assign based on filename"""
+    
+    data_lib = dict()
+    for tutorial_name in search_dirs:
+        tutorial_dir = os.path.join(test_data_dir, tutorial_name)
+        assert os.path.exists(tutorial_dir), f'bad tutorial_dir: {tutorial_dir}'
+        
+        #build the dictionary
+        d = dict()
+        for root, dirs, files in os.walk(tutorial_dir):
+            for file in files:
+                #only include tif and geojson
+                if file.endswith(('.tif', '.geojson')):
+                    pass
+                else:
+                    continue
+                
+                
+                #collect hazard rasters as a diicttionary keyed by the ARI
+                if file.startswith('haz'):
+                    assert file.endswith('.tif'), f'bad file: {file}'
+                    if not 'haz' in d:
+                        d['haz'] = dict()
+                    ari = int(file.split('_')[1].split('.')[0])
+                    d['haz'][ari] = os.path.join(root, file)
+                    
+                #collect the dem
+                elif file.startswith('dem'):
+                    assert file.endswith('.tif'), f'bad file: {file}'
+                    d['dem'] = os.path.join(root, file)
+                    
+                #collect the aoi
+                elif file.startswith('aoi'):
+                    assert file.endswith('.geojson'), f'bad file: {file}'
+                    d['aoi'] = os.path.join(root, file)
+                    
+                #collect the asset inventory (finv) layer
+                elif file.startswith('finv'):
+                    assert file.endswith('.geojson'), f'bad file: {file}'
+                    d['finv'] = os.path.join(root, file)
+                    
+            data_lib[tutorial_name] = d
+            
+    return data_lib
+ 
+tutorial_data_lib = get_test_data_filepaths_for_tutorials()
 
 #===============================================================================
 # configure QGIS loggers for testing
@@ -116,6 +166,22 @@ def logger():
 def test_name(request):
     return request.node.name
 
+#===============================================================================
+# tutorial data
+#===============================================================================
+@pytest.fixture
+def dem_fp(tutorial_name):
+    return tutorial_data_lib[tutorial_name]['dem']
+
+@pytest.fixture
+def aoi_fp(tutorial_name):
+    return tutorial_data_lib[tutorial_name]['aoi']
+
+@pytest.fixture
+def haz_fp_d(tutorial_name):
+    return tutorial_data_lib[tutorial_name]['haz']
+
+
 
 @pytest.fixture(scope='function')
 @clean_qgis_layer
@@ -134,5 +200,14 @@ def aoi_vlay(aoi_fp):
     QgsProject.instance().addMapLayer(layer)
     return layer 
 
+@pytest.fixture(scope='function')
+@clean_qgis_layer
+def haz_rlay_d(haz_fp_d):
+    d = dict()
+    for ari, fp in haz_fp_d.items():
+        layer = QgsRasterLayer(fp, f'haz_rlay_{ari}')
+        QgsProject.instance().addMapLayer(layer)
+        d[ari] = layer
+    return d
 
  

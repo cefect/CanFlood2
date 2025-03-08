@@ -78,6 +78,13 @@ QTabBar::tab:selected { /* Style for selected tabs */
 	color: white; 
 }
 
+ 
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 3px;
+    font: bold 14px;
+}
 </string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -242,6 +249,13 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_2">
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Project Database File</string>
          </property>
@@ -292,6 +306,13 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_5">
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Project Metadata</string>
          </property>
@@ -333,6 +354,13 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_9">
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Study Area Polygon (optional)</string>
          </property>
@@ -357,6 +385,13 @@ p, li { white-space: pre-wrap; }
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
          </property>
          <property name="title">
           <string>DEM raster (optional)</string>
@@ -517,6 +552,13 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_24">
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Hazard Scenario Database File</string>
          </property>
@@ -554,6 +596,13 @@ p, li { white-space: pre-wrap; }
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_8">
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Hazard Scenario Metadata</string>
          </property>
@@ -652,6 +701,13 @@ p, li { white-space: pre-wrap; }
            <height>9999</height>
           </size>
          </property>
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Hazard Event Rasters</string>
          </property>
@@ -747,6 +803,13 @@ p, li { white-space: pre-wrap; }
        </item>
        <item alignment="Qt::AlignVCenter">
         <widget class="QGroupBox" name="groupBox_3">
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Event Metadata</string>
          </property>
@@ -1103,6 +1166,13 @@ QGroupBox {
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Output Directory:</string>
          </property>
@@ -1149,6 +1219,13 @@ QGroupBox {
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_19">
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Narative Report Template</string>
          </property>
@@ -1178,6 +1255,13 @@ QGroupBox {
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_11">
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="title">
           <string>Results Maps and Figures</string>
          </property>

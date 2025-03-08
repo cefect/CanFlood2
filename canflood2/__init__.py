@@ -8,7 +8,7 @@ __version__='2.0.0'
 #===============================================================================
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
-    """Load CanCurve class from file CanCurve.
+    """Load  class from file .
 
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface

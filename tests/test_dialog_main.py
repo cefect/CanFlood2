@@ -25,9 +25,12 @@ from qgis.PyQt import QtWidgets
 import tests.conftest as conftest
 from tests.conftest import conftest_logger
 
-from canflood2.assertions import assert_proj_db_fp
+from canflood2.assertions import assert_proj_db_fp, assert_haz_db_fp
 
 from canflood2.dialog_main import Main_dialog
+from canflood2.parameters import fileDialog_filter_str
+
+from canflood2.hp.basic import sanitize_filename
 
 #===============================================================================
 # DATA--------
@@ -41,7 +44,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 # HELPERS---------
 #===============================================================================
 overwrite_testdata=True
-def write_projDB(result, ofp, write=overwrite_testdata):
+def write_sqlite(result, ofp, write=overwrite_testdata):
     if write:
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
         
@@ -49,9 +52,71 @@ def write_projDB(result, ofp, write=overwrite_testdata):
         shutil.copyfile(result, ofp) 
  
         conftest_logger.info(f'wrote result to \n    {ofp}')
+        
+def prep_filename(test_name, char_max=30):
+    """cleaning up the pytest names to use for auto result writing"""
+    
+    test_name1 = sanitize_filename(test_name)
+    
+    test_name1 = test_name1.replace('test_dial_main_', '')
+    
+    return test_name1[:char_max]
+        
+ 
 
 def oj(*args):
     return os.path.join(test_data_dir, *args)
+
+def oj_out(test_name, result):
+    return oj(prep_filename(test_name), os.path.basename(result))
+
+
+def _dialog_preloader(dialog, projDB_fp=None, aoi_vlay=None, dem_rlay=None,
+                      widget_data_d = None,
+                      ):
+    """
+    Helper to preload the dialog with some data.
+
+    All arguments other than `dialog` are optional. Data is attached only if
+    the corresponding argument is provided.
+
+ 
+
+    Returns:
+        dict: A dictionary summarizing the attached data.
+    """
+    # Dictionary to store info about the applied settings.
+    applied_data = {}
+
+    if projDB_fp is not None:
+        assert_proj_db_fp(projDB_fp)
+        dialog.lineEdit_PS_projDB_fp.setText(projDB_fp)
+        dialog.pushButton_save.setEnabled(True)
+        applied_data['projDB_fp'] = projDB_fp
+
+    # Add some default text to specific line edits.
+    if widget_data_d is not None:
+        for widget_name, text in widget_data_d.items():
+            widget = getattr(dialog, widget_name, None)
+            if widget is not None:
+                widget.setText(text)
+                applied_data[widget_name] = text
+        applied_data['widget_data_d'] = widget_data_d
+
+    # Load and attach layers only if provided.
+    if aoi_vlay is not None:
+        combo_aoi = getattr(dialog, 'comboBox_aoi', None)
+        if combo_aoi is not None:
+            combo_aoi.setLayer(aoi_vlay)
+            applied_data['comboBox_aoi'] = aoi_vlay.id() if hasattr(aoi_vlay, 'id') else None
+
+    if dem_rlay is not None:
+        combo_dem = getattr(dialog, 'comboBox_dem', None)
+        if combo_dem is not None:
+            combo_dem.setLayer(dem_rlay)
+            applied_data['comboBox_dem'] = dem_rlay.id() if hasattr(dem_rlay, 'id') else None
+
+    return applied_data
  
 #===============================================================================
 # FIXTURES------
@@ -123,7 +188,7 @@ def test_dial_main_00_init(dialog,):
 #===============================================================================
 
 
-def test_dial_main_01_create_new_project_database(monkeypatch, dialog, tmpdir, test_name):
+def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
     """Test that clicking the 'create new project database' button sets the lineEdit with the dummy file path.
  
  
@@ -145,7 +210,7 @@ def test_dial_main_01_create_new_project_database(monkeypatch, dialog, tmpdir, t
     # post
     #===========================================================================
     result = dialog.lineEdit_PS_projDB_fp.text()
-    write_projDB(result, os.path.join(test_data_dir, test_name, os.path.basename(result)))
+    write_sqlite(result, oj_out(test_name, result))
      
     # Verify that the lineEdit now contains the dummy file path.
     assert_proj_db_fp(result)
@@ -157,8 +222,11 @@ def test_dial_main_01_create_new_project_database(monkeypatch, dialog, tmpdir, t
  
 
 
-@pytest.mark.dev
-@pytest.mark.parametrize("projDB_fp", [oj('test_dial_main_01_create_new_project_database', 'projDB.canflood2')])
+
+
+
+
+@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 @pytest.mark.parametrize("aoi_fp", [
     os.path.join(conftest.test_data_dir, 'cf1_tutorial_02', 'aoi_vlay.geojson')
     ])
@@ -173,24 +241,9 @@ def test_dial_main_02_save_ui_to_project_database(dialog, projDB_fp,
     #===========================================================================
     # prep
     #===========================================================================
-    assert_proj_db_fp(projDB_fp)
- 
-    # Set the project database file path.
-    dialog.lineEdit_PS_projDB_fp.setText(projDB_fp)
-    #enable the save button
-    dialog.pushButton_save.setEnabled(True)
-    
-    #add some random info
-    d = {'studyAreaLineEdit':'test_study_area','userLineEdit':'test_user'}
-    for k,v in d.items():
-        w = getattr(dialog, k)
-        w.setText(v)
-        
-    #load the layers to the project using pytest-qgis and then add them to the comboxes
-    for layer, widgetName in zip([aoi_vlay, dem_rlay], ['comboBox_aoi', 'comboBox_dem']):
-        w = getattr(dialog, widgetName)
-        w.setLayer(layer)
-        d[widgetName] = layer.id()
+    widget_data_d = {'studyAreaLineEdit': 'test_study_area', 'userLineEdit': 'test_user'}
+    _ = _dialog_preloader(dialog, projDB_fp=projDB_fp, aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
+                          widget_data_d=widget_data_d)
  
     
  
@@ -213,12 +266,12 @@ def test_dial_main_02_save_ui_to_project_database(dialog, projDB_fp,
     test_d = df.loc[:, ['widgetName', 'value']].set_index('widgetName').to_dict()['value']
     
     #check against test data
-    for widgetName,v in d.items():
+    for widgetName,v in widget_data_d.items():
         assert test_d[widgetName] == v, f'failed to set {widgetName}'
  
  
     
-@pytest.mark.parametrize("projDB_fp", [oj('test_dial_main_01_create_new_project_database', 'projDB.canflood2')])
+@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 def test_dial_main_03_load_project_database(dialog, projDB_fp, monkeypatch):
     """Test that clicking the 'load project database' button sets the lineEdit with the dummy file path.
  
@@ -230,11 +283,51 @@ def test_dial_main_03_load_project_database(dialog, projDB_fp, monkeypatch):
     monkeypatch.setattr(
         QFileDialog, 
         "getOpenFileName", 
-        lambda *args, **kwargs: (projDB_fp, "sqlite database files (*.canflood2)")
+        lambda *args, **kwargs: (projDB_fp, fileDialog_filter_str)
     )
 
     # Simulate clicking the load project database button.
     QTest.mouseClick(dialog.pushButton_PS_projDB_load, Qt.LeftButton)
+    
+    
+    
+@pytest.mark.dev
+@pytest.mark.parametrize("projDB_fp", [
+    None, oj('01_create_new_projDB', 'projDB.canflood2')
+    ])
+def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, projDB_fp):
+    """test the 'create new hazard database' button"""
+    
+    #setup the Create New hazard database    
+    dummy_file = tmpdir.join(f'hazDB.db').strpath    
+    
+    monkeypatch.setattr(
+        QFileDialog, 
+        "getSaveFileName", 
+        lambda *args, **kwargs: (dummy_file, "sqlite database files (*.db)")
+    )
+    
+    #preload with some data
+    if not projDB_fp is None:
+        _dialog_preloader(dialog, projDB_fp=projDB_fp)
+ 
+    #===========================================================================
+    # execute
+    #===========================================================================
+    # Simulate clicking the new project database button.
+    QTest.mouseClick(dialog.pushButton_HZ_hazDB_new, Qt.LeftButton) #Main_dialog._create_new_hazDB()
+    
+    #===========================================================================
+    # post
+    #===========================================================================3
+    result = dialog.lineEdit_HZ_hazDB_fp.text()
+    assert  result== dummy_file 
+    assert_haz_db_fp(result)
+    
+    #write test data
+    if not projDB_fp is None:
+        write_sqlite(result, oj_out(test_name, result))
+    
     
     
     

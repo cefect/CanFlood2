@@ -1,0 +1,6 @@
+varName,widgetName,value,note
+scenario_name,scenarioNameLineEdit,,
+climate_state,climateStateLineEdit,,
+hazard_variable,hazardVariableComboBox,,
+hazard_type,hazardTypeLineEdit,,
+probability_type,radioButton_ELari,,1 is True is ARI

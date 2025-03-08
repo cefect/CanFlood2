@@ -1,7 +1,7 @@
 # CanFlood2 development
 guidelines/instructions for contributing to the CanFlood2 project.
 
-the project uses git LFS
+the project uses git LFS and LF line endings.
 
 For contributing to the documentation, see `./docs/contributing.MD`
 

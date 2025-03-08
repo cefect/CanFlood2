@@ -38,22 +38,24 @@ from PyQt5.QtWidgets import (
     )
 
 #qgis
- 
+from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel, \
     QgsWkbTypes, QgsMapLayer, QgsLogger
 
  
 
 from .hp.plug import (
-    plugLogger, bind_layersListWidget, get_layer_info_from_combobox
+    plugLogger, bind_layersListWidget, get_layer_info_from_combobox, bind_tableWidget
     )
 
 from .parameters import (
     home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d,
-    fileDialog_filter_str
+    fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp
                          )
 
-from .assertions import assert_proj_db_fp, assert_proj_db
+from .assertions import (
+    assert_proj_db_fp, assert_proj_db, assert_haz_db, assert_haz_db_fp
+    )
 
 from .core import Model, _get_proj_meta_d
 from .dialog_model import Model_config_dialog
@@ -80,7 +82,146 @@ FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qg
 #===============================================================================
 # Dialog class
 #===============================================================================
-class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
+class Main_dialog_haz(object):
+    """oragnizing hazard dialog functions here"""
+    
+    def _create_new_hazDB(self, fp, overwrite=True):
+        """create a new hazard database file"""
+        log = self.logger.getChild('_create_new_hazDB')
+        
+        #file check
+        if os.path.exists(fp):
+            log.warning(f'specified hazard database already exists overwrite={overwrite}')
+            if overwrite:
+                os.remove(fp)
+            else:
+                raise FileExistsError(f'specified hazard database already exists and overwrite is not set')
+                
+        
+        log.debug(f'creating new hazard database at\n    {fp}')
+        
+        #=======================================================================
+        # create the database tables
+        #=======================================================================
+        df_d = dict()
+        table_name='04_haz_meta'
+        df_d[table_name] = pd.read_csv(hazDB_meta_template_fp)
+        
+        
+        table_name='05_haz_events'
+        df_d[table_name] = hazDB_schema_d[table_name].copy()
+        #===================================================================
+        # build the database
+        #===================================================================
+        with sqlite3.connect(fp) as conn:
+            #create the tables
+            for table_name, df in df_d.items():
+                df.to_sql(table_name, conn, if_exists='replace', index=False)
+                
+            #check the database
+            assert_haz_db(conn)
+            
+        log.info(f'created new hazard database at\n    {fp}')
+        
+        self._save_haz_ui_to_hazDB(hazDB_fp=fp)
+        
+        return
+        
+    def _save_haz_ui_to_hazDB(self, *args, hazDB_fp=None, projDB_fp=None):
+        """save the current UI state to the hazard database"""\
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        log = self.logger.getChild('_save_haz_ui_to_hazDB')
+        if hazDB_fp is None:
+            hazDB_fp = self.lineEdit_HZ_hazDB_fp.text()
+            
+        if projDB_fp is None:
+            projDB_fp = self.lineEdit_PS_projDB_fp.text()
+            
+        if hazDB_fp == '' or hazDB_fp is None:
+            raise ValueError('no hazard database file path specified')
+        
+        assert_haz_db_fp(hazDB_fp)
+        
+        log.debug(f'saving UI to hazard database at\n    {hazDB_fp}')
+        #=======================================================================
+        # open and load
+        #=======================================================================
+        df_d=dict()
+        with sqlite3.connect(hazDB_fp) as conn:
+            
+            #===================================================================
+            # update hazard meta
+            #===================================================================
+            table_name='04_haz_meta'
+            df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
+            
+            d = self._retrieve_ui_state_from_df_template(df_d[table_name])
+            df_d[table_name]['value'] = pd.Series(d)
+            
+            #===================================================================
+            # update the hazard events table
+            #===================================================================
+            table_name='05_haz_events'
+            """always starting fresh"""
+            df_d[table_name] = hazDB_schema_d[table_name].copy()
+            
+            #read the dataframe from the table widget
+            eventMeta_df = self.tableWidget_HZ_eventMeta.get_df_from_QTableWidget()
+            
+            if len(eventMeta_df)>0:
+                raise NotImplementedError('stopped here')
+                #update the haz_events with the user entered event metadata
+                pd.concat([df_d[table_name],eventMeta_df])
+            
+            #write the tables
+            for k, df in df_d.items():
+                assert k in hazDB_schema_d.keys(), k
+                df.to_sql(k, conn, if_exists='replace', index=False)
+                log.debug(f'    updated hazDB table \'{k}\' w/ {df.shape}')
+                
+            assert_haz_db(conn)
+        log.debug(f'finished saving UI to hazard database at\n    {hazDB_fp}')
+        #=======================================================================
+        # update the project database as well
+        #=======================================================================
+        """mirroring the hazard tables inside the project database
+            gives us a more portalbe project database
+            makes accessing the full table stack easier
+            
+        users can still load a different hazard database, then load this into the project database
+        """
+        if not (projDB_fp is None or projDB_fp == ''):
+            log.debug(f'updating project database w/ hazard tables \n    {projDB_fp}')
+            with sqlite3.connect(projDB_fp) as conn:
+                for k, df in df_d.items():
+                    assert k in project_db_schema_d.keys(), k
+                    df.to_sql(k, conn, if_exists='replace', index=False)
+                    log.debug(f'    updated projDB table \'{k}\' w/ {df.shape}')
+                    
+                assert_proj_db(conn)
+        else:
+            log.warning(f'no project database found... hazard tables not mirrored')
+        
+        #close sqlite
+
+        log.push(f'UI state saved to hazards database')
+            
+        return
+            
+            
+            
+            
+            
+            
+            
+        
+ 
+        
+ 
+    
+class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
     
  
     
@@ -116,6 +257,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #setup logger
         self.logger = plugLogger(
             self.iface, parent=self, statusQlab=self.progressText,debug_logger=debug_logger,
+            log_nm='MD',
             )
         
         self.connect_slots()
@@ -143,7 +285,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_close.clicked.connect(close_dialog)
         
         
-        self.pushButton_save.clicked.connect(self._save_ui_to_project_database)
+        self.pushButton_save.clicked.connect(self._save_ui_to_projDB)
         
         
         """not using 
@@ -177,7 +319,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 
             if filename:
                 self.lineEdit_PS_projDB_fp.setText(filename)
-                self._create_new_project_database(filename)
+                self._create_new_projDB(filename)
                 self.pushButton_save.setEnabled(True)
                 log.push(f'created new project database at\n    {filename}')
                 
@@ -227,6 +369,20 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # Hazard Scenario Database File
         #=======================================================================
+        def create_new_hazard_database_ui():
+            filename, _ = QFileDialog.getSaveFileName(
+                self,  # Parent widget (your dialog)
+                "Save hazard database (sqlite) file",  # Dialog title
+                home_dir,  # Initial directory (optional, use current working dir by default)
+                "sqlite database files (*.db)"  # Example file filters
+                )
+            if filename:
+                self.lineEdit_HZ_hazDB_fp.setText(filename)
+                self._create_new_hazDB(filename)
+                
+        self.pushButton_HZ_hazDB_new.clicked.connect(create_new_hazard_database_ui)
+        
+        
         def load_hazard_database_ui():
             filename, _ = QFileDialog.getOpenFileName(
                 self,  # Parent widget (your dialog)
@@ -239,17 +395,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 
         self.pushButton_HZ_hazDB_load.clicked.connect(load_hazard_database_ui)
         
-        def create_new_hazard_database_ui():
-            filename, _ = QFileDialog.getSaveFileName(
-                self,  # Parent widget (your dialog)
-                "Save hazard database (sqlite) file",  # Dialog title
-                home_dir,  # Initial directory (optional, use current working dir by default)
-                "sqlite database files (*.db)"  # Example file filters
-                )
-            if filename:
-                self.lineEdit_HZ_hazDB_fp.setText(filename)
-                
-        self.pushButton_HZ_hazDB_new.clicked.connect(create_new_hazard_database_ui)
+
         
         
         
@@ -271,13 +417,13 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         lv.populate_layers() #do an intial popluation.
         
-        #connect loading intot he event metadata view
+        #connect loading into the event metadata view
         def load_selected_rasters_to_event_metadata():
  
             #retrieve the selected layers from teh above table
             layers = self.listView_HZ_hrlay.get_selected_layers()
             
-            w = self.fieldsTable_HZ_eventMeta
+            w = self.tableWidget_HZ_eventMeta
             
             # Clear any existing contents and rows.
             w.clearContents()
@@ -303,6 +449,8 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         self.pushButton_HZ_hrlay_load.clicked.connect(load_selected_rasters_to_event_metadata)
         
+        #bind some methods to the tableWidget_HZ_eventMeta
+        bind_tableWidget(self.tableWidget_HZ_eventMeta, self.logger, iface=self.iface)
         
         #=======================================================================
         # Model Suite---------
@@ -396,9 +544,9 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         
 
     
-    def _create_new_project_database(self, fp, overwrite=True):
+    def _create_new_projDB(self, fp, overwrite=True):
         """create a new project database file"""
-        log = self.logger.getChild('_create_new_project_database')
+        log = self.logger.getChild('_create_new_projDB')
         
         #file check
         if os.path.exists(fp):
@@ -414,7 +562,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         table_name='01_project_meta'
         d = _get_proj_meta_d(log)
-        d.update(dict(function_name='_create_new_project_database', misc=''))
+        d.update(dict(function_name='_create_new_projDB', misc=''))
         df_d[table_name] = pd.DataFrame(d)
         
         """
@@ -435,11 +583,24 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # model suite template
         #=======================================================================
-        """this will be over-written in _save_ui_to_project_database
+        """this will be over-written in _save_ui_to_projDB
         but we need it here to pass the check
         """
         table_name='03_model_suite_index'
         df_d[table_name] = project_db_schema_d[table_name].copy()
+        
+        #=======================================================================
+        # hazard tables
+        #=======================================================================
+        #hazard meta
+        table_name='04_haz_meta'
+        df_d[table_name] = pd.read_csv(hazDB_meta_template_fp)
+        
+        #others
+        for k, v in hazDB_schema_d.items():
+            if not k==table_name:
+                assert isinstance(v, pd.DataFrame), k
+                df_d[k] = v.copy()
         
         #=======================================================================
         # #build/write to the database
@@ -457,15 +618,57 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # wrap
         #=======================================================================
-        self._save_ui_to_project_database(projDB_fp=fp)
+        self._save_ui_to_projDB(projDB_fp=fp)
         
         
-    def _save_ui_to_project_database(self, *args, projDB_fp=None):
+
+    def _retrieve_ui_state_from_df_template(self, df):
+        """take a dataframe with widget name columns and return a dictionary of widget values
+        
+        Parameters
+        ----------
+        df : pd.DataFrame
+            columns: 'widgetName'
+        """
+        d = dict()
+        for i, row in df.iterrows():
+ 
+            widgetName = row['widgetName']
+            #get the widget
+            if not hasattr(self, widgetName):
+                raise AttributeError(f'widgetName not found: {widgetName}')
+            
+            widget = getattr(self, widgetName)
+            #retrieve value from widget
+            if isinstance(widget, QtWidgets.QLineEdit):
+                v = widget.text()
+            elif isinstance(widget, QgsMapLayerComboBox):
+                _, v = get_layer_info_from_combobox(widget)
+            elif isinstance(widget, QtWidgets.QComboBox):
+                v = widget.currentText()
+            elif isinstance(widget, QtWidgets.QRadioButton):
+                v = widget.isChecked()                
+            else:
+                raise NotImplementedError(f'widget type not implemented: {widget}')
+            if (not v is None) and (v != ''):
+                d[i] = v
+            else:
+                d[i] = np.nan
+                
+        #check the indicides match
+ 
+        if not df.index.equals(pd.Series(d).index):
+            raise ValueError("Indexes do not match")
+        
+
+        return d
+
+    def _save_ui_to_projDB(self, *args, projDB_fp=None):
         """save the current UI state to the project database"""
         #=======================================================================
         # defaults
         #=======================================================================
-        log = self.logger.getChild('_save_ui_to_project_database')
+        log = self.logger.getChild('_save_ui_to_projDB')
         if projDB_fp is None:
             projDB_fp = self.lineEdit_PS_projDB_fp.text()
         
@@ -479,14 +682,14 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         df_d=dict()
         with sqlite3.connect(projDB_fp) as conn:
-            assert_proj_db(conn)
+
             
             #===================================================================
             # update project metadata
             #===================================================================
             table_name='01_project_meta'
             d = _get_proj_meta_d(log)
-            d.update(dict(function_name='_save_ui_to_project_database', misc=''))
+            d.update(dict(function_name='_save_ui_to_projDB', misc=''))
             df_d[table_name] = pd.DataFrame(d)
             
             #===================================================================
@@ -495,29 +698,9 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
             table_name='02_project_parameters'
             df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
             
-            d = dict()
-            for i, row in df_d[table_name].iterrows():
-                widgetName = row['widgetName']
-                #get the widget
-                widget = getattr(self, widgetName)
-                
-                #retrieve value from widget
-                if isinstance(widget, QtWidgets.QLineEdit):
-                    v = widget.text()
-                elif isinstance(widget, QtWidgets.QComboBox):
-                    _, v = get_layer_info_from_combobox(widget)
- 
-                else:
-                    raise NotImplementedError(f'widget type not implemented: {widget}')
-                
-                if (not v is None) and (v != ''):
-                    d[i] = v
-                else:
-                    d[i] = np.nan
-                
-            #update the table
-            if not df_d[table_name].index.equals(pd.Series(d).index):
-                raise ValueError("Indexes do not match")
+            d = self._retrieve_ui_state_from_df_template(df_d[table_name])
+            
+
             
             df_d[table_name]['value'] = pd.Series(d)
  
@@ -585,21 +768,11 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         return dfs[0] if len(dfs) == 1 else dfs
         
             
-        
-        
-        
-        
-        
-        
-        
-        
-        
  
-                
-
         
     def _load_project_database(self):
         """load an existing project database file"""
+        raise NotImplementedError('stopped here')
         fp =  self.lineEdit_PS_projDB_fp.text()
  
         #=======================================================================
@@ -654,6 +827,8 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 #load the model from teh table
                 #load the table
                 wrkr.load_from_table()
+                
+
             
             
 

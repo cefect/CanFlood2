@@ -19,7 +19,7 @@ from qgis.core import QgsVectorLayer, Qgis, QgsProject, QgsLogger, QgsMessageLog
 from qgis.gui import QgisInterface
 
 #pyQt
-from PyQt5.QtWidgets import QFileDialog, QGroupBox, QComboBox, QTableWidgetItem, QWidget
+from PyQt5.QtWidgets import QFileDialog, QGroupBox, QComboBox, QTableWidgetItem, QWidget, QTableWidget
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5.QtCore import Qt, QAbstractTableModel, QObject
 from PyQt5 import QtCore
@@ -30,7 +30,7 @@ from PyQt5 import QtCore
 class plugLogger(object): 
     """pythonic logging interface"""
     
-    log_tabnm = 'CanCurve' # qgis logging panel tab name
+    log_tabnm = 'CanFlood2' # qgis logging panel tab name
     
     log_nm = 'cc' #logger name
     
@@ -60,6 +60,8 @@ class plugLogger(object):
                 debug_logger = debug_logger.getChild(self.parent.__class__.__name__)
         else: #getChild calls
             self.log_nm = log_nm
+            if not debug_logger is None:
+                debug_logger = debug_logger.getChild(log_nm)
             
  
         
@@ -174,6 +176,78 @@ class ListModel(QStandardItemModel): #wrapper for list functions with check boxe
     def set_checked_all(self, state=Qt.Unchecked):
         for item in self.get_items():
             item.setCheckState(state)
+            
+def bind_tableWidget(widget, logger, iface=None):
+    """
+    Bind custom methods to a QTableWidget.
+
+    This function should be called during the initialization of your dialog.
+    It attaches additional helper methods to the widget for tasks such as
+    extracting the table contents as a pandas DataFrame.
+
+    Parameters:
+        widget (QTableWidget): The QTableWidget instance to enhance.
+        logger: Logging object.
+        iface: QGIS interface instance (optional).
+
+    Returns:
+        QTableWidget: The same widget with additional bound methods.
+    """
+ 
+
+    assert isinstance(widget, QTableWidget), "widget must be an instance of QTableWidget"
+    widget.iface = iface
+    log = logger.getChild('bind_tableWidget')
+
+    def get_axis_labels(axis=0):
+        """
+        Retrieve axis labels from the bound QTableWidget.
+
+        Parameters:
+            axis (int): Axis for labels (0 for rows, 1 for columns).
+
+        Returns:
+            list: List of labels as strings.
+        """
+        if axis == 1:
+            header_items = [widget.horizontalHeaderItem(col) for col in range(widget.columnCount())]
+        elif axis == 0:
+            header_items = [widget.verticalHeaderItem(row) for row in range(widget.rowCount())]
+        else:
+            raise ValueError("axis must be 0 (rows) or 1 (columns)")
+
+        labels = []
+        for item in header_items:
+            labels.append(item.text() if item is not None else "Unnamed")
+        return labels
+
+    def get_df_from_QTableWidget():
+        """
+        Extract a pandas DataFrame from the contents of the bound QTableWidget.
+
+        Returns:
+            pandas.DataFrame: A DataFrame populated with the table's data.
+        """
+        columns = get_axis_labels(axis=1)
+        rows = get_axis_labels(axis=0)
+        df = pd.DataFrame(columns=columns, index=rows)
+
+        for i in range(widget.rowCount()):
+            for j in range(widget.columnCount()):
+                item = widget.item(i, j)
+                if item is not None:
+                    df.iloc[i, j] = item.text()
+
+        log.debug(f'Extracted dataframe {df.shape}')
+        return df
+
+    # Bind the helper methods to the widget for later use.
+    widget.get_df_from_QTableWidget = get_df_from_QTableWidget
+    widget.get_axis_labels = get_axis_labels
+
+    return widget
+    
+    
             
 def bind_layersListWidget(widget, #instanced widget
                           log,
@@ -299,6 +373,9 @@ def get_layer_info_from_combobox(combo):
         return None, None
     else:
         return layer.name(), layer.id()
+    
+
+
 
 
 

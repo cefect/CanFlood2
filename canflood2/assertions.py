@@ -10,7 +10,7 @@ import os, warnings
 import sqlite3
 import pandas as pd
 
-from .parameters import project_db_schema_d
+from .parameters import project_db_schema_d, hazDB_schema_d
 
 #===============================================================================
 # helpers--------
@@ -47,16 +47,7 @@ def assert_proj_db_fp(fp, **kwargs):
 
 def assert_proj_db(conn,
                    expected_tables=list(project_db_schema_d.keys())):
-    """
-    Checks if the provided project database meets expectations by verifying expected tables exist.
-
-    Args:
-        conn: An open SQLite database connection.
-        expected_tables: A list of expected table names.
-
-    Raises:
-        AssertionError: If any of the expected tables are missing.
-    """
+ 
     cursor = conn.cursor()
 
     missing_tables = []
@@ -67,3 +58,37 @@ def assert_proj_db(conn,
 
     if missing_tables:
         raise AssertionError(f"Missing tables in project database: {', '.join(missing_tables)}")
+    
+    
+#===============================================================================
+# hazard datab ase------
+#===============================================================================
+def assert_haz_db_fp(fp, **kwargs):
+    """full check of proj_db_fp"""
+    
+    assert os.path.exists(fp), fp
+    assert fp.endswith('.db')
+    
+    try:
+        with sqlite3.connect(fp) as conn:
+            assert_haz_db(conn, **kwargs)
+    
+    except Exception as e:
+        raise ValueError(f'hazard DB connection failed w/\n    {e}')
+    
+    
+    
+    
+    
+def assert_haz_db(conn,expected_tables=list(hazDB_schema_d.keys())):
+ 
+    cursor = conn.cursor()
+
+    missing_tables = []
+    for table_name in expected_tables:
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+        if not cursor.fetchone():
+            missing_tables.append(table_name)
+
+    if missing_tables:
+        raise AssertionError(f"Missing tables in hazard database: {', '.join(missing_tables)}")

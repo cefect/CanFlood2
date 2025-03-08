@@ -29,7 +29,7 @@ test_data_dir = os.path.join(src_dir, 'tests', 'data')
 #===============================================================================
 # configure QGIS loggers for testing
 #===============================================================================
-conftest_logger = get_log_stream(name='pytest', level = logging.DEBUG) #special name to not conflict with fixture
+conftest_logger = get_log_stream(name='pt', level = logging.DEBUG) #special name to not conflict with fixture
  
 def log_to_python(message, tag, level):
     """build action to connect to QgsMessageLog

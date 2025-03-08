@@ -90,7 +90,7 @@ QTabBar::tab:selected { /* Style for selected tabs */
 </string>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">
@@ -810,7 +810,7 @@ p, li { white-space: pre-wrap; }
            </layout>
           </item>
           <item>
-           <widget class="QTableWidget" name="fieldsTable_HZ_eventMeta">
+           <widget class="QTableWidget" name="tableWidget_HZ_eventMeta">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>

@@ -163,7 +163,7 @@ def _get_proj_meta_d(log,
             'now':[datetime.now()], 
             'username':[os.getlogin()], 
 
-            'cancurve_version':[__version__], 
+            'canflood2_version':[__version__], 
             'python_version':[sys.version.split()[0]],
             'platform':f"{platform.system()} {platform.release()}"            
             

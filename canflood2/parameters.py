@@ -65,7 +65,31 @@ for key in project_db_schema_nested_d.keys():
 
 project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_template.csv')
 
+#===============================================================================
+# hazard database
+#===============================================================================
+hazDB_schema_d = {
+    '04_haz_meta': None,
+    '05_haz_events': pd.DataFrame(
+        columns={
+            'event_name':str,
+            'prob':float,
+            'metadata':str,
+            'layer_id':str,
+            'layer_fp':str,
+            }
+        )
+    }
 
+hazDB_meta_template_fp = os.path.join(plugin_dir, 'hazDB_meta_template.csv')
+
+#add these to the project schema
+for k,v in hazDB_schema_d.items():
+    if v is None:
+        project_db_schema_d[k] = None
+    else:
+        project_db_schema_d[k] = v.copy()
+ 
 #===============================================================================
 # generic params
 #===============================================================================

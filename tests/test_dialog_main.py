@@ -9,7 +9,7 @@ Created on Mar 5, 2025
 # IMPORTS----------
 #===============================================================================
 import pytest, time, sys, inspect, os, shutil
-
+from pytest_qgis.utils import clean_qgis_layer
 
 from PyQt5.QtTest import QTest
 from PyQt5.Qt import Qt, QApplication, QPoint
@@ -17,6 +17,8 @@ from PyQt5.QtWidgets import (
     QAction, QFileDialog, QListWidget, QTableWidgetItem,
     QComboBox,
     )
+
+
 from qgis.PyQt import QtWidgets
 
 
@@ -32,6 +34,8 @@ from canflood2.dialog_main import Main_dialog
 #===============================================================================
 test_data_dir = os.path.join(conftest.test_data_dir, 'test_dialog_main')
 os.makedirs(test_data_dir, exist_ok=True)
+
+ 
 
 #===============================================================================
 # HELPERS---------
@@ -66,7 +70,7 @@ use fixtures to parameterize in blocks
 """
     
 @pytest.fixture(scope='function') 
-def dialog(qgis_iface, logger):
+def dialog(qgis_iface, qgis_new_project, logger):
     """dialog fixture.
     for interactive tests, see 'test_init' (uncomment block)"""
     
@@ -80,11 +84,20 @@ def dialog(qgis_iface, logger):
     
     
     return dialog
+
+
+ 
+    
+    
  
 #===============================================================================
 # TESTS------
 #===============================================================================
-
+""" 
+dialog.show()
+QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+sys.exit(QApp.exec_()) #wrap
+"""
 
  
 def test_dial_main_00_init(dialog,):
@@ -139,33 +152,21 @@ def test_dial_main_01_create_new_project_database(monkeypatch, dialog, tmpdir, t
     assert  dialog.lineEdit_PS_projDB_fp.text()== dummy_file
     
  
-@pytest.mark.parametrize("projDB_fp", [oj('test_dial_main_01_create_new_project_database', 'projDB.canflood2')])
-def test_dial_main_02_load_project_database(dialog, projDB_fp, monkeypatch):
-    """Test that clicking the 'load project database' button sets the lineEdit with the dummy file path.
- 
-    """
-    assert_proj_db_fp(projDB_fp)
- 
-     
-    #dummy_file = "dummy_path_load.db"
-    monkeypatch.setattr(
-        QFileDialog, 
-        "getOpenFileName", 
-        lambda *args, **kwargs: (projDB_fp, "sqlite database files (*.canflood2)")
-    )
 
-    # Simulate clicking the load project database button.
-    QTest.mouseClick(dialog.pushButton_PS_projDB_load, Qt.LeftButton)
     
  
-    
-    # Verify that the lineEdit now contains the dummy file path.
-    #assert not dialog.lineEdit_PS_projDB_fp.text() == ''
 
 
 @pytest.mark.dev
 @pytest.mark.parametrize("projDB_fp", [oj('test_dial_main_01_create_new_project_database', 'projDB.canflood2')])
-def test_dial_main_03_save_ui_to_project_database(dialog, projDB_fp):
+@pytest.mark.parametrize("aoi_fp", [
+    os.path.join(conftest.test_data_dir, 'cf1_tutorial_02', 'aoi_vlay.geojson')
+    ])
+@pytest.mark.parametrize("dem_fp", [
+    os.path.join(conftest.test_data_dir, 'cf1_tutorial_02',  'dem_rlay.tif')]
+    )
+def test_dial_main_02_save_ui_to_project_database(dialog, projDB_fp,
+                                                  aoi_vlay, dem_rlay):
     """Test that clicking the 'save' button saves the UI to the project database.
  
     """
@@ -184,12 +185,20 @@ def test_dial_main_03_save_ui_to_project_database(dialog, projDB_fp):
     for k,v in d.items():
         w = getattr(dialog, k)
         w.setText(v)
+        
+    #load the layers to the project using pytest-qgis and then add them to the comboxes
+    for layer, widgetName in zip([aoi_vlay, dem_rlay], ['comboBox_aoi', 'comboBox_dem']):
+        w = getattr(dialog, widgetName)
+        w.setLayer(layer)
+        d[widgetName] = layer.id()
+ 
+    
  
     #===========================================================================
     # execute
     #===========================================================================
     # Simulate clicking the save button.
-    QTest.mouseClick(dialog.pushButton_save, Qt.LeftButton)
+    QTest.mouseClick(dialog.pushButton_save, Qt.LeftButton) #Main_dialog._save_ui_to_project_database()
     
     
     #===========================================================================
@@ -209,7 +218,23 @@ def test_dial_main_03_save_ui_to_project_database(dialog, projDB_fp):
  
  
     
-    
+@pytest.mark.parametrize("projDB_fp", [oj('test_dial_main_01_create_new_project_database', 'projDB.canflood2')])
+def test_dial_main_03_load_project_database(dialog, projDB_fp, monkeypatch):
+    """Test that clicking the 'load project database' button sets the lineEdit with the dummy file path.
+ 
+    """
+    assert_proj_db_fp(projDB_fp)
+ 
+     
+    #dummy_file = "dummy_path_load.db"
+    monkeypatch.setattr(
+        QFileDialog, 
+        "getOpenFileName", 
+        lambda *args, **kwargs: (projDB_fp, "sqlite database files (*.canflood2)")
+    )
+
+    # Simulate clicking the load project database button.
+    QTest.mouseClick(dialog.pushButton_PS_projDB_load, Qt.LeftButton)
     
     
     

@@ -44,7 +44,9 @@ from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerPro
 
  
 
-from .hp.plug import plugLogger, bind_layersListWidget
+from .hp.plug import (
+    plugLogger, bind_layersListWidget, get_layer_info_from_combobox
+    )
 
 from .parameters import (
     home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d,
@@ -157,6 +159,32 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # project database file
         #=======================================================================
+        
+        def _new_projDB():
+            """wrapper for the New Project Database button"""
+ 
+            
+            filename = None
+            try:
+                filename, _ = QFileDialog.getSaveFileName(
+                    self,  # Parent widget (your dialog)
+                    "Save project database (sqlite) file",  # Dialog title
+                    home_dir,  # Initial directory (optional, use current working dir by default)
+                    fileDialog_filter_str
+                )
+            except Exception as e:
+                log.warning(f'error on file dialog: {e}')
+                
+            if filename:
+                self.lineEdit_PS_projDB_fp.setText(filename)
+                self._create_new_project_database(filename)
+                self.pushButton_save.setEnabled(True)
+                log.push(f'created new project database at\n    {filename}')
+                
+        self.pushButton_PS_projDB_new.clicked.connect(_new_projDB)
+            
+            
+            
         def load_project_database_ui():
             log.debug('create_new_project_database_ui')
             print('create_new_project_database_ui')
@@ -171,32 +199,13 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 self._load_project_database()
                 
                 #activate the save button
-                self.pushButton_save.setEnabled(True)
-                
-            
+                self.pushButton_save.setEnabled(True)            
  
         self.pushButton_PS_projDB_load.clicked.connect(load_project_database_ui)
         
-        
-        
-        
- 
-        
-        
-        def create_new_project_database_ui():
-            
-            filename, _ = QFileDialog.getSaveFileName(
-                self,  # Parent widget (your dialog)
-                "Save project database (sqlite) file",  # Dialog title
-                home_dir,  # Initial directory (optional, use current working dir by default)
-                fileDialog_filter_str
-                )
-            if filename:
-                self.lineEdit_PS_projDB_fp.setText(filename)
-                self._create_new_project_database(filename)
-                self.pushButton_save.setEnabled(True)
+
                 
-        self.pushButton_PS_projDB_new.clicked.connect(create_new_project_database_ui)
+        
         
         #=======================================================================
         # Study Area Polygon
@@ -384,8 +393,10 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
         self.model_index_d = dict()
         log.info(f'cleared {cnt} models')
         
+        
+
     
-    def _create_new_project_database(self, fp, overwrite=False):
+    def _create_new_project_database(self, fp, overwrite=True):
         """create a new project database file"""
         log = self.logger.getChild('_create_new_project_database')
         
@@ -494,7 +505,8 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 if isinstance(widget, QtWidgets.QLineEdit):
                     v = widget.text()
                 elif isinstance(widget, QtWidgets.QComboBox):
-                    v = widget.currentText()
+                    _, v = get_layer_info_from_combobox(widget)
+ 
                 else:
                     raise NotImplementedError(f'widget type not implemented: {widget}')
                 
@@ -548,6 +560,7 @@ class Main_dialog(QtWidgets.QDialog, FORM_CLASS):
                 
         #close sqlite
         log.debug(f'updated {len(df_d)} tables in project database at\n    {projDB_fp}')
+        log.push(f'UI state saved to project database')
             
         return
         

@@ -6,9 +6,15 @@ Created on Apr. 16, 2024
  
 import os, logging, sys
 import pytest
+from pytest_qgis.utils import clean_qgis_layer
  
 
-from qgis.core import QgsApplication, QgsProject, Qgis, QgsLogger, QgsMessageLog
+from qgis.core import (
+    QgsApplication, QgsProject, Qgis, QgsLogger, QgsMessageLog,
+    QgsRasterLayer, QgsVectorLayer, QgsProject,
+    )
+ 
+
 from canflood2.hp.logr import get_log_stream
 
 from canflood2.parameters import src_dir
@@ -99,7 +105,8 @@ def logger():
     #         handler.setFormatter(formatter)
     #         break
     #===========================================================================
-     
+
+
      
     return conftest_logger
 
@@ -108,5 +115,24 @@ def logger():
 @pytest.fixture
 def test_name(request):
     return request.node.name
+
+
+@pytest.fixture(scope='function')
+@clean_qgis_layer
+def dem_rlay(dem_fp):
+    layer = QgsRasterLayer(dem_fp, 'dem_rlay')
+    #qgis_new_project.addMapLayer(layer)
+    QgsProject.instance().addMapLayer(layer) 
+    return layer
+
+@pytest.fixture(scope='function')
+@clean_qgis_layer
+def aoi_vlay(aoi_fp):
+    assert os.path.exists(aoi_fp), f'bad filepath on aoi_vlay fixture:\n    {aoi_fp}'
+    layer =  QgsVectorLayer(aoi_fp, 'aoi_vlay', 'ogr')
+    assert isinstance(layer, QgsVectorLayer)
+    QgsProject.instance().addMapLayer(layer)
+    return layer 
+
 
  

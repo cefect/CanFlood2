@@ -280,4 +280,25 @@ def bind_layersListWidget(widget, #instanced widget
     for fName in ['populate_layers', '_apply_filter', 'select_visible', 'select_canvas', 
                   'get_selected_layers', 'clear_checks','check_all', 'check_byName']:
         setattr(widget, fName, types.MethodType(eval(fName), widget)) 
-      
+        
+        
+        
+        
+        
+        
+        
+        
+        
+def get_layer_info_from_combobox(combo):
+    """
+    Retrieve the layer name and layer ID from a QgsMapLayerComboBox.
+ 
+    """
+    layer = combo.currentLayer()
+    if layer is None:
+        return None, None
+    else:
+        return layer.name(), layer.id()
+
+
+

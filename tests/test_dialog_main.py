@@ -71,8 +71,12 @@ def oj_out(test_name, result):
     return oj(prep_filename(test_name), os.path.basename(result))
 
 
-def _dialog_preloader(dialog, projDB_fp=None, aoi_vlay=None, dem_rlay=None,
+def _dialog_preloader(dialog, 
+                      projDB_fp=None, hazDB_fp=None,
+                      aoi_vlay=None, dem_rlay=None,
                       widget_data_d = None,
+                      haz_rlay_d=None,
+                      eval_d=None,
                       ):
     """
     Helper to preload the dialog with some data.
@@ -93,6 +97,12 @@ def _dialog_preloader(dialog, projDB_fp=None, aoi_vlay=None, dem_rlay=None,
         dialog.lineEdit_PS_projDB_fp.setText(projDB_fp)
         dialog.pushButton_save.setEnabled(True)
         applied_data['projDB_fp'] = projDB_fp
+        
+    if hazDB_fp is not None:
+        assert_haz_db_fp(hazDB_fp)
+        dialog.lineEdit_HZ_hazDB_fp.setText(hazDB_fp)
+        dialog.pushButton_save.setEnabled(True)
+        applied_data['hazDB_fp'] = hazDB_fp
 
     # Add some default text to specific line edits.
     if widget_data_d is not None:
@@ -115,6 +125,24 @@ def _dialog_preloader(dialog, projDB_fp=None, aoi_vlay=None, dem_rlay=None,
         if combo_dem is not None:
             combo_dem.setLayer(dem_rlay)
             applied_data['comboBox_dem'] = dem_rlay.id() if hasattr(dem_rlay, 'id') else None
+            
+    if haz_rlay_d is not None:
+        #select all of these layers in listView_HZ_hrlay
+        dialog.listView_HZ_hrlay.populate_layers()
+        dialog.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
+        
+        #load into the event metadata
+        QTest.mouseClick(dialog.pushButton_HZ_hrlay_load, Qt.LeftButton)
+        
+    #===========================================================================
+    # event values in tableWidget_HZ_eventMeta
+    #===========================================================================
+    if eval_d is not None:
+        #populate the table
+        pass
+        
+ 
+        
 
     return applied_data
  
@@ -295,7 +323,7 @@ def test_dial_main_03_load_project_database(dialog, projDB_fp, monkeypatch):
     
     
     
-@pytest.mark.dev
+ 
 @pytest.mark.parametrize("projDB_fp", [
     None, oj('01_create_new_projDB', 'projDB.canflood2')
     ])
@@ -333,6 +361,8 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, p
         write_sqlite(result, oj_out(test_name, result))
 
 
+
+
 @pytest.mark.dev
 @pytest.mark.parametrize("projDB_fp", [
     oj('01_create_new_projDB', 'projDB.canflood2')
@@ -342,8 +372,27 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, p
     {'scenarioNameLineEdit': 'some scenario', 'climateStateLineEdit': 'some climate', 'hazardTypeLineEdit': 'some hazard'}
     ])
 @pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02']) 
-def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, widget_data_d):
+def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eval_d, widget_data_d):
     """test entering in some data and saving to an existing hazDB"""
+    
+    _dialog_preloader(dialog, 
+                      projDB_fp=projDB_fp, hazDB_fp=hazDB_fp,
+                      haz_rlay_d=haz_rlay_d,eval_d=eval_d,
+                      widget_data_d=widget_data_d)
+    
+    #===========================================================================
+    # execute
+    #===========================================================================
+    QTest.mouseClick(dialog.pushButton_save, Qt.LeftButton) #Main_dialog._save_ui_to_DBs()
+    
+    #===========================================================================
+    # check
+    #===========================================================================
+    #check hazard database contents
+    df = dialog._hazDB_get_tables('04_haz_meta')
+    
+    for widgetName, v in widget_data_d.items():
+        assert df.loc[0, widgetName] == v, f'failed to set {widgetName}'
     
     
     

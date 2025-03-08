@@ -89,6 +89,17 @@ for k,v in hazDB_schema_d.items():
         project_db_schema_d[k] = None
     else:
         project_db_schema_d[k] = v.copy()
+        
+eventMeta_df_template = pd.DataFrame(
+    columns={
+        "Event Name":str,
+        "Probability":float,
+        "Metadata (optional)":str
+        })
+
+eventMeta_tableWidget_type_d = {
+    0:'string', 1:'spinbox', 2:'string'
+    }
  
 #===============================================================================
 # generic params

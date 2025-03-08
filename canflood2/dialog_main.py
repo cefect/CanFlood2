@@ -50,7 +50,8 @@ from .hp.plug import (
 
 from .parameters import (
     home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d,
-    fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp
+    fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp,
+    eventMeta_df_template, eventMeta_tableWidget_type_d
                          )
 
 from .assertions import (
@@ -209,6 +210,24 @@ class Main_dialog_haz(object):
         log.push(f'UI state saved to hazards database')
             
         return
+    
+    def _hazDB_get_tables(self, *table_names, hazDB_fp=None):
+        """Convenience wrapper to get multiple tables as DataFrames.
+    
+        Parameters:
+        *table_names: Variable number of table names (str) to fetch.
+ 
+        """
+        if hazDB_fp is None:
+            hazDB_fp = self.lineEdit_HZ_hazDB_fp.text()
+        
+        assert_haz_db_fp(hazDB_fp)
+        
+        with sqlite3.connect(hazDB_fp) as conn:
+            dfs = tuple(pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names)
+    
+        return dfs[0] if len(dfs) == 1 else dfs
+ 
             
             
             
@@ -285,7 +304,7 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_close.clicked.connect(close_dialog)
         
         
-        self.pushButton_save.clicked.connect(self._save_ui_to_projDB)
+        self.pushButton_save.clicked.connect(self._save_ui_to_DBs)
         
         
         """not using 
@@ -417,40 +436,29 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
         
         lv.populate_layers() #do an intial popluation.
         
+        #bind some methods to the tableWidget_HZ_eventMeta
+        bind_tableWidget(self.tableWidget_HZ_eventMeta, self.logger, iface=self.iface,
+                         table_column_type_d=eventMeta_tableWidget_type_d)
+        
         #connect loading into the event metadata view
-        def load_selected_rasters_to_event_metadata():
+        def load_selected_rasters_to_eventMeta_widget():
  
             #retrieve the selected layers from teh above table
-            layers = self.listView_HZ_hrlay.get_selected_layers()
+            layers_d = self.listView_HZ_hrlay.get_selected_layers()
             
-            w = self.tableWidget_HZ_eventMeta
+            #use the layer names and the eventMeta_df_template to build a new dataframe
+            eventMeta_df = eventMeta_df_template.copy()
+            eventMeta_df[eventMeta_df.columns[0]] = layers_d.keys()
+            eventMeta_df[eventMeta_df.columns[1]] = 0.0 #probability]]            
             
-            # Clear any existing contents and rows.
-            w.clearContents()
-            w.setRowCount(len(layers))
+            #load this dataframe into the table widget
+            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)
+            
+ 
         
-            # Set up the table with 3 columns and appropriate header labels.
-            w.setColumnCount(3)
-            w.setHorizontalHeaderLabels(["Event Name", "Probability", "Metadata (optional)"])
+        self.pushButton_HZ_hrlay_load.clicked.connect(load_selected_rasters_to_eventMeta_widget)
         
-            # Loop through the layers list and create a new row for each.
-            for rindx, ename in enumerate(layers):
-                w.setItem(rindx, 0, QTableWidgetItem(ename)) 
-                
-                # Create a QDoubleSpinBox for the Probability column
-                probability_spinbox = QDoubleSpinBox()
-                probability_spinbox.setRange(0.0, 9999)  # Set range for probability values
-                probability_spinbox.setDecimals(4)  # Set the number of decimal places
-                w.setCellWidget(rindx, 1, probability_spinbox)
-                
-            # Set the third column to expand to the remaining space
-            header = w.horizontalHeader()
-            header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
-        
-        self.pushButton_HZ_hrlay_load.clicked.connect(load_selected_rasters_to_event_metadata)
-        
-        #bind some methods to the tableWidget_HZ_eventMeta
-        bind_tableWidget(self.tableWidget_HZ_eventMeta, self.logger, iface=self.iface)
+
         
         #=======================================================================
         # Model Suite---------
@@ -583,7 +591,7 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # model suite template
         #=======================================================================
-        """this will be over-written in _save_ui_to_projDB
+        """this will be over-written in _save_ui_to_DBs
         but we need it here to pass the check
         """
         table_name='03_model_suite_index'
@@ -618,7 +626,7 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # wrap
         #=======================================================================
-        self._save_ui_to_projDB(projDB_fp=fp)
+        self._save_ui_to_DBs(projDB_fp=fp)
         
         
 
@@ -663,23 +671,44 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
 
         return d
 
-    def _save_ui_to_projDB(self, *args, projDB_fp=None):
-        """save the current UI state to the project database"""
+    def _save_ui_to_DBs(self, *args, projDB_fp=None, hazDB_fp=None):
+        """save the current UI state to the project and HAZ database
+        
+        the save button is on all tabs, so the user will expect this to dave all ui elements
+        first we save the hazDB, then the project (which mirrors the hazDB)
+        """
         #=======================================================================
         # defaults
         #=======================================================================
-        log = self.logger.getChild('_save_ui_to_projDB')
+        log = self.logger.getChild('_save_ui_to_DBs')
+        
         if projDB_fp is None:
             projDB_fp = self.lineEdit_PS_projDB_fp.text()
         
         if projDB_fp == '' or projDB_fp is None:
             raise ValueError('no project database file path specified')
         
+        if hazDB_fp is None:
+            hazDB_fp = self.lineEdit_HZ_hazDB_fp.text()
+        
+        #=======================================================================
+        # hazard data
+        #=======================================================================
+        if not (hazDB_fp is None or hazDB_fp == ''):
+            self._save_haz_ui_to_hazDB(projDB_fp=projDB_fp, hazDB_fp=hazDB_fp)
+        else:
+            log.warning('no hazard database file path specified')
+ 
+
+        #=======================================================================
+        # project database
+        #=======================================================================
+
+        
         assert_proj_db_fp(projDB_fp)
         log.debug(f'saving UI to project database at\n    {projDB_fp}')
-        #=======================================================================
-        # open and load
-        #=======================================================================
+        
+        
         df_d=dict()
         with sqlite3.connect(projDB_fp) as conn:
 
@@ -689,7 +718,7 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
             #===================================================================
             table_name='01_project_meta'
             d = _get_proj_meta_d(log)
-            d.update(dict(function_name='_save_ui_to_projDB', misc=''))
+            d.update(dict(function_name='_save_ui_to_DBs', misc=''))
             df_d[table_name] = pd.DataFrame(d)
             
             #===================================================================
@@ -698,10 +727,7 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
             table_name='02_project_parameters'
             df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
             
-            d = self._retrieve_ui_state_from_df_template(df_d[table_name])
-            
-
-            
+            d = self._retrieve_ui_state_from_df_template(df_d[table_name])            
             df_d[table_name]['value'] = pd.Series(d)
  
             

@@ -6,6 +6,7 @@ Created on Apr. 16, 2024
  
 import os, logging, sys
 import pytest
+import pandas as pd
 from pytest_qgis.utils import clean_qgis_layer
  
 
@@ -21,7 +22,7 @@ from canflood2.parameters import src_dir
  
  
 #===============================================================================
-# data
+# data----------
 #===============================================================================
 test_data_dir = os.path.join(src_dir, 'tests', 'data')
 
@@ -41,7 +42,7 @@ def get_test_data_filepaths_for_tutorials(
         for root, dirs, files in os.walk(tutorial_dir):
             for file in files:
                 #only include tif and geojson
-                if file.endswith(('.tif', '.geojson')):
+                if file.endswith(('.tif', '.geojson', '.csv')):
                     pass
                 else:
                     continue
@@ -69,6 +70,11 @@ def get_test_data_filepaths_for_tutorials(
                 elif file.startswith('finv'):
                     assert file.endswith('.geojson'), f'bad file: {file}'
                     d['finv'] = os.path.join(root, file)
+                    
+                #evals from CanFloodf1
+                elif file.startswith('evals'):
+                    assert file.endswith('.csv'), f'bad file: {file}'
+                    d['evals'] = os.path.join(root, file)
                     
             data_lib[tutorial_name] = d
             
@@ -181,6 +187,9 @@ def aoi_fp(tutorial_name):
 def haz_fp_d(tutorial_name):
     return tutorial_data_lib[tutorial_name]['haz']
 
+@pytest.fixture
+def eval_fp(tutorial_name):
+    return tutorial_data_lib[tutorial_name]['evals']
 
 
 @pytest.fixture(scope='function')
@@ -210,4 +219,9 @@ def haz_rlay_d(haz_fp_d):
         d[ari] = layer
     return d
 
+@pytest.fixture(scope='function')
+def eval_d(eval_fp):    
+    return pd.read_csv(eval_fp).to_dict(orient='records')
+    
+ 
  

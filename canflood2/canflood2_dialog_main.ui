@@ -53,18 +53,9 @@ QLabel {
 
 QMainWindow {
     background-color: #99B7B3;
-}</string>
-  </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
-    <widget class="QTabWidget" name="tabWidget">
-     <property name="font">
-      <font>
-       <pointsize>-1</pointsize>
-      </font>
-     </property>
-     <property name="styleSheet">
-      <string notr="true"> QTabWidget { /* Targets the background of the tab widget's content area */
+}
+
+ QTabWidget { /* Targets the background of the tab widget's content area */
     background-color: #99B7B3;  
 }
 
@@ -88,9 +79,17 @@ QTabBar::tab:selected { /* Style for selected tabs */
 }
 
 </string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="font">
+      <font>
+       <pointsize>-1</pointsize>
+      </font>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">
@@ -604,6 +603,9 @@ p, li { white-space: pre-wrap; }
             </item>
             <item row="2" column="1">
              <widget class="QComboBox" name="hazardVariableComboBox">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <item>
                <property name="text">
                 <string>max flood depth (m)</string>
@@ -754,7 +756,7 @@ p, li { white-space: pre-wrap; }
             <item>
              <widget class="QLabel" name="label_7">
               <property name="text">
-               <string>Specify the probabilities associated with each hazard event</string>
+               <string>Specify the probabilities associated with each hazard event. Click &quot;Load&quot; above to populate.</string>
               </property>
              </widget>
             </item>

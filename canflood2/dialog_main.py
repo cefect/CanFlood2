@@ -50,6 +50,8 @@ from .hp.plug import (
 
 from .hp.basic import view_web_df as view
 
+from .hp.qt import set_widget_value
+
 from .parameters import (
     home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d,
     fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp,
@@ -488,11 +490,10 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # Model Suite---------
         #=======================================================================
+        #inint the model config dialog
         self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
         
-        #populate a model instance into each of the 7 categories, using 'horizontalLayout_MS_modelTemplate' as a template
  
-        
         #retrieve all the group boxes inside the model set:
         modelSet_groupBoxes = self.groupBox_MS_modelSet.findChildren(QtWidgets.QGroupBox)
         
@@ -798,7 +799,7 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
             
         return
         
-    def _projDB_get_tables(self, *table_names, projDB_fp=None):
+    def projDB_get_tables(self, *table_names, projDB_fp=None):
         """Convenience wrapper to get multiple tables as DataFrames.
     
         Parameters:
@@ -817,6 +818,11 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
             dfs = tuple(pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names)
     
         return dfs[0] if len(dfs) == 1 else dfs
+    
+    def get_model_index_dx(self, **kwargs):
+        df = self.projDB_get_tables('03_model_suite_index')
+        return df.set_index(['modelid', 'category_code'])
+        
         
             
  
@@ -845,15 +851,10 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
                 value = row['value']
                 
                 #get the widget
-                widget = getattr(self, widgetName)
+                widget = getattr(self, widgetName)                
+                set_widget_value(widget, value)
                 
-                #set the value
-                if isinstance(widget, QtWidgets.QLineEdit):
-                    widget.setText(value)
-                elif isinstance(widget, QtWidgets.QComboBox):
-                    widget.setCurrentText(value)
-                else:
-                    raise NotImplementedError(f'widget type not implemented: {widget}')
+ 
                 
             #=======================================================================
             # set the model suite

@@ -3,12 +3,17 @@ Created on Mar 6, 2025
 
 @author: cef
 '''
-import os, sys, platform
+import os, sys, platform, sqlite3
 import pandas as pd
 from datetime import datetime
 
 from PyQt5.QtWidgets import QLabel, QPushButton, QProgressBar
 
+
+from .assertions import assert_proj_db_fp, assert_haz_db_fp
+from .parameters import project_db_schema_nested_d
+from .hp.basic import view_web_df as view
+from .hp.sql import get_table_names
 from . import __version__
 
 class Model(object):
@@ -40,7 +45,7 @@ class Model(object):
     
     def __init__(self,
                  parent=None, 
-                 widget_suite=None,
+                 widget_suite=None, 
                   
                  category_code='c1', category_desc='desc',
                  modelid=0, logger=None,
@@ -52,7 +57,9 @@ class Model(object):
         Parameters
         ----------
         widget_suite : Qwidget_suite
-            The template widget_suite with all the ui
+            small 1-line control widget on the model suite tab
+            NOTE: the model config dialog is controlled by the main dialog
+            see self.launch_config_ui
         asset_label: str
             main asset label for displaying on teh widget_suite
             useful if we are copying a model
@@ -78,6 +85,9 @@ class Model(object):
             self._attach_widget(widget_suite)            
             self._update_suite_ui()
         
+        """no... only do this when the model config has been called
+        self._create_tables()
+        """
         
         
         self.logger.debug(f'Model {self.name} initialized')
@@ -119,9 +129,139 @@ class Model(object):
         else:
             self.progressBar_mod.setValue(0)
             
+    def _get_projDB_fp(self):
+        fp =  self.parent.lineEdit_PS_projDB_fp.text()
+        assert_proj_db_fp(fp)
+        return fp
+    
+    def _get_hazDB_fp(self):
+        fp =  self.parent.lineEdit_HZ_hazDB_fp.text()
+        assert_haz_db_fp(fp)
+        return fp
+    
+    def _get_model_tables(self,*table_names, **kwargs):
+        """load model specific tables from generic table names"""        
+        return self.parent.projDB_get_tables(*[f'model_{self.name}_{k}' for k in table_names], **kwargs)
+
+    def _update_model_index(self, table_names_d, projDB_fp=None, logger=None):
+        """update the model index in the project with my table names"""
+        if logger is None: logger=self.logger
+        log = logger.getChild('update_model_index')
+        if projDB_fp is None: projDB_fp = self._get_projDB_fp()
+        
+        
+        model_index_dx = self.parent.get_model_index_dx(projDB_fp=projDB_fp)
+        
+        log.debug(f'updating \'model_index\' w/ {model_index_dx.shape} and {len(table_names_d)} new entries')
+        
+        table_names_ser = pd.Series({**table_names_d, **self.get_index_d()})
+        # Compute the expected keys: the union of the MultiIndex names and the DataFrame columns.
+        expected_keys = set(model_index_dx.index.names).union(set(model_index_dx.columns.tolist()))
+        # Check that the keys in the lookup Series match the expected keys.
+        assert set(table_names_ser.index).issubset(expected_keys), (
+        f"Mismatched keys: expected a subset of {expected_keys} but got {set(table_names_ser.index)}")
+        # Extract the index values from the lookup Series using the index names.
+        mi_key = tuple(table_names_ser[name] for name in model_index_dx.index.names)
+        # Determine which keys to update: the ones corresponding to the DataFrame columns that are also in the Series index.
+        update_keys = list(set(model_index_dx.columns).intersection(table_names_ser.index))
+        # Update the row in the DataFrame at the given multi-index with the values from the lookup Series.
+        model_index_dx.loc[mi_key, update_keys] = table_names_ser.loc[update_keys].values
+        
+        #fill blanks with nulls
+        model_index_dx = model_index_dx.replace('', pd.NA)
+        
+        #write the update to hte project database
+        with sqlite3.connect(projDB_fp) as conn:
+            model_index_dx.reset_index().to_sql('03_model_suite_index', conn, if_exists='replace', index=True)
+            log.debug(f'updated \'model_index\' w/ {model_index_dx.shape}')
+        
+        return 
+
+    def _create_tables(self, projDB_fp=None, logger=None):
+        """checking and creating tables
+        
+        called each time the model config is launched
+        
+        only adding missing tables
+        """
+        if logger is None: logger=self.logger
+        log = logger.getChild('create_tables')
+        #assert_proj_db_fp(projDB_fp) call this during _get_projDB_fp
+        
+        #get list of tables already in the database
+        with sqlite3.connect(projDB_fp) as conn:
+            existing_table_names = get_table_names(conn)
+        
+            #=======================================================================
+            # build missing dataframes from the schema
+            #=======================================================================            
+            table_names_d = dict()
+            df_d = dict()
+            for k, v in project_db_schema_nested_d.items():
+                table_name = f'model_{self.name}_{k}'
+                
+                if not table_name in existing_table_names:                
+                    if v is None: 
+                        continue #should add templates for everything?
+                    else:
+                        df_d[table_name] = v.copy()
+                        
+                    table_names_d[k] = table_name
+                    
+            log.debug(f'created {len(df_d)} tables from templates')
+        
+ 
+            #=======================================================================
+            # write to the project datavbase
+            #======================================================================= 
+            for k, df in df_d.items(): 
+                try:
+                    df.to_sql(k, conn, if_exists='replace', index=False)
+                except Exception as e:
+                    raise IOError(f'failed to write \'{k}\' to project database\n    {e}')
+                log.debug(f'wrote {k} w/ {df.shape}')
+                
+        
+        #=======================================================================
+        # update the model index
+        #=======================================================================
+        if len(table_names_d)>0:
+            self._update_model_index(table_names_d, projDB_fp=projDB_fp, logger=log)
+        
+        
+        #=======================================================================
+        # udpate status
+        #=======================================================================
+        log.debug(f'updated project database with model tables to \n    {projDB_fp}')
+        self.status_label = 'templated'
+        
+        
+        return
+        
+            
+            
+            
+        
+            
             
     def launch_config_ui(self):
         """launch the configuration dialog"""
+        log = self.logger.getChild('launch_config_ui')
+        log.debug(f'user pushed model config for {self.name}')
+        
+        #check ther eis a project database
+        projDB_fp = self._get_projDB_fp()
+        if projDB_fp is None or projDB_fp=='':
+            raise IOError('must set a project datatbase file before configuring models')
+        
+        #and the hazardss database
+        hazDB_fp = self._get_hazDB_fp()
+        if hazDB_fp is None or hazDB_fp=='':
+            raise IOError('must set a hazards datatbase file before configuring models')
+        
+ 
+        #setup the project database
+        self._create_tables(projDB_fp=projDB_fp, logger=self.logger)
         
         dial = self.parent.Model_config_dialog
         #check that the dialog is already closed
@@ -130,11 +270,26 @@ class Model(object):
         #load the model into the dialog
         dial._load_model(self)
         
+        #attach this dialog to yourself
+        #allows the model to pull values from the dialog
+        self.dial = dial
+        
         #launch teh dialog
         dial.show()
+        
+        
     
     def run_model(self):
         """run the risk model"""
+        
+        #=======================================================================
+        # build the inventory vector layer (finv)
+        #=======================================================================
+        
+    def _get_finv(self):
+        """get the asset inventory vector layer from the ui"""
+        vlay = comboBox_finv_vlay.currentLayer()
+        assert isinstance(vlay, QgsVectorLayer), f'bad vlay: {vlay}'
         
     def __exit__(self):
         self.logger.debug(f'destroying {self.name}')

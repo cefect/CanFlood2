@@ -45,7 +45,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS---------
 #===============================================================================
-overwrite_testdata=True
+overwrite_testdata=False
 def write_sqlite(result, ofp, write=overwrite_testdata):
     if write:
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
@@ -73,7 +73,8 @@ def oj_out(test_name, result):
     return oj(prep_filename(test_name), os.path.basename(result))
 
 
-def _dialog_preloader(dialog, 
+def _dialog_preloader(dialog,  
+                      tmpdir=None,
                       projDB_fp=None, hazDB_fp=None,
                       aoi_vlay=None, dem_rlay=None,
                       widget_data_d = None,
@@ -95,12 +96,15 @@ def _dialog_preloader(dialog,
     applied_data = {}
 
     if projDB_fp is not None:
+        projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp)))
         assert_proj_db_fp(projDB_fp)
         dialog.lineEdit_PS_projDB_fp.setText(projDB_fp)
         dialog.pushButton_save.setEnabled(True)
         applied_data['projDB_fp'] = projDB_fp
         
     if hazDB_fp is not None:
+        #copy over the test data to a temporary directory
+        hazDB_fp = shutil.copyfile(hazDB_fp, os.path.join(tmpdir, os.path.basename(hazDB_fp)))
         assert_haz_db_fp(hazDB_fp)
         dialog.lineEdit_HZ_hazDB_fp.setText(hazDB_fp)
         dialog.pushButton_save.setEnabled(True)
@@ -280,7 +284,7 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
 #===============================================================================
 @pytest.mark.parametrize("widget_data_d", [{'studyAreaLineEdit': 'test_study_area', 'userLineEdit': 'test_user'}])
 def test_dial_main_02_save_ui_to_project_database(dialog, projDB_fp,
-                                                  aoi_vlay, dem_rlay, widget_data_d):
+                                                  aoi_vlay, dem_rlay, widget_data_d, tmpdir):
     """Test that clicking the 'save' button saves the UI to the project database.
  
     """
@@ -289,7 +293,8 @@ def test_dial_main_02_save_ui_to_project_database(dialog, projDB_fp,
     #===========================================================================
  
     _ = _dialog_preloader(dialog, projDB_fp=projDB_fp, aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
-                          widget_data_d=widget_data_d)
+                          widget_data_d=widget_data_d,
+                          tmpdir=tmpdir)
  
     
  
@@ -307,7 +312,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog, projDB_fp,
     assert_proj_db_fp(projDB_fp)
     
     #load parmeters table
-    df = dialog._projDB_get_tables('02_project_parameters')
+    df = dialog.projDB_get_tables('02_project_parameters')
     
     test_d = df.loc[:, ['widgetName', 'value']].set_index('widgetName').to_dict()['value']
     
@@ -341,7 +346,7 @@ def test_dial_main_03_load_project_database(dialog, projDB_fp, monkeypatch):
 @pytest.mark.parametrize("projDB_fp", [
     None, oj('01_create_new_projDB', 'projDB.canflood2')
     ])
-def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, projDB_fp):
+def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp, tmpdir):
     """test the 'create new hazard database' button"""
     
     #setup the Create New hazard database    
@@ -355,7 +360,7 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, p
     
     #preload with some data
     if not projDB_fp is None:
-        _dialog_preloader(dialog, projDB_fp=projDB_fp)
+        _dialog_preloader(dialog, projDB_fp=projDB_fp, tmpdir=tmpdir)
  
     #===========================================================================
     # execute
@@ -380,7 +385,7 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, p
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("projDB_fp", [
     oj('01_create_new_projDB', 'projDB.canflood2')
     ])
@@ -389,13 +394,13 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, tmpdir, test_name, p
     {'scenarioNameLineEdit': 'some scenario', 'climateStateLineEdit': 'some climate', 'hazardTypeLineEdit': 'some hazard'}
     ])
 @pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02']) 
-def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eventMeta_df, widget_data_d):
+def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eventMeta_df, widget_data_d, tmpdir):
     """test entering in some data and saving to an existing hazDB"""
     
     _dialog_preloader(dialog, 
                       projDB_fp=projDB_fp, hazDB_fp=hazDB_fp,
                       haz_rlay_d=haz_rlay_d,eventMeta_df=eventMeta_df,
-                      widget_data_d=widget_data_d)
+                      widget_data_d=widget_data_d, tmpdir=tmpdir)
     
     #===========================================================================
     # execute
@@ -416,6 +421,27 @@ def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, 
     actual_series = df.set_index('widgetName')['value']
     
     assert_intersecting_values_match_verbose(expected_series, actual_series)
+    
+    
+@pytest.mark.dev 
+@pytest.mark.parametrize("projDB_fp", [
+    oj('01_create_new_projDB', 'projDB.canflood2')
+    ])
+@pytest.mark.parametrize("hazDB_fp", [oj('04_create_new_hazDB_L___09_REP', 'hazDB.db')])
+@pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02']) 
+def test_dial_main_06_model_configure(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eventMeta_df, tmpdir):
+    """test launching the model configuration dialog"""
+    
+    _dialog_preloader(dialog, projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, haz_rlay_d=haz_rlay_d, eventMeta_df=eventMeta_df,
+                      tmpdir=tmpdir)
+    
+    #get the first model
+    model_wrkr = dialog.model_index_d['c1'][0]
+    
+    #click the button on the associated widget
+    QTest.mouseClick(model_wrkr.widget_suite.pushButton_mod_config, Qt.LeftButton) #Model.launch_config_ui
+ 
+    
 
 
     

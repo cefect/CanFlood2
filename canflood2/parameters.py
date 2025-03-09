@@ -32,6 +32,8 @@ today_str = datetime.now().strftime("%Y%m%d")
 #===============================================================================
 # project database
 #===============================================================================
+project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_template.csv')
+
 project_db_schema_d = {
     '01_project_meta': None,
     '02_project_parameters': None,
@@ -63,7 +65,12 @@ project_db_schema_nested_d = {
 for key in project_db_schema_nested_d.keys():
     project_db_schema_d['03_model_suite_index'][key] = ''
 
-project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_template.csv')
+
+
+
+model_parameters_template_fp = os.path.join(plugin_dir, 'model_parameters_template.csv')
+
+project_db_schema_nested_d['table_parameters'] = pd.read_csv(model_parameters_template_fp)
 
 #===============================================================================
 # hazards: event metadata
@@ -130,9 +137,7 @@ for k,v in hazDB_schema_d.items():
     else:
         project_db_schema_d[k] = v.copy()
         
-
-
-
+ 
  
 #===============================================================================
 # generic params

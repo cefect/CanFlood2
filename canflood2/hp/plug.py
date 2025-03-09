@@ -34,7 +34,7 @@ class plugLogger(object):
     
     log_tabnm = 'CanFlood2' # qgis logging panel tab name
     
-    log_nm = 'cc' #logger name
+    log_nm_default = 'cf2' #logger name
     
     def __init__(self, 
                  iface,
@@ -57,13 +57,13 @@ class plugLogger(object):
         
         
         if  log_nm is None: #normal calls
-            self.log_nm = '%s.%s'%(self.log_nm, self.parent.__class__.__name__)
-            if not debug_logger is None:
-                debug_logger = debug_logger.getChild(self.parent.__class__.__name__)
+            self.log_nm = '%s.%s'%(self.log_nm_default, self.parent.__class__.__name__)
+
         else: #getChild calls
             self.log_nm = log_nm
-            if not debug_logger is None:
-                debug_logger = debug_logger.getChild(log_nm)
+            
+        if not debug_logger is None:
+            debug_logger = debug_logger.getChild(self.parent.__class__.__name__)
             
  
         

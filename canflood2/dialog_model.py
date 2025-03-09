@@ -10,6 +10,10 @@ ui dialog class for model config window
 #==============================================================================
 #python
 import sys, os, datetime, time, configparser
+import pandas as pd
+
+from .hp.basic import view_web_df as view
+from .hp.qt import set_widget_value
 
 
 from PyQt5 import uic, QtWidgets
@@ -53,28 +57,62 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         self.pushButton_ok.clicked.connect(self._save_and_close)
         self.pushButton_close.clicked.connect(self._close)
+        self.pushButton_run.clicked.connect(self._run_model)
         
         
     def _load_model(self, model):
         """load the model worker into the dialog"""
         log = self.logger.getChild('load_model')
         
-        #set the lables
+        #=======================================================================
+        # #load parameters from the table
+        #=======================================================================
+        params_df = model._get_model_tables('table_parameters')
+        
+        params_df = params_df.loc[:, ['widgetName', 'value', 'value2']].set_index('widgetName').dropna(subset=['value'])
+ 
+        log.debug(f'loaded {len(params_df)} parameters for model {model.name}')
+        for k,row in params_df.iterrows():
+            widget = getattr(self, k)
+            
+            #simple
+            if pd.isnull(row['value2']):
+                set_widget_value(widget, row['value'])
+                
+            #layers
+            else:
+                raise NotImplementedError(f'need to set the mapbox widget based on the layer id')
+            
+            
+            
+        
+        
+        #=======================================================================
+        # #set the lables
+        #=======================================================================
         self.label_mod_modelid.setText('%2d'%model.modelid)
         self.label_mod_asset.setText(model.asset_label)
         self.label_mod_consq.setText(model.consq_label)
-        self.label_mod_status.setText(model.status_label)
-        
+        self.label_mod_status.setText(model.status_label)        
         self.label_category.setText(f'[{model.category_code}] {model.category_desc}')
         
         
         log.debug(f'loaded model {model.name}')
         
+    def _run_model(self):
+        self.model.run_model()
+        
         
     def _save_and_close(self):
-        """save and close the dialog"""
+        """write the model config window parameter state to the approriate table_parameters
+        this is not a full run, just how the user would expect to close/open the dialog 
+        and see the parameters for the specific model"""
         log = self.logger.getChild('_save_and_close')
         log.debug('closing')
+        
+        raise NotImplementedError('need to write the parameters back to the model')
+    
+        #update the parameters table with the ui state
         
         self.accept()
         

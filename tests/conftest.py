@@ -4,7 +4,7 @@ Created on Apr. 16, 2024
 @author: cef
 '''
  
-import os, logging, sys
+import os, logging, sys, hashlib
 import pytest
 import pandas as pd
 from pytest_qgis.utils import clean_qgis_layer
@@ -17,6 +17,7 @@ from qgis.core import (
  
 
 from canflood2.hp.logr import get_log_stream
+from canflood2.hp.basic import sanitize_filename
 
 from canflood2.parameters import src_dir, hazDB_schema_d
 
@@ -239,6 +240,22 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
 #===============================================================================
 # HERLPERS---------
 #===============================================================================
+
+ 
+
+def test_result_write_filename_prep(test_name, char_max=25):
+    """cleaning up the pytest names to use for auto result writing"""
+
+    test_name1 = sanitize_filename(test_name)
+    test_name1 = test_name1.replace('test_dial_main_', '').replace('__', '_')
+
+    if len(test_name1) > char_max:
+        # Generate a 6-digit hash of the raw test_name
+        hash_suffix = hashlib.md5(test_name.encode()).hexdigest()[:6]
+        return f"{test_name1[:char_max]}_{hash_suffix}"
+    else:
+        return test_name1[:char_max]
+
 
 def assert_intersecting_values_match_verbose(expected_series, actual_series):
     # Determine the intersecting indexes.

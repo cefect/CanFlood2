@@ -8,7 +8,7 @@ Created on Mar 5, 2025
 #===============================================================================
 # IMPORTS----------
 #===============================================================================
-import pytest, time, sys, inspect, os, shutil
+import pytest, time, sys, inspect, os, shutil, hashlib
 from pytest_qgis.utils import clean_qgis_layer
 import pandas as pd
 
@@ -18,20 +18,24 @@ from PyQt5.QtWidgets import (
     QAction, QFileDialog, QListWidget, QTableWidgetItem,
     QComboBox,
     )
+from PyQt5.QtCore import QTimer
 
 
 from qgis.PyQt import QtWidgets
 
 
 import tests.conftest as conftest
-from tests.conftest import conftest_logger, assert_intersecting_values_match_verbose
+from tests.conftest import (
+    conftest_logger, assert_intersecting_values_match_verbose,
+    test_result_write_filename_prep
+    )
 
 from canflood2.assertions import assert_proj_db_fp, assert_haz_db_fp
 
 from canflood2.dialog_main import Main_dialog
 from canflood2.parameters import fileDialog_filter_str, eventMeta_control_d, consequence_category_d
 
-from canflood2.hp.basic import sanitize_filename
+
 from canflood2.hp.basic import view_web_df as view
 
 #===============================================================================
@@ -55,14 +59,7 @@ def write_sqlite(result, ofp, write=overwrite_testdata):
  
         conftest_logger.info(f'wrote result to \n    {ofp}')
         
-def prep_filename(test_name, char_max=30):
-    """cleaning up the pytest names to use for auto result writing"""
-    
-    test_name1 = sanitize_filename(test_name)
-    
-    test_name1 = test_name1.replace('test_dial_main_', '')
-    
-    return test_name1[:char_max]
+
         
  
 
@@ -70,7 +67,7 @@ def oj(*args):
     return os.path.join(test_data_dir, *args)
 
 def oj_out(test_name, result):
-    return oj(prep_filename(test_name), os.path.basename(result))
+    return oj(test_result_write_filename_prep(test_name), os.path.basename(result))
 
 
 def _dialog_preloader(dialog,  
@@ -397,7 +394,7 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp
 @pytest.mark.parametrize("projDB_fp", [
     oj('01_create_new_projDB', 'projDB.canflood2')
     ])
-@pytest.mark.parametrize("hazDB_fp", [oj('04_create_new_hazDB_L___09_REP', 'hazDB.db')])
+@pytest.mark.parametrize("hazDB_fp", [oj('04_create_new_hazDB_L__09_6f664d', 'hazDB.db')])
 @pytest.mark.parametrize("widget_data_d", [
     {'scenarioNameLineEdit': 'some scenario', 'climateStateLineEdit': 'some climate', 'hazardTypeLineEdit': 'some hazard'}
     ])
@@ -432,11 +429,11 @@ def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, 
     
     
 
-@pytest.mark.dev 
+
 @pytest.mark.parametrize(
     "projDB_fp, hazDB_fp, tutorial_name",
-    [(oj('04_create_new_hazDB_L___09_REP', 'projDB.canflood2'), 
-      oj('04_create_new_hazDB_L___09_REP', 'hazDB.db'), 
+    [(oj('04_create_new_hazDB_L__09_6f664d', 'projDB.canflood2'), 
+      oj('04_create_new_hazDB_L__09_6f664d', 'hazDB.db'), 
       'cf1_tutorial_02')]
 )
 def test_dial_main_06_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d, 
@@ -500,30 +497,53 @@ def test_dial_main_06_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d
     
     
  
-@pytest.mark.parametrize("projDB_fp", [
-    oj('01_create_new_projDB', 'projDB.canflood2')
-    ])
-@pytest.mark.parametrize("hazDB_fp", [oj('04_create_new_hazDB_L___09_REP', 'hazDB.db')])
-@pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02']) 
-def test_dial_main_07_model_configure(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eventMeta_df, tmpdir):
+@pytest.mark.dev 
+@pytest.mark.parametrize(
+    "projDB_fp, hazDB_fp, tutorial_name",
+    [(oj('04_create_new_hazDB_L__09_6f664d', 'projDB.canflood2'), 
+      oj('04_create_new_hazDB_L__09_6f664d', 'hazDB.db'), 
+      'cf1_tutorial_02')]
+)
+def test_dial_main_07_MS_configure(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eventMeta_df, tmpdir, test_name):
     """test launching the model configuration dialog"""
     
     _dialog_preloader(dialog, projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, haz_rlay_d=haz_rlay_d, eventMeta_df=eventMeta_df,
                       tmpdir=tmpdir)
     
-    #create the model suite templates
+    #===========================================================================
+    # #create the model suite templates
+    #===========================================================================
     QTest.mouseClick(dialog.pushButton_MS_createTemplates, Qt.LeftButton) #Main_dialog._create_model_templates()
     
-
+    #check they have been added to the dialog index
+    assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
+    
     
     #===========================================================================
-    # #get the first model
-    # model_wrkr = dialog.model_index_d['c1'][0]
-    # 
-    # #click the button on the associated widget
-    # QTest.mouseClick(model_wrkr.widget_suite.pushButton_mod_config, Qt.LeftButton) #Model.launch_config_ui
+    # launch config window on first model
     #===========================================================================
+    #schedule dialog to close
+    model_config_dialog = dialog.Model_config_dialog
+    QTimer.singleShot(200, lambda: QTest.mouseClick(model_config_dialog.pushButton_ok, Qt.LeftButton))
+    
+    
+    #retrieve the widget
+    model = dialog.model_index_d[list(consequence_category_d.keys())[0]][0]
+    widget = model.widget_d['pushButton_mod_config']['widget']
+    QTest.mouseClick(widget, Qt.LeftButton)
+    
+    
+    #===========================================================================
+    # post
+    #===========================================================================3
+    result = dialog.get_projDB_fp()
+
+    assert_proj_db_fp(result)
+    
  
+    write_sqlite(result, oj_out(test_name, result))
+    
+
     
 
 

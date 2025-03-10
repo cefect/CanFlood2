@@ -77,6 +77,22 @@ class Model_suite_helper(object):
         else:
             return None
         
+
+ 
+
+    def get_table_names(self, *table_names):
+        template_names = project_db_schema_modelSuite_d.keys()
+        for tn in table_names:
+            assert tn in template_names, f'bad table name: {tn}'
+    
+        result = tuple(f'model_{self.name}_{k}' for k in table_names)
+        return result[0] if len(result) == 1 else result
+
+ 
+    def get_model_tables(self,*table_names, **kwargs):
+        """load model specific tables from generic table names"""        
+        return self.parent.projDB_get_tables(self.get_table_names(*table_names), **kwargs)
+    
     def get_model_tables_all(self, projDB_fp=None, logger=None):
         """load all model specific tables from the project database"""
         if logger is None: logger=self.logger
@@ -106,20 +122,25 @@ class Model_suite_helper(object):
                 
         #close the connection
         return df_d
- 
-
-    def get_table_names(self, *table_names):
-        template_names = project_db_schema_modelSuite_d.keys()
-        for tn in table_names:
-            assert tn in template_names, f'bad table name: {tn}'
     
-        result = tuple(f'model_{self.name}_{k}' for k in table_names)
-        return result[0] if len(result) == 1 else result
+    def set_model_tables(self, df_d, **kwargs):
+        """write the tables to the project database"""
+        
+        #recase the names
 
- 
-    def get_model_tables(self,*table_names, **kwargs):
-        """load model specific tables from generic table names"""        
-        return self.parent.projDB_get_tables(*get_table_names(table_names), **kwargs)
+        # Get the table names
+        table_names = self.get_table_names(*df_d.keys())
+        
+        # Ensure table_names is a list
+        if isinstance(table_names, str):
+            table_names = [table_names]
+        
+        # Recast the DataFrame dictionary with the correct table names
+        df_d_recast = dict(zip(table_names, df_d.values()))
+        
+        # Write the tables to the project database
+        return self.parent.projDB_set_tables(df_d_recast, **kwargs)
+
     
 
         

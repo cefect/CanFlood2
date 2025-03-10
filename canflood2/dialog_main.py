@@ -42,8 +42,10 @@ from PyQt5.QtWidgets import (
 
 #qgis
 from qgis.gui import QgsMapLayerComboBox
-from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel, \
-    QgsWkbTypes, QgsMapLayer, QgsLogger
+from qgis.core import (
+    QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel,
+    QgsWkbTypes, QgsMapLayer, QgsLogger,
+    )
 
  
 
@@ -333,6 +335,18 @@ class Main_dialog_haz(object):
             dfs = tuple(pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names)
     
         return dfs[0] if len(dfs) == 1 else dfs
+    
+    def get_hazDB_fp(self):
+        """get the project database file path and do some formatting and checks"""
+        fp = self.lineEdit_HZ_hazDB_fp.text()
+        if fp=='':
+            fp = None
+        
+        if not fp is None:
+            assert isinstance(fp, str)
+            assert os.path.exists(fp), f'bad filepath for projDB: {fp}'
+            
+        return fp
  
             
             
@@ -389,6 +403,16 @@ class Main_dialog_modelSuite(object):
             log.debug("populated model suite")
             
         self.pushButton_MS_createTemplates.clicked.connect(create_modelSuite_templates)
+        
+        #=======================================================================
+        # initilzie the model config
+        #=======================================================================
+        """initlizing this once when the parent starts
+        this slows down the parent startup, 
+        but should be better for user experience as this dialog is called multiple times
+        need to add some logic for reseting the dialog each time it is called by the ocnfigure button
+        """
+        self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
     
     def _add_model(self, layout, category_code,
                     logger=None,
@@ -519,8 +543,8 @@ class Main_dialog_modelSuite(object):
         self._update_model_widget_labels(model=model)
         
         #connect the buttons
-        widget.pushButton_mod_run.clicked.connect(lambda : self._launch_config_ui(category_code, modelid))
-        #widget.pushButton_mod_config.clicked.connect(wrkr.launch_config_ui)
+        widget.pushButton_mod_run.clicked.connect(lambda : self._run_model(category_code, modelid))
+        widget.pushButton_mod_config.clicked.connect(lambda : self._launch_config_ui(category_code, modelid))
         widget.pushButton_mod_minus.clicked.connect(lambda : self._remove_model(category_code, modelid))
         widget.pushButton_mod_plus.clicked.connect(lambda : self._add_model(layout, category_code))
         
@@ -562,35 +586,44 @@ class Main_dialog_modelSuite(object):
     def _launch_config_ui(self, category_code, modelid):
         """launch the configuration dialog"""
         log = self.logger.getChild('launch_config_ui')
-        log.debug(f'user pushed model config for {self.name}')
         
+        log.debug(f'user pushed model config for {category_code} {modelid}')
+        #=======================================================================
+        # retrival
+        #=======================================================================
         #check ther eis a project database
-        projDB_fp = self._get_projDB_fp()
-        if projDB_fp is None or projDB_fp=='':
-            raise IOError('must set a project datatbase file before configuring models')
+        projDB_fp = self.get_projDB_fp()
+ 
         
         #and the hazardss database
-        hazDB_fp = self._get_hazDB_fp()
-        if hazDB_fp is None or hazDB_fp=='':
+        hazDB_fp = self.get_hazDB_fp()
+        if hazDB_fp is None:
             raise IOError('must set a hazards datatbase file before configuring models')
         
  
-        #setup the project database
-        self._create_tables(projDB_fp=projDB_fp, logger=self.logger)
+        #get this model
+        model = self.model_index_d[category_code][modelid]
         
-        dial = self.parent.Model_config_dialog
+        dial = self.Model_config_dialog
         #check that the dialog is already closed
         assert not dial.isVisible(), 'dialog is already open!'
         
-        #load the model into the dialog
-        dial._load_model(self)
         
-        #attach this dialog to yourself
-        #allows the model to pull values from the dialog
-        self.dial = dial
+        log.info(f'launching model configuration dialog for {model.name}')
+        #=======================================================================
+        # #load the model into the dialog
+        #=======================================================================
+        dial.load_model(model, projDB_fp=projDB_fp)
+ 
         
-        #launch teh dialog
-        dial.show()
+        #launch teh dialog modally
+        result = dial.exec_()
+        
+        
+        dial.model=None #clear the model
+        
+    def _run_model(self, category_code, modelid):
+        raise NotImplementedError('need to add the run logic')
         
     def _remove_model(self, category_code, modelid, logger=None):
         """remove an individual model"""
@@ -1150,7 +1183,8 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
     
         with sqlite3.connect(projDB_fp) as conn:
             for k, df in df_d.items():
-                assert k in project_db_schema_d.keys(), k
+                """NO! model tables dont show up in the schema
+                assert k in project_db_schema_d.keys(), k"""
                 df.to_sql(k, conn, if_exists='replace', index=False)
                 
         log.debug(f'updated {len(df_d)} tables in project database at\n    {df_d.keys()}')

@@ -15,9 +15,15 @@ import pandas as pd
 
 from PyQt5 import uic, QtWidgets
 
-from .hp.basic import view_web_df as view
-from .hp.qt import set_widget_value
+from qgis.core import (
+    QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel,
+    QgsWkbTypes, QgsMapLayer, QgsLogger,
+    )
 
+from .hp.basic import view_web_df as view
+from .hp.qt import set_widget_value, get_widget_value
+
+from .parameters import consequence_category_d
 
 
 
@@ -64,29 +70,48 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS, Model):
         self.pushButton_close.clicked.connect(self._close)
         self.pushButton_run.clicked.connect(self._run_model)
         
+        #=======================================================================
+        # Asset Inventory
+        #=======================================================================
+        self.comboBox_finv_vlay.setFilters(QgsMapLayerProxyModel.VectorLayer)
+        self.comboBox_finv_vlay.setCurrentIndex(-1)
         
-    def _load_model(self, model):
+        
+        
+        log.debug('slots connected')
+        
+        
+    def load_model(self, model, projDB_fp=None):
         """load the model worker into the dialog"""
         log = self.logger.getChild('load_model')
         
+        self.model = model
+        if projDB_fp is None:
+            projDB_fp = self.parent.get_projDB_fp()
         #=======================================================================
         # #load parameters from the table
         #=======================================================================
-        params_df = model._get_model_tables('table_parameters')
+        params_df = model.get_model_tables('table_parameters', projDB_fp=projDB_fp)
         
-        params_df = params_df.loc[:, ['widgetName', 'value', 'value2']].set_index('widgetName').dropna(subset=['value'])
+        #get just those with values
+        params_df = params_df.loc[:, ['widgetName', 'value', 'value2']].dropna(subset=['value', 'widgetName']
+                                       ).set_index('widgetName')
  
-        log.debug(f'loaded {len(params_df)} parameters for model {model.name}')
-        for k,row in params_df.iterrows():
-            widget = getattr(self, k)
-            
-            #simple
-            if pd.isnull(row['value2']):
-                set_widget_value(widget, row['value'])
+        if len(params_df)==0:
+            log.debug(f'loaded {len(params_df)} parameters for model {model.name}')
+            for k,row in params_df.iterrows():
+                widget = getattr(self, k)
                 
-            #layers
-            else:
-                raise NotImplementedError(f'need to set the mapbox widget based on the layer id')
+                #simple
+                if pd.isnull(row['value2']):
+                    set_widget_value(widget, row['value'])
+                    
+                #layers
+                else:
+                    raise NotImplementedError(f'need to set the mapbox widget based on the layer id')
+                
+        else:
+            log.debug(f'paramter table empty for model {model.name}')
             
             
             
@@ -99,7 +124,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS, Model):
         self.label_mod_asset.setText(model.asset_label)
         self.label_mod_consq.setText(model.consq_label)
         self.label_mod_status.setText(model.status_label)        
-        self.label_category.setText(f'[{model.category_code}] {model.category_desc}')
+        self.label_category.setText(consequence_category_d[model.category_code])
         
         
         log.debug(f'loaded model {model.name}')
@@ -115,9 +140,29 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS, Model):
         log = self.logger.getChild('_save_and_close')
         log.debug('closing')
         
-        raise NotImplementedError('need to write the parameters back to the model')
-    
+        model = self.model
+        
+        #=======================================================================
+        # retrieve, set, and save the paramter table
+        #=======================================================================
+        #retrieve the parameter table
+        params_df = model.get_model_tables('table_parameters')
+        
+        #loop through each widget and collect the state from the ui
+        d = dict()
+        for i, widgetName in params_df['widgetName'].dropna().items():
+            widget = getattr(self, widgetName)
+            d[i] = get_widget_value(widget)
+ 
+        s = pd.Series({k:v for k,v in d.items() if not v==''}, name='value')
+        
         #update the parameters table with the ui state
+        params_df.loc[s.index, 'value'] = s
+        
+        #write to the parent
+        model.set_model_tables({'table_parameters': params_df}, logger=log)
+ 
+        log.debug(f'saved {len(s)} parameters for model {model.name}')
         
         self.accept()
         

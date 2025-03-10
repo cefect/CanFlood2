@@ -91,7 +91,7 @@ QTabBar::tab:selected { /* Style for selected tabs */
       </font>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">

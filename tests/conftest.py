@@ -187,6 +187,10 @@ def aoi_fp(tutorial_name):
     return tutorial_data_lib[tutorial_name]['aoi']
 
 @pytest.fixture
+def finv_fp(tutorial_name):
+    return tutorial_data_lib[tutorial_name]['finv']
+
+@pytest.fixture
 def haz_fp_d(tutorial_name):
     return tutorial_data_lib[tutorial_name]['haz']
 
@@ -210,7 +214,16 @@ def aoi_vlay(aoi_fp):
     layer =  QgsVectorLayer(aoi_fp, 'aoi_vlay', 'ogr')
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
-    return layer 
+    return layer
+
+@pytest.fixture(scope='function')
+@clean_qgis_layer
+def finv_vlay(finv_fp):
+    assert os.path.exists(finv_fp), f'bad filepath on finv_vlay fixture:\n    {finv_fp}'
+    layer =  QgsVectorLayer(finv_fp, 'finv_vlay', 'ogr')
+    assert isinstance(layer, QgsVectorLayer)
+    QgsProject.instance().addMapLayer(layer)
+    return layer
 
 @pytest.fixture(scope='function')
 @clean_qgis_layer

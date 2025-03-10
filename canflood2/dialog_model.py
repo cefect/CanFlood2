@@ -23,11 +23,15 @@ from qgis.core import (
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
 
+from .assertions import assert_projDB_fp, assert_hazDB_fp
+
+ 
+
 from .parameters import consequence_category_d
 
 
 
-from  .core import Model
+
 #===============================================================================
 # load UI file
 #===============================================================================
@@ -37,7 +41,7 @@ assert os.path.exists(ui_fp), 'failed to find the ui file: \n    %s'%ui_fp
 FORM_CLASS, _ = uic.loadUiType(ui_fp)
 
 
-class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS, Model):
+class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
     
     def __init__(self, 
                  iface, 
@@ -94,21 +98,15 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS, Model):
         params_df = model.get_model_tables('table_parameters', projDB_fp=projDB_fp)
         
         #get just those with values
-        params_df = params_df.loc[:, ['widgetName', 'value', 'value2']].dropna(subset=['value', 'widgetName']
+        params_df = params_df.loc[:, ['widgetName', 'value']].dropna(subset=['value', 'widgetName']
                                        ).set_index('widgetName')
  
         if len(params_df)==0:
             log.debug(f'loaded {len(params_df)} parameters for model {model.name}')
             for k,row in params_df.iterrows():
                 widget = getattr(self, k)
-                
-                #simple
-                if pd.isnull(row['value2']):
-                    set_widget_value(widget, row['value'])
-                    
-                #layers
-                else:
-                    raise NotImplementedError(f'need to set the mapbox widget based on the layer id')
+                set_widget_value(widget, row['value'])
+ 
                 
         else:
             log.debug(f'paramter table empty for model {model.name}')
@@ -130,9 +128,57 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS, Model):
         log.debug(f'loaded model {model.name}')
         
     def _run_model(self):
-        self.model.run_model()
+        """run the model"""
+        log = self.logger.getChild('_run_model')
+        model = self.model        
+        
+        log.info(f'running model {model.name}')
         
         
+        #=======================================================================
+        # precheck
+        #=======================================================================
+        projDB_fp = self.parent.get_projDB_fp()
+        assert_projDB_fp(projDB_fp)
+        
+        hazDB_fp = self.parent.get_hazDB_fp()
+        assert_hazDB_fp(hazDB_fp)
+        
+        #=======================================================================
+        # write the ui state to the t
+        #=======================================================================
+        self._set_ui_to_table_parameters(model, logger=log)
+        
+        raise NotImplementedError('stopped here')
+    
+        #=======================================================================
+        # smaple rasters
+        #=======================================================================
+        
+        
+        
+        
+
+    def _set_ui_to_table_parameters(self, model, logger=None):
+        """write the model config window parameter state to the approriate table_parameters
+        """
+        if logger is None: logger = self.logger
+        log = logger.getChild('_set_ui_to_table_parameters')
+        #retrieve the parameter table
+        params_df = model.get_model_tables('table_parameters')
+        #loop through each widget and collect the state from the ui
+        d = dict()
+        for i, widgetName in params_df['widgetName'].dropna().items():
+            widget = getattr(self, widgetName)
+            d[i] = get_widget_value(widget)
+        
+        s = pd.Series({k:v for (k, v) in d.items() if not v == ''}, name='value')
+        #update the parameters table with the ui state
+        params_df.loc[s.index, 'value'] = s
+        #write to the parent
+        model.set_model_tables({'table_parameters':params_df}, logger=log)
+        log.debug(f'saved {len(s)} parameters for model {model.name}')
+
     def _save_and_close(self):
         """write the model config window parameter state to the approriate table_parameters
         this is not a full run, just how the user would expect to close/open the dialog 
@@ -145,24 +191,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS, Model):
         #=======================================================================
         # retrieve, set, and save the paramter table
         #=======================================================================
-        #retrieve the parameter table
-        params_df = model.get_model_tables('table_parameters')
-        
-        #loop through each widget and collect the state from the ui
-        d = dict()
-        for i, widgetName in params_df['widgetName'].dropna().items():
-            widget = getattr(self, widgetName)
-            d[i] = get_widget_value(widget)
- 
-        s = pd.Series({k:v for k,v in d.items() if not v==''}, name='value')
-        
-        #update the parameters table with the ui state
-        params_df.loc[s.index, 'value'] = s
-        
-        #write to the parent
-        model.set_model_tables({'table_parameters': params_df}, logger=log)
- 
-        log.debug(f'saved {len(s)} parameters for model {model.name}')
+        self._set_ui_to_table_parameters(model, logger=log)
         
         self.accept()
         

@@ -50,7 +50,8 @@ from qgis.core import (
  
 
 from .hp.plug import (
-    plugLogger, bind_layersListWidget, get_layer_info_from_combobox, bind_tableWidget
+    plugLogger, bind_layersListWidget, get_layer_info_from_combobox, bind_tableWidget,
+    bind_MapLayerComboBox
     )
 
 from .hp.basic import view_web_df as view
@@ -59,13 +60,13 @@ from .hp.sql import get_table_names
  
 
 from .parameters import (
-    home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d,
+    home_dir, plugin_dir,  project_db_schema_d,
     fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp,
     project_db_schema_modelSuite_d,
     eventMeta_control_d)
 
 from .assertions import (
-    assert_proj_db_fp, assert_proj_db, assert_haz_db, assert_haz_db_fp, assert_eventMeta_df
+    assert_projDB_fp, assert_projDB_conn, assert_hazDB_conn, assert_hazDB_fp, assert_eventMeta_df
     )
 
 from .core import _get_proj_meta_d, Model_suite_helper
@@ -150,7 +151,7 @@ class Main_dialog_haz(object):
         
         #bind some methods to the tableWidget_HZ_eventMeta
         bind_tableWidget(self.tableWidget_HZ_eventMeta, self.logger, iface=self.iface,
-                         table_column_type_d=eventMeta_control_d,
+                         widget_type_d=eventMeta_control_d,
                          )
         
         #connect loading into the event metadata view
@@ -169,8 +170,7 @@ class Main_dialog_haz(object):
             assert_eventMeta_df(eventMeta_df)        
             
             #load this dataframe into the table widget
-            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(
-                eventMeta_df,widget_type_d=eventMeta_control_d)
+            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)
             
  
         
@@ -210,7 +210,7 @@ class Main_dialog_haz(object):
                 df.to_sql(table_name, conn, if_exists='replace', index=False)
                 
             #check the database
-            assert_haz_db(conn)
+            assert_hazDB_conn(conn)
             
         log.info(f'created new hazard database at\n    {fp}')
         
@@ -233,7 +233,7 @@ class Main_dialog_haz(object):
         if hazDB_fp == '' or hazDB_fp is None:
             raise ValueError('no hazard database file path specified')
         
-        assert_haz_db_fp(hazDB_fp)
+        assert_hazDB_fp(hazDB_fp)
         
         log.debug(f'saving UI to hazard database at\n    {hazDB_fp}')
         #=======================================================================
@@ -248,7 +248,7 @@ class Main_dialog_haz(object):
             table_name='04_haz_meta'
             df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
             
-            d = self._retrieve_ui_state_from_df_template(df_d[table_name])
+            d = self._set_ui_state_from_df_template(df_d[table_name])
             df_d[table_name]['value'] = pd.Series(d)
             
             #===================================================================
@@ -288,7 +288,7 @@ class Main_dialog_haz(object):
                 df.to_sql(k, conn, if_exists='replace', index=False)
                 log.debug(f'    updated hazDB table \'{k}\' w/ {df.shape}')
                 
-            assert_haz_db(conn)
+            assert_hazDB_conn(conn)
             
             #close the connection
         log.debug(f'finished saving UI to hazard database at\n    {hazDB_fp}')
@@ -309,7 +309,7 @@ class Main_dialog_haz(object):
                     df.to_sql(k, conn, if_exists='replace', index=False)
                     log.debug(f'    updated projDB table \'{k}\' w/ {df.shape}')
                     
-                assert_proj_db(conn)
+                assert_projDB_conn(conn)
         else:
             log.warning(f'no project database found... hazard tables not mirrored')
         
@@ -318,6 +318,34 @@ class Main_dialog_haz(object):
         log.push(f'UI state saved to hazards database')
             
         return
+    
+    def _load_hazDB(self, logger=None,  hazDB_fp=None):
+        """load the UI state from a hazard database file"""
+        
+        #=======================================================================
+        # defautls
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log = logger.getChild('_load_hazDB')
+        if hazDB_fp is None:
+            hazDB_fp = self.get_hazDB_fp()
+            
+        log.info(f'loading from hazard database at\n    {hazDB_fp}')
+        #=======================================================================
+        # load the tables
+        #=======================================================================
+        haz_meta_df, haz_events_df = self._hazDB_get_tables('04_haz_meta', '05_haz_events', hazDB_fp=hazDB_fp)
+        
+        
+        #set UI parameter state
+        self._set_ui_state_from_df_template(haz_meta_df, logger=log)
+        
+        #set the event metadata widget
+        self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(haz_events_df)
+        
+        log.debug(f'finished loading from hazard database at\n    {hazDB_fp}')
+            
+            
     
     def _hazDB_get_tables(self, *table_names, hazDB_fp=None):
         """Convenience wrapper to get multiple tables as DataFrames.
@@ -329,22 +357,33 @@ class Main_dialog_haz(object):
         if hazDB_fp is None:
             hazDB_fp = self.lineEdit_HZ_hazDB_fp.text()
         
-        assert_haz_db_fp(hazDB_fp)
+        assert_hazDB_fp(hazDB_fp)
         
         with sqlite3.connect(hazDB_fp) as conn:
             dfs = tuple(pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names)
     
         return dfs[0] if len(dfs) == 1 else dfs
     
-    def get_hazDB_fp(self):
+    def get_hazDB_fp(self, logger=None):
         """get the project database file path and do some formatting and checks"""
+        if logger is None: logger=self.logger
+        log = logger.getChild('get_hazDB_fp')
         fp = self.lineEdit_HZ_hazDB_fp.text()
         if fp=='':
             fp = None
         
         if not fp is None:
             assert isinstance(fp, str)
-            assert os.path.exists(fp), f'bad filepath for projDB: {fp}'
+            
+            #try and make the path absolute
+            if not os.path.isabs(fp):
+                projDB_fp= self.get_projDB_fp() 
+                fp = os.path.join(os.path.dirname(projDB_fp), fp)
+            
+            if not os.path.exists(fp):
+                """allowing this for now.. not sure if this makes sense"""
+                log.warning(f'bad filepath for projDB: {fp}')
+                fp = None
             
         return fp
  
@@ -625,7 +664,9 @@ class Main_dialog_modelSuite(object):
     def _run_model(self, category_code, modelid):
         raise NotImplementedError('need to add the run logic')
         
-    def _remove_model(self, category_code, modelid, logger=None):
+    def _remove_model(self, category_code, modelid, 
+                      clear_projDB=True,
+                      logger=None):
         """remove an individual model"""
         if logger is None: logger=self.logger
         log = logger.getChild(f'_remove_model_{category_code}_{modelid}')
@@ -656,13 +697,15 @@ class Main_dialog_modelSuite(object):
         #=======================================================================
         # #remove all the tables
         #=======================================================================
-        #model tables
-        model_table_names_l = list(model.get_model_tables_all().keys())
-        self.projDB_drop_tables(*model_table_names_l, logger=log)
-        
-        #remove entry from model index table
-        dx = self.get_model_index_dx().drop(index=(modelid, category_code))
-        self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, logger=log)
+        if clear_projDB:
+            #sometimes we dont want to touch the projectDatabase
+            #model tables
+            model_table_names_l = list(model.get_model_tables_all().keys())
+            self.projDB_drop_tables(*model_table_names_l, logger=log)
+            
+            #remove entry from model index table
+            dx = self.get_model_index_dx().drop(index=(modelid, category_code))
+            self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, logger=log)
         
             
         
@@ -682,10 +725,10 @@ class Main_dialog_modelSuite(object):
             del self.model_index_d[category_code]
         
         
-    def _clear_all_models(self):
+    def _clear_all_models(self, *args, clear_projDB=True, logger=None):
         """clear all the models"""
-
-        log = self.logger.getChild('_clear_all_models')
+        if logger is None: logger=self.logger
+        log = logger.getChild('_clear_all_models')
         cnt=0
         log.debug('clearing all models')
         
@@ -701,7 +744,7 @@ class Main_dialog_modelSuite(object):
         for category_code, modelid_l in keys_d.items():
             for modelid in modelid_l:
                 try:
-                    self._remove_model(category_code, modelid, logger=log)
+                    self._remove_model(category_code, modelid, logger=log, clear_projDB=clear_projDB)
                 except Exception as e:
                     raise IOError(f'failed to clear model {category_code}_{modelid}: {e}')  
                 cnt+=1
@@ -713,16 +756,16 @@ class Main_dialog_modelSuite(object):
         
         #reset the model index table
         """no... each model removes its own row"""
-        table_name='03_model_suite_index'
-        self.projDB_set_tables({table_name:project_db_schema_d[table_name].copy()})
+        #table_name='03_model_suite_index'
+        #self.projDB_set_tables({table_name:project_db_schema_d[table_name].copy()})
         
         
         
         
         #check
-        
-        model_index_dx = self.get_model_index_dx()
-        assert len(model_index_dx)==0, f'failed to clear models: {len(model_index_dx)}'
+        if clear_projDB:
+            model_index_dx = self.get_model_index_dx()
+            assert len(model_index_dx)==0, f'failed to clear models: {len(model_index_dx)}'
         
         #clear garbage
         gc.collect()
@@ -866,7 +909,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
                 )
             if filename:
                 self.lineEdit_PS_projDB_fp.setText(filename) 
-                self._load_project_database()
+                self._load_projDB()
                 
                 #activate the save button
                 self.pushButton_save.setEnabled(True)            
@@ -878,17 +921,12 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         
         
         #=======================================================================
-        # Study Area Polygon
+        # MapLayerComboBox
         #=======================================================================
-        self.comboBox_aoi.setFilters(QgsMapLayerProxyModel.PolygonLayer)
-        self.comboBox_aoi.setCurrentIndex(-1)
-        
-        
-        #=======================================================================
-        # DEM Raster
-        #=======================================================================
-        self.comboBox_dem.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.comboBox_dem.setCurrentIndex(-1)
+        bind_MapLayerComboBox(self.comboBox_aoi, iface=self.iface, layerType=QgsMapLayerProxyModel.PolygonLayer)
+
+        bind_MapLayerComboBox(self.comboBox_dem, iface=self.iface, layerType=QgsMapLayerProxyModel.RasterLayer)
+ 
         
         #=======================================================================
         # Hazard scenario tab------------
@@ -940,7 +978,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         # #build the project parameters
         #=======================================================================
         table_name='02_project_parameters'
-        df_d[table_name] = pd.read_csv(project_parameters_template_fp)
+        df_d[table_name] = project_db_schema_d[table_name].copy()
         
         #check the widget names match
         for widgetName in df_d[table_name]['widgetName']:
@@ -961,7 +999,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         #=======================================================================
         #hazard meta
         table_name='04_haz_meta'
-        df_d[table_name] = pd.read_csv(hazDB_meta_template_fp)
+        df_d[table_name] = project_db_schema_d[table_name].copy()
         
         #others
         for k, v in hazDB_schema_d.items():
@@ -978,18 +1016,19 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
                 assert k in project_db_schema_d.keys(), k
                 df.to_sql(k, conn, if_exists='replace', index=False)
                 
-            assert_proj_db(conn)
+            assert_projDB_conn(conn)
                 
         log.info(f'created new project database w/ {len(df_d)} tables at\n    {fp}')
         
         #=======================================================================
         # wrap
         #=======================================================================
-        self._save_ui_to_DBs(projDB_fp=fp)
+        """no.. lets wait til the user hits save
+        self._save_ui_to_DBs(projDB_fp=fp)"""
         
         
 
-    def _retrieve_ui_state_from_df_template(self, df):
+    def _set_ui_state_from_df_template(self, df, logger=None):
         """take a dataframe with widget name columns and return a dictionary of widget values
         
         Parameters
@@ -997,6 +1036,12 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         df : pd.DataFrame
             columns: 'widgetName'
         """
+        #=======================================================================
+        # defautls
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log = logger.getChild('_set_ui_state_from_df_template')
+        
         d = dict()
         for i, row in df.iterrows():
  
@@ -1010,7 +1055,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             if isinstance(widget, QtWidgets.QLineEdit):
                 v = widget.text()
             elif isinstance(widget, QgsMapLayerComboBox):
-                _, v = get_layer_info_from_combobox(widget)
+                v, _ = get_layer_info_from_combobox(widget) #using names
             elif isinstance(widget, QtWidgets.QComboBox):
                 v = widget.currentText()
             elif isinstance(widget, QtWidgets.QRadioButton):
@@ -1027,6 +1072,10 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         if not df.index.equals(pd.Series(d).index):
             raise ValueError("Indexes do not match")
         
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.debug(f'set {len(d)} widget values from df')
 
         return d
 
@@ -1042,21 +1091,22 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         log = self.logger.getChild('_save_ui_to_DBs')
         
         if projDB_fp is None:
-            projDB_fp = self.lineEdit_PS_projDB_fp.text()
+            projDB_fp = self.get_projDB_fp()
+            
+        assert not projDB_fp is None, 'must set a project database file before saving'
         
-        if projDB_fp == '' or projDB_fp is None:
-            raise ValueError('no project database file path specified')
+ 
         
         if hazDB_fp is None:
-            hazDB_fp = self.lineEdit_HZ_hazDB_fp.text()
+            hazDB_fp = self.get_hazDB_fp()
         
+        assert not hazDB_fp is None, 'must set a hazard database file before saving'
         #=======================================================================
         # hazard data
         #=======================================================================
-        if not (hazDB_fp is None or hazDB_fp == ''):
-            self._save_haz_ui_to_hazDB(projDB_fp=projDB_fp, hazDB_fp=hazDB_fp)
-        else:
-            log.warning('no hazard database file path specified')
+ 
+        self._save_haz_ui_to_hazDB(projDB_fp=projDB_fp, hazDB_fp=hazDB_fp)
+ 
  
 
         #=======================================================================
@@ -1064,7 +1114,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         #=======================================================================
 
         
-        assert_proj_db_fp(projDB_fp)
+        assert_projDB_fp(projDB_fp)
         log.debug(f'saving UI to project database at\n    {projDB_fp}')
         
         
@@ -1086,7 +1136,20 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             table_name='02_project_parameters'
             df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
             
-            d = self._retrieve_ui_state_from_df_template(df_d[table_name])            
+            d = self._set_ui_state_from_df_template(df_d[table_name])
+            
+            #set hazDB_fp to relative path
+            idxloc = df_d[table_name].loc[df_d[table_name]['varName']=='hazDB_fp', 'value'].index
+ 
+            if idxloc[0] in d:
+                #check that the hazDB is in the same (or a child) directoryy as the project database
+                if not os.path.commonpath([os.path.dirname(projDB_fp), hazDB_fp]) == os.path.dirname(projDB_fp):
+                    raise ValueError(f'hazDB_fp must be in the same directory as the project database')
+                
+                d[idxloc[0]] = os.path.relpath(hazDB_fp, os.path.dirname(projDB_fp))
+ 
+            
+                        
             df_d[table_name]['value'] = pd.Series(d)
  
             
@@ -1160,7 +1223,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
  
     
         with sqlite3.connect(projDB_fp) as conn:
-            assert_proj_db(conn)
+            assert_projDB_conn(conn)
             dfs = tuple(pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names)
     
         return dfs[0] if len(dfs) == 1 else dfs
@@ -1179,7 +1242,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         if logger is None: logger=self.logger
         log = logger.getChild('projDB_set_tables')
     
-        assert_proj_db_fp(projDB_fp)
+        assert_projDB_fp(projDB_fp)
     
         with sqlite3.connect(projDB_fp) as conn:
             for k, df in df_d.items():
@@ -1201,7 +1264,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         if logger is None: logger=self.logger
         log = logger.getChild('projDB_drop_tables')
     
-        assert_proj_db_fp(projDB_fp)
+        assert_projDB_fp(projDB_fp)
     
  
 
@@ -1218,58 +1281,81 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
 
  
         
-    def _load_project_database(self):
+    def _load_projDB(self):
         """load an existing project database file"""
-        raise NotImplementedError('stopped here')
-        fp =  self.lineEdit_PS_projDB_fp.text()
+        log = self.logger.getChild('_load_projDB')
  
-        #=======================================================================
-        # load data tables
-        #=======================================================================
-        with sqlite3.connect(fp) as conn:
-            assert_proj_db(conn)
- 
- 
+        fp =  self.get_projDB_fp()
+        assert not fp is None, 'no project database file path specified'
+        log.debug(f'loading project database from\n    {fp}')
+        
+        
+        assert_projDB_fp(fp, check_consistency=True)
+        
+        """using the hazDB specifeid in the parameters table"""
+        self.lineEdit_HZ_hazDB_fp.setText('')
             
-            #=======================================================================
-            # set the ui state from the project parameters
-            #=======================================================================
-            table_name='02_project_parameters'
-            df = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
-            
-            for k, row in df.iterrows():
-                widgetName = row['widgetName']
-                value = row['value']
-                
+        #=======================================================================
+        # set the ui state from the project parameters
+        #=======================================================================
+        table_name='02_project_parameters'
+        df_raw = self.projDB_get_tables(table_name, projDB_fp=fp)
+        s = df_raw.dropna(subset=['widgetName', 'value']).set_index('widgetName')['value']
+ 
+        if len(s)>0:
+            log.debug(f'loading {len(s)} project parameters')
+            for widgetName, value in s.items():
+     
                 #get the widget
-                widget = getattr(self, widgetName)                
-                set_widget_value(widget, value)
+                try:
+                    widget = getattr(self, widgetName)                
+                    set_widget_value(widget, value)
+                except Exception as e:
+                    raise IOError(f'failed to set widget \'{widgetName}\' to \'{value}\': \n    {e}')
                 
- 
+        else:
+            log.warning(f'no project parameters found in projDB')
+        
                 
-            #=======================================================================
-            # set the model suite
-            #=======================================================================
-            table_name='03_model_suite_index'
-            df = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
-            #clear the model suite
-            self._clear_all_models()
+        #=======================================================================
+        # load the hazard parameters
+        #=======================================================================
+        hazDB_fp = self.get_hazDB_fp()
+        if not hazDB_fp is None:
+            log.debug(f'loading hazard database from\n    {hazDB_fp}')
             
-            raise NotImplementedError('stopped here')
-            for k, row in model_suite_index_df.iterrows():
-                category_code = row['category_code']
-                modelid = row['modelid']
-                model_parameter_table_name = row['model_parameter_table_name']
+            if not os.path.exists(hazDB_fp):
+                #shouldnt hit anymore.. check is done in get_hazDB_fp
+                log.error(f'bad hazard database file path specified in projDB')
+            else:
+                self._load_hazDB(hazDB_fp=hazDB_fp, logger=log)
+        else:
+            log.warning(f'no hazard database file specified in projDB')
+        
+        
                 
-                #get this group box
+        #=======================================================================
+        # set the model suite
+        #=======================================================================
+ 
+        #clear the model suite
+        self._clear_all_models(clear_projDB=False, logger=log)
+        
+        model_index_dx = self.get_model_index_dx(projDB_fp=fp)
+        
+        if len(model_index_dx)>0:
+            log.debug(f'loading {len(model_index_dx)} models')
+            raise NotImplementedError('need to add the model loading')
+            for i, row in model_index_dx.iterrows():
+                self._add_model(self.groupBox_MS_modelSet.layout(), row['category_code'], logger=log)
                 
-                
-                #add the model                        
-                wrkr = self.add_model()
-                
-                #load the model from teh table
-                #load the table
-                wrkr.load_from_table()
+        else:
+            log.warning(f'no models found in projDB')
+ 
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.push(f'loaded project from {os.path.basename(fp)}')
                 
 
             

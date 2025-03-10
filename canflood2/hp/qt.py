@@ -8,14 +8,19 @@ helper functions for qt
 import pandas as pd
 import numpy as np
 
+
+
 from PyQt5.QtWidgets import (
     QFormLayout, QWidgetItem, QLabel, QLineEdit, QComboBox,
     QTableWidget, QWidget, QDoubleSpinBox, QSpinBox, QCheckBox, QDateEdit,
-    QFileDialog
+    QFileDialog, QRadioButton
     )
 
 from qgis.PyQt import QtWidgets
 #from PyQt5.QtCore import QObject
+
+from qgis.core import QgsProject, QgsMapLayer
+from qgis.gui import QgsMapLayerComboBox
 
 
 def get_widget_value(widget):
@@ -61,6 +66,17 @@ def set_widget_value(widget, value):
         widget.setValue(float(value))
     elif isinstance(widget, QSpinBox):
         widget.setValue(int(value))
+    
+    # Handle QgsMapComboBox separately since it may be a subclass of QComboBox.
+    elif isinstance(widget, QgsMapLayerComboBox):
+        if isinstance(value, QgsMapLayer):
+            widget.setLayer(value)        
+        elif hasattr(widget, 'set_layer_by_name'):
+            #using layername as layer.id() does not persist
+            widget.set_layer_by_name(value)
+        else:
+            raise NotImplementedError(type(value))
+        
     elif isinstance(widget, QComboBox):
         if isinstance(value, str):
             index = widget.findText(value)
@@ -73,6 +89,8 @@ def set_widget_value(widget, value):
         else:
             raise NotImplementedError(type(value))
     elif isinstance(widget, QCheckBox):
+        widget.setChecked(bool(value))
+    elif isinstance(widget, QRadioButton):
         widget.setChecked(bool(value))
     else:
         raise TypeError(f"Unsupported widget type: {type(widget)}")

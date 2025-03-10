@@ -10,7 +10,7 @@ import os, warnings
 import sqlite3
 import pandas as pd
 
-from .parameters import project_db_schema_d, hazDB_schema_d
+from .parameters import project_db_schema_d, hazDB_schema_d, project_db_schema_modelSuite_d
 
 #===============================================================================
 # helpers--------
@@ -28,7 +28,7 @@ def _assert_sqlite_table_exists(conn, table_name):
 #===============================================================================
 # Project database---------
 #===============================================================================
-def assert_proj_db_fp(fp, **kwargs):
+def assert_projDB_fp(fp, **kwargs):
     """full check of proj_db_fp"""
     
     assert os.path.exists(fp), fp
@@ -36,7 +36,7 @@ def assert_proj_db_fp(fp, **kwargs):
     
     try:
         with sqlite3.connect(fp) as conn:
-            assert_proj_db(conn, **kwargs)
+            assert_projDB_conn(conn, **kwargs)
     
     except Exception as e:
         raise ValueError(f'project DB connection failed w/\n    {e}')
@@ -45,8 +45,10 @@ def assert_proj_db_fp(fp, **kwargs):
     
  
 
-def assert_proj_db(conn,
-                   expected_tables=list(project_db_schema_d.keys())):
+def assert_projDB_conn(conn,
+                   expected_tables=list(project_db_schema_d.keys()),
+                   check_consistency=False,
+                   ):
  
     cursor = conn.cursor()
 
@@ -59,19 +61,36 @@ def assert_proj_db(conn,
     if missing_tables:
         raise AssertionError(f"Missing tables in project database: {', '.join(missing_tables)}")
     
+    if check_consistency:
+        #=======================================================================
+        # #check the model_index matches the model tables
+        #=======================================================================
+        table_name = '03_model_suite_index'
+        
+        dx = pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+        dx['modelid'] = dx['modelid'].astype(str)
+        dx = dx.set_index(['modelid', 'category_code'])
+        
+        if len(dx)>0:
+            dx.loc[:, project_db_schema_modelSuite_d.keys()]
+            raise NotImplementedError(f'need to check model tables against {table_name}')
+        
+    
+    
     
 #===============================================================================
 # hazard datab ase------
 #===============================================================================
-def assert_haz_db_fp(fp, **kwargs):
+def assert_hazDB_fp(fp, **kwargs):
     """full check of proj_db_fp"""
     
+    assert isinstance(fp, str), 'expected a string, got %s' % type(fp)
     assert os.path.exists(fp), fp
     assert fp.endswith('.db')
     
     try:
         with sqlite3.connect(fp) as conn:
-            assert_haz_db(conn, **kwargs)
+            assert_hazDB_conn(conn, **kwargs)
     
     except Exception as e:
         raise ValueError(f'hazard DB connection failed w/\n    {e}')
@@ -80,7 +99,7 @@ def assert_haz_db_fp(fp, **kwargs):
     
     
     
-def assert_haz_db(conn,expected_tables=list(hazDB_schema_d.keys())):
+def assert_hazDB_conn(conn,expected_tables=list(hazDB_schema_d.keys())):
  
     cursor = conn.cursor()
 

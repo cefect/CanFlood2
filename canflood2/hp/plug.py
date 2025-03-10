@@ -16,7 +16,7 @@ import numpy as np
 
 #Qgis imports
 from qgis.core import QgsVectorLayer, Qgis, QgsProject, QgsLogger, QgsMessageLog, QgsMapLayer
-from qgis.gui import QgisInterface
+from qgis.gui import QgisInterface, QgsMapLayerComboBox
 
 #pyQt
 from PyQt5.QtWidgets import (
@@ -188,7 +188,7 @@ class ListModel(QStandardItemModel): #wrapper for list functions with check boxe
         for item in self.get_items():
             item.setCheckState(state)
             
-def bind_tableWidget(widget, logger, iface=None, table_column_type_d=dict()):
+def bind_tableWidget(widget, logger, iface=None, widget_type_d=dict()):
     """
     Bind custom methods to a QTableWidget.
 
@@ -268,7 +268,7 @@ def bind_tableWidget(widget, logger, iface=None, table_column_type_d=dict()):
         log.debug(f'Extracted dataframe {df.shape}')
         return df.reset_index(drop=True)
     
-    def set_df_to_QTableWidget_spinbox(df, widget_type_d=dict()):
+    def set_df_to_QTableWidget_spinbox(df):
         """
         Populate the QTableWidget with the contents of the DataFrame using widget types
         defined in widget_type_d.
@@ -479,7 +479,53 @@ def bind_layersListWidget(widget, #instanced widget
         
         
         
+def bind_MapLayerComboBox(widget, #
+                          iface=None, layerType=None):
+    """
+    add some bindings to layer combo boxes
+    """
+    assert isinstance(widget, QgsMapLayerComboBox)
+    widget.iface=iface
+    #default selection
+    if not layerType is None:
+        widget.setFilters(layerType)
+    widget.setAllowEmptyLayer(True)
+    widget.setCurrentIndex(-1) #set selection to none
+    
+    #===========================================================================
+    # define new methods
+    #===========================================================================
+
+    def set_layer_by_name(layer_name: str) -> QgsMapLayer:
+        """
+        Retrieve a QgsMapLayer object from the current QGIS project using the layer's name.
+    
+        not using layerID as this does not persist between sessions
+        """
+        assert isinstance(layer_name, str), f"layer_name must be a string, not {type(layer_name)}"
+    
+        qproj = QgsProject.instance()
         
+        layers_l = [layer for layer in qproj.mapLayers().values()]
+        assert len(layers_l) > 0, "failed to find any layers in project"
+    
+        layers = [layer for layer in layers_l if layer.name() == layer_name]
+        assert len(layers) > 0, f"failed to find any layers with name '{layer_name}' in project"
+    
+        if len(layers) > 1:
+            raise KeyError(f"Multiple layers with name '{layer_name}' found in the project")
+    
+        layer = layers[0]
+        widget.setLayer(layer)
+        return layer
+
+            
+    #===========================================================================
+    # bind functions
+    #===========================================================================
+    
+    widget.set_layer_by_name = set_layer_by_name
+ 
         
         
         

@@ -39,7 +39,7 @@ project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_te
 
 project_db_schema_d = {
     '01_project_meta': None,
-    '02_project_parameters': None,
+    '02_project_parameters': pd.read_csv(project_parameters_template_fp),
 
     '03_model_suite_index': pd.DataFrame(
             columns={
@@ -127,12 +127,13 @@ for col, meta in eventMeta_control_d.items():
 #===============================================================================
 # hazards: database------
 #===============================================================================
+hazDB_meta_template_fp = os.path.join(plugin_dir, 'hazDB_meta_template.csv')
 hazDB_schema_d = {
-    '04_haz_meta': None,
+    '04_haz_meta': pd.read_csv(hazDB_meta_template_fp),
     '05_haz_events': pd.DataFrame(df_columns)
     }
 
-hazDB_meta_template_fp = os.path.join(plugin_dir, 'hazDB_meta_template.csv')
+
 
 #add these to the project schema
 for k,v in hazDB_schema_d.items():
@@ -141,7 +142,10 @@ for k,v in hazDB_schema_d.items():
     else:
         project_db_schema_d[k] = v.copy()
         
-        
+#add the hazard parameters to the project parameters
+#project parameters is the complete state. hazard is a subset
+project_db_schema_d['02_project_parameters'] = pd.concat(
+    [project_db_schema_d['02_project_parameters'], hazDB_schema_d['04_haz_meta']])
         
 #===============================================================================
 # model suite----------

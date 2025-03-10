@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 
-from .assertions import assert_proj_db_fp, assert_haz_db_fp
+from .assertions import assert_projDB_fp, assert_hazDB_fp
 from .parameters import project_db_schema_modelSuite_d
 from .hp.basic import view_web_df as view
 from .hp.sql import get_table_names
@@ -264,12 +264,12 @@ class Model(object):
             
     def _get_projDB_fp(self):
         fp =  self.parent.lineEdit_PS_projDB_fp.text()
-        assert_proj_db_fp(fp)
+        assert_projDB_fp(fp)
         return fp
     
     def _get_hazDB_fp(self):
         fp =  self.parent.lineEdit_HZ_hazDB_fp.text()
-        assert_haz_db_fp(fp)
+        assert_hazDB_fp(fp)
         return fp
     
 
@@ -317,7 +317,7 @@ class Model(object):
         """
         if logger is None: logger=self.logger
         log = logger.getChild('create_tables')
-        #assert_proj_db_fp(projDB_fp) call this during _get_projDB_fp
+        #assert_projDB_fp(projDB_fp) call this during _get_projDB_fp
         
         #get list of tables already in the database
         with sqlite3.connect(projDB_fp) as conn:

@@ -72,7 +72,7 @@ def oj_out(test_name, result):
 
 def _dialog_preloader(dialog,  
                       tmpdir=None,
-                      projDB_fp=None, hazDB_fp=None,
+                      projDB_fp=None, hazDB_fp=None, monkeypatch=None,
                       aoi_vlay=None, dem_rlay=None,
                       finv_vlay=None,
                       widget_data_d = None,
@@ -82,28 +82,51 @@ def _dialog_preloader(dialog,
     """
     Helper to preload the dialog with some data.
 
-    this is only for paramters that are configurable on the main dialog
-        model_config_dialog paramterse should be loaded by loading a project file
+ 
     """
     # Dictionary to store info about the applied settings.
     applied_data = {}
 
-    if projDB_fp is not None:
-        raise NotImplementedError('need to properly load ')
+    #===========================================================================
+    # setup databases
+    #===========================================================================
+    if projDB_fp is not None: 
         projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp)))
         assert_projDB_fp(projDB_fp)
-        dialog.lineEdit_PS_projDB_fp.setText(projDB_fp)
-        dialog.pushButton_save.setEnabled(True)
         applied_data['projDB_fp'] = projDB_fp
         
     if hazDB_fp is not None:
-        #copy over the test data to a temporary directory
-        raise NotImplementedError('need to properly load ')
         hazDB_fp = shutil.copyfile(hazDB_fp, os.path.join(tmpdir, os.path.basename(hazDB_fp)))
         assert_hazDB_fp(hazDB_fp)
-        dialog.lineEdit_HZ_hazDB_fp.setText(hazDB_fp)
-        dialog.pushButton_save.setEnabled(True)
         applied_data['hazDB_fp'] = hazDB_fp
+        
+        
+    #===========================================================================
+    # patch load buttons on databases
+    #===========================================================================
+    """using the loader functions to set the UI state"""
+    for fp, buttonName in {
+        projDB_fp:'pushButton_PS_projDB_load',
+        hazDB_fp:'pushButton_HZ_hazDB_load'}.items():
+ 
+        if fp is None: continue
+        #patch the dialog     
+        monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (fp, ''))
+    
+ 
+        print(f'clicking {buttonName}\n====================================\n\n')
+        # Simulate clicking the load project database button.
+        button = getattr(dialog, buttonName)
+        QTest.mouseClick(button, Qt.LeftButton)
+    
+    
+    
+    
+    
+    
+    #===========================================================================
+    # setup other attributes
+    #===========================================================================
 
     # Add some default text to specific line edits.
     if widget_data_d is not None:
@@ -155,8 +178,7 @@ def _dialog_preloader(dialog,
         #eventMeta_df.to_csv(r'l:\09_REPOS\04_TOOLS\CanFlood2\tests\data\cf1_tutorial_02\eventMeta_df.csv', index=False)
         #set the updated on the widget
 
-        dialog.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(
-            eventMeta_df,widget_type_d=eventMeta_control_d)        
+        dialog.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)        
  
         
     print(f'dialog preloaded with {len(applied_data)} settings')
@@ -368,7 +390,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog,
  
  
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2'))
 ])
@@ -438,11 +460,15 @@ def test_dial_main_02b_load_project_database(dialog,
 
 
 
-
+@pytest.mark.dev
+@pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
 @pytest.mark.parametrize("projDB_fp", [
-    None, oj('02_save_ui_to_project_dat_2c04bb', 'projDB.canflood2')
+    None, oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2')
     ])
-def test_dial_main_03_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp, tmpdir):
+def test_dial_main_03_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp, 
+                                       tmpdir,
+                                        aoi_vlay, dem_rlay, #need to load the layers
+                                       ):
     """test the 'create new hazard database' button"""
     
     #setup the Create New hazard database    
@@ -456,7 +482,8 @@ def test_dial_main_03_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp
     
     #preload with some data
     if not projDB_fp is None:
-        _dialog_preloader(dialog, projDB_fp=projDB_fp, tmpdir=tmpdir)
+        _dialog_preloader(dialog, projDB_fp=projDB_fp, tmpdir=tmpdir, monkeypatch=monkeypatch,
+                          aoi_vlay=aoi_vlay, dem_rlay=dem_rlay)
  
     #===========================================================================
     # execute

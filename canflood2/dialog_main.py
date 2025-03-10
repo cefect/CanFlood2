@@ -26,7 +26,7 @@
 #===============================================================================
 
 
-import os, sys, re
+import os, sys, re, gc
 import sqlite3
 import pandas as pd
 import numpy as np
@@ -34,8 +34,11 @@ import numpy as np
 #PyQt
 from PyQt5 import uic, QtWidgets
 from PyQt5.QtWidgets import (
-    QAction, QFileDialog, QListWidget, QTableWidgetItem, QDoubleSpinBox
+    QAction, QFileDialog, QListWidget, QTableWidgetItem, QDoubleSpinBox,
+    QLabel, QPushButton, QProgressBar
     )
+
+ 
 
 #qgis
 from qgis.gui import QgsMapLayerComboBox
@@ -49,19 +52,21 @@ from .hp.plug import (
     )
 
 from .hp.basic import view_web_df as view
-
 from .hp.qt import set_widget_value
+from .hp.sql import get_table_names
+ 
 
 from .parameters import (
     home_dir, plugin_dir, project_parameters_template_fp, project_db_schema_d,
     fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp,
+    project_db_schema_modelSuite_d,
     eventMeta_control_d)
 
 from .assertions import (
     assert_proj_db_fp, assert_proj_db, assert_haz_db, assert_haz_db_fp, assert_eventMeta_df
     )
 
-from .core import Model, _get_proj_meta_d
+from .core import _get_proj_meta_d, Model_suite_helper
 from .dialog_model import Model_config_dialog
 #===============================================================================
 # load UI and resources
@@ -88,6 +93,86 @@ FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qg
 #===============================================================================
 class Main_dialog_haz(object):
     """oragnizing hazard dialog functions here"""
+    
+    def _connect_slots_haz(self, log):
+        #=======================================================================
+        # Hazard Scenario Database File
+        #=======================================================================
+        def create_new_hazard_database_ui():
+            filename, _ = QFileDialog.getSaveFileName(
+                self,  # Parent widget (your dialog)
+                "Save hazard database (sqlite) file",  # Dialog title
+                home_dir,  # Initial directory (optional, use current working dir by default)
+                "sqlite database files (*.db)"  # Example file filters
+                )
+            if filename:
+                self.lineEdit_HZ_hazDB_fp.setText(filename)
+                self._create_new_hazDB(filename)
+                
+        self.pushButton_HZ_hazDB_new.clicked.connect(create_new_hazard_database_ui)
+        
+        
+        def load_hazard_database_ui():
+            filename, _ = QFileDialog.getOpenFileName(
+                self,  # Parent widget (your dialog)
+                "Open hazard database (sqlite) file",  # Dialog title
+                home_dir,  # Initial directory (optional, use current working dir by default)
+                "sqlite database files (*.db)"  # Example file filters
+                )
+            if filename:
+                self.lineEdit_HZ_hazDB_fp.setText(filename)
+                
+        self.pushButton_HZ_hazDB_load.clicked.connect(load_hazard_database_ui)
+        
+
+        
+        
+        
+        #=======================================================================
+        # #Hazard Event Rasters
+        #=======================================================================
+        #setup the list widget and add some special methods
+        lv = self.listView_HZ_hrlay 
+        bind_layersListWidget(lv, log, iface=self.iface,layerType=QgsMapLayer.RasterLayer)
+        
+        #connect standard hazars selection buttons
+        self.pushButton_HZ_hrlay_selectAll.clicked.connect(lv.check_all)
+        self.pushButton_HZ_hrlay_selectVis.clicked.connect(lv.select_visible)
+        self.pushButton_HZ_hrlay_canvas.clicked.connect(lv.select_canvas)
+        self.pushButton_HZ_hrlay_clear.clicked.connect(lv.clear_checks)
+        self.pushButton_HZ_refresh.clicked.connect(lambda x: lv.populate_layers())
+        
+        #TODO: add a button to select all layers matching some string (e.g., 'haz')
+        
+        lv.populate_layers() #do an intial popluation.
+        
+        #bind some methods to the tableWidget_HZ_eventMeta
+        bind_tableWidget(self.tableWidget_HZ_eventMeta, self.logger, iface=self.iface,
+                         table_column_type_d=eventMeta_control_d,
+                         )
+        
+        #connect loading into the event metadata view
+        def load_selected_rasters_to_eventMeta_widget():
+ 
+            #retrieve the selected layers from teh above table
+            layers_d = self.listView_HZ_hrlay.get_selected_layers()
+            
+            #use the layer names and the eventMeta_df_template to build a new dataframe
+            eventMeta_df = hazDB_schema_d['05_haz_events'].copy()
+            eventMeta_df['event_name'] = layers_d.keys()
+            eventMeta_df['layer_id'] = [layer.id() for layer in layers_d.values()]
+            eventMeta_df['layer_fp'] = [layer.source() for layer in layers_d.values()]
+            eventMeta_df['prob'] = 0.0 #probability]]    
+            
+            assert_eventMeta_df(eventMeta_df)        
+            
+            #load this dataframe into the table widget
+            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(
+                eventMeta_df,widget_type_d=eventMeta_control_d)
+            
+ 
+        
+        self.pushButton_HZ_hrlay_load.clicked.connect(load_selected_rasters_to_eventMeta_widget)
     
     def _create_new_hazDB(self, fp, overwrite=True):
         """create a new hazard database file"""
@@ -253,7 +338,375 @@ class Main_dialog_haz(object):
             
             
             
+class Main_dialog_modelSuite(object):
+    """methods for dealing with the model suite and models""" 
+    # reference container for identifying dynamically added widgets
+    modelSuite_widget_type_d = {
+        'label_mod_modelid': QLabel,
+        'label_mod_asset': QLabel,
+        'label_mod_consq': QLabel,
+        'label_mod_status': QLabel,
+        'progressBar_mod': QProgressBar,
+        'pushButton_mod_run': QPushButton,
+        'pushButton_mod_config': QPushButton,
+        'pushButton_mod_plus': QPushButton,
+        'pushButton_mod_minus': QPushButton
+    }
+    
+    def _connect_slots_modelSuite(self, log):
+        
+        #inint the model config dialog
+        #self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
+        
+        self.pushButton_MS_clear.clicked.connect(self._clear_all_models)
+        
+        
+        #=======================================================================
+        # #create an initial model suite dialog in each category
+        #=======================================================================
+        def create_modelSuite_templates():
+            #check that the model suites have been cleared
+            assert len(self.model_index_d)==0, f'must clearn model suite before creating templates'
+            #retrieve all the group boxes inside the model set:
+            modelSet_groupBoxes = self.groupBox_MS_modelSet.findChildren(QtWidgets.QGroupBox)
             
+            # Loop through each group box, and load the model template into it.
+            for gb in modelSet_groupBoxes:
+                #groupbox_name = gb.objectName()
+                groupbox_title = gb.title()
+                
+                category_code, category_desc = extract_gropubox_codes(groupbox_title)
+                
+                
+                # Create a new layout for the group box if it doesn't have one
+                if gb.layout() is None:
+                    gb.setLayout(QtWidgets.QVBoxLayout())
+            
+                # Add the loaded widget to the group box's layout
+                self._add_model(gb.layout(), category_code, logger=log)
+     
+     
+            log.debug("populated model suite")
+            
+        self.pushButton_MS_createTemplates.clicked.connect(create_modelSuite_templates)
+    
+    def _add_model(self, layout, category_code,
+                    logger=None,
+                   projDB_fp=None):
+        """start a model object, then add the template to the layout"""
+        if logger is None: logger=self.logger.getChild('add_model')
+        log = logger.getChild('add_model')
+        if projDB_fp is None: projDB_fp = self.get_projDB_fp()
+            
+        assert not projDB_fp is None, 'must set a project database file before adding models'
+        #=======================================================================
+        # get index values
+        #=======================================================================
+        #retrieve the modelid
+        if not category_code in self.model_index_d:
+            self.model_index_d[category_code] = dict()
+            
+        modelid = len(self.model_index_d[category_code])
+        
+        modelName = f'{category_code}_{modelid}'
+        
+        log.debug(f'initiating model \'{modelName}\'')
+        
+        model = Model_suite_helper(
+            parent=self,
+            category_code=category_code, modelid=modelid, logger=self.logger)
+        
+        assert model.modelid==modelid, 'modelid mismatch'
+        
+        index_d = model.get_index_d()
+        #=======================================================================
+        # index consistency checks
+        #=======================================================================
+        assert not modelid in self.model_index_d[category_code], f'modelid already in index'
+        
+        #check model is not in the index
+        assert model.get_model_index_ser() is None, f'model in index'
+        
+        #check there are no model tables
+
+        # Check for latent model tables and log details if any are found
+        latent_tables = model.get_model_tables_all()
+        if len(latent_tables) > 0:
+            error_message = f'Found {len(latent_tables)} latent model tables: {list(latent_tables.keys())}. Possible bad DB cleanup.'
+            #log.error(error_message)
+            raise AssertionError(error_message)
+
+        
+        
+        #=======================================================================
+        # init on project database
+        #=======================================================================
+        """only adding an entry to the index and the parameter table
+        other tables are added during run"""
+            
+        log.debug(f'creating model parameter table for \'{modelName}\'')
+        df_d = dict()
+        with sqlite3.connect(projDB_fp) as conn:
+            
+            #===================================================================
+            # #add the parameter table
+            #===================================================================
+            table_name = model.get_table_names('table_parameters')
+            df_d[table_name] = project_db_schema_modelSuite_d['table_parameters'].copy()
+            
+            #add the indexers
+            
+            for k,v in index_d.items():
+                df_d[table_name].loc[df_d[table_name]['varName']==k, 'value'] = str(v)
+ 
+            
+            
+            #===================================================================
+            # #add entry to model index
+            #===================================================================
+            model_index_dx = self.get_model_index_dx()
+ 
+            
+            model_index_dx.loc[(modelid, category_code), :] = pd.Series(index_d) #only updates the name
+            model_index_dx.loc[(modelid, category_code), 'table_parameters'] = table_name
+            
+            df_d['03_model_suite_index'] = model_index_dx.reset_index()
+            
+            #===================================================================
+            # wrjite
+            #===================================================================
+            for k, df in df_d.items():
+                df.to_sql(k, conn, if_exists='replace', index=False)
+            
+            """
+            view(model_index_dx)
+            """
+            
+        log.debug(f'added {len(df_d)} tables to project database\n    {projDB_fp}')
+            
+        #check it
+        assert isinstance(model.get_model_index_ser(), pd.Series), 'failed to add model to index'
+        assert model.get_model_tables_all().keys()=={table_name:None}.keys()
+ 
+        
+        #=======================================================================
+        # #setup the UI        
+        #=======================================================================
+        log.debug(f'adding model to category \'{category_code}\'')
+        widget = load_model_widget_template() #load the model template
+        layout.addWidget(widget) #add it to the widget
+        
+        
+        #loop through each of the widget elements and give them a reference
+        """because we add these dynamically, we need a way to lookup by model id"""
+        widget_d = dict()
+        for name, widget_type in self.modelSuite_widget_type_d.items():
+            # Recursive search: findChild is recursive by default in PyQt.
+            child_widget = widget.findChild(widget_type, name)            
+            assert isinstance(child_widget, widget_type), f'failed to find widget: {name}'            
+            
+            widget_d[name] = {'name': name, 'widget': child_widget}
+            
+
+        
+ 
+        #attach to the model worker
+        """not sure about this.. might make cleaning up strange"""
+        model.widget_d = widget_d
+        model.widget_suite = widget
+        
+        #set labels
+        self._update_model_widget_labels(model=model)
+        
+        #connect the buttons
+        widget.pushButton_mod_run.clicked.connect(lambda : self._launch_config_ui(category_code, modelid))
+        #widget.pushButton_mod_config.clicked.connect(wrkr.launch_config_ui)
+        widget.pushButton_mod_minus.clicked.connect(lambda : self._remove_model(category_code, modelid))
+        widget.pushButton_mod_plus.clicked.connect(lambda : self._add_model(layout, category_code))
+        
+ 
+ 
+        
+        #=======================================================================
+        # #add to the index
+        #=======================================================================
+ 
+        self.model_index_d[category_code][modelid] = model
+        
+        log.debug(f'added model \'{modelName}\' to category \'{category_code}\'')
+        
+        return model
+        
+    def _update_model_widget_labels(self, model=None):
+        """update hte model suite widget witht he model labels"""
+        
+        if model is None:
+            raise NotImplementedError('extract by index')
+        
+ 
+        widget_d = model.widget_d
+        
+        widget_d['label_mod_modelid']['widget'].setText('%2d' % model.modelid)
+        widget_d['label_mod_asset']['widget'].setText(model.asset_label)
+        widget_d['label_mod_consq']['widget'].setText(model.consq_label)
+        widget_d['label_mod_status']['widget'].setText(model.status_label)
+        
+        if model.status_label == 'complete':
+            widget_d['progressBar_mod']['widget'].setValue(100)
+        else:
+            widget_d['progressBar_mod']['widget'].setValue(0)
+
+        
+        
+        
+    def _launch_config_ui(self, category_code, modelid):
+        """launch the configuration dialog"""
+        log = self.logger.getChild('launch_config_ui')
+        log.debug(f'user pushed model config for {self.name}')
+        
+        #check ther eis a project database
+        projDB_fp = self._get_projDB_fp()
+        if projDB_fp is None or projDB_fp=='':
+            raise IOError('must set a project datatbase file before configuring models')
+        
+        #and the hazardss database
+        hazDB_fp = self._get_hazDB_fp()
+        if hazDB_fp is None or hazDB_fp=='':
+            raise IOError('must set a hazards datatbase file before configuring models')
+        
+ 
+        #setup the project database
+        self._create_tables(projDB_fp=projDB_fp, logger=self.logger)
+        
+        dial = self.parent.Model_config_dialog
+        #check that the dialog is already closed
+        assert not dial.isVisible(), 'dialog is already open!'
+        
+        #load the model into the dialog
+        dial._load_model(self)
+        
+        #attach this dialog to yourself
+        #allows the model to pull values from the dialog
+        self.dial = dial
+        
+        #launch teh dialog
+        dial.show()
+        
+    def _remove_model(self, category_code, modelid, logger=None):
+        """remove an individual model"""
+        if logger is None: logger=self.logger
+        log = logger.getChild(f'_remove_model_{category_code}_{modelid}')
+        log.debug(f'clearing model {modelid} from category \'{category_code}\'')
+        
+        
+        #retrieve the model
+        model = self.model_index_d[category_code][modelid]
+        
+        
+        #=======================================================================
+        # #remove the widget
+        #=======================================================================
+        if model.widget_suite is not None:
+            widget = model.widget_suite
+ 
+ 
+            parent = widget.parentWidget()
+            if parent is not None:
+                layout = parent.layout()  # Get the parent's layout
+                if layout is not None:
+                    layout.removeWidget(widget)
+            widget.setParent(None)   # Detach the widget from its parent
+            widget.deleteLater()     # Schedule the widget for deletion           
+            
+            model.widget_suite = None
+            
+        #=======================================================================
+        # #remove all the tables
+        #=======================================================================
+        #model tables
+        model_table_names_l = list(model.get_model_tables_all().keys())
+        self.projDB_drop_tables(*model_table_names_l, logger=log)
+        
+        #remove entry from model index table
+        dx = self.get_model_index_dx().drop(index=(modelid, category_code))
+        self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, logger=log)
+        
+            
+        
+        #=======================================================================
+        # #exit the model helper instance
+        #=======================================================================
+        try:
+            model.__exit__(None, None, None)
+        except Exception as e:
+            log.debug(f'Error during __exit__ cleanup: {e}')
+            
+        # Remove the helper instance from the dictionary.
+        del self.model_index_d[category_code][modelid]
+        
+        # If no models remain in this category, you can remove the category key as well.
+        if not self.model_index_d[category_code]:
+            del self.model_index_d[category_code]
+        
+        
+    def _clear_all_models(self):
+        """clear all the models"""
+
+        log = self.logger.getChild('_clear_all_models')
+        cnt=0
+        log.debug('clearing all models')
+        
+        #=======================================================================
+        # #loop through each model and close it
+        #=======================================================================
+        #collect the keys so we dont work on the index
+        keys_d = dict()
+        for category_code, d in self.model_index_d.items():
+            keys_d[category_code] = list(d.keys())
+        
+        #look through and delete by index
+        for category_code, modelid_l in keys_d.items():
+            for modelid in modelid_l:
+                try:
+                    self._remove_model(category_code, modelid, logger=log)
+                except Exception as e:
+                    raise IOError(f'failed to clear model {category_code}_{modelid}: {e}')  
+                cnt+=1
+            
+            
+        
+        #reset the index dictionary
+        self.model_index_d = dict()
+        
+        #reset the model index table
+        """no... each model removes its own row"""
+        table_name='03_model_suite_index'
+        self.projDB_set_tables({table_name:project_db_schema_d[table_name].copy()})
+        
+        
+        
+        
+        #check
+        
+        model_index_dx = self.get_model_index_dx()
+        assert len(model_index_dx)==0, f'failed to clear models: {len(model_index_dx)}'
+        
+        #clear garbage
+        gc.collect()
+        
+
+ 
+        log.info(f'cleared {cnt} models')
+        
+    def get_model_index_dx(self, **kwargs):
+        df = self.projDB_get_tables('03_model_suite_index', **kwargs)
+
+        df['modelid'] = df['modelid'].astype(int)
+        return df.set_index(['modelid', 'category_code'])
+    
+    def set_model_index_dx(self, dx, **kwargs):
+        self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, **kwargs)
+
             
             
         
@@ -261,7 +714,9 @@ class Main_dialog_haz(object):
         
  
     
-class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
+class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FORM_CLASS):
+    
+
     
  
     
@@ -405,175 +860,20 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # Hazard scenario tab------------
         #=======================================================================
-        
-        #=======================================================================
-        # Hazard Scenario Database File
-        #=======================================================================
-        def create_new_hazard_database_ui():
-            filename, _ = QFileDialog.getSaveFileName(
-                self,  # Parent widget (your dialog)
-                "Save hazard database (sqlite) file",  # Dialog title
-                home_dir,  # Initial directory (optional, use current working dir by default)
-                "sqlite database files (*.db)"  # Example file filters
-                )
-            if filename:
-                self.lineEdit_HZ_hazDB_fp.setText(filename)
-                self._create_new_hazDB(filename)
-                
-        self.pushButton_HZ_hazDB_new.clicked.connect(create_new_hazard_database_ui)
-        
-        
-        def load_hazard_database_ui():
-            filename, _ = QFileDialog.getOpenFileName(
-                self,  # Parent widget (your dialog)
-                "Open hazard database (sqlite) file",  # Dialog title
-                home_dir,  # Initial directory (optional, use current working dir by default)
-                "sqlite database files (*.db)"  # Example file filters
-                )
-            if filename:
-                self.lineEdit_HZ_hazDB_fp.setText(filename)
-                
-        self.pushButton_HZ_hazDB_load.clicked.connect(load_hazard_database_ui)
-        
-
-        
-        
-        
-        #=======================================================================
-        # #Hazard Event Rasters
-        #=======================================================================
-        #setup the list widget and add some special methods
-        lv = self.listView_HZ_hrlay 
-        bind_layersListWidget(lv, log, iface=self.iface,layerType=QgsMapLayer.RasterLayer)
-        
-        #connect standard hazars selection buttons
-        self.pushButton_HZ_hrlay_selectAll.clicked.connect(lv.check_all)
-        self.pushButton_HZ_hrlay_selectVis.clicked.connect(lv.select_visible)
-        self.pushButton_HZ_hrlay_canvas.clicked.connect(lv.select_canvas)
-        self.pushButton_HZ_hrlay_clear.clicked.connect(lv.clear_checks)
-        self.pushButton_HZ_refresh.clicked.connect(lambda x: lv.populate_layers())
-        
-        #TODO: add a button to select all layers matching some string (e.g., 'haz')
-        
-        lv.populate_layers() #do an intial popluation.
-        
-        #bind some methods to the tableWidget_HZ_eventMeta
-        bind_tableWidget(self.tableWidget_HZ_eventMeta, self.logger, iface=self.iface,
-                         table_column_type_d=eventMeta_control_d,
-                         )
-        
-        #connect loading into the event metadata view
-        def load_selected_rasters_to_eventMeta_widget():
- 
-            #retrieve the selected layers from teh above table
-            layers_d = self.listView_HZ_hrlay.get_selected_layers()
-            
-            #use the layer names and the eventMeta_df_template to build a new dataframe
-            eventMeta_df = hazDB_schema_d['05_haz_events'].copy()
-            eventMeta_df['event_name'] = layers_d.keys()
-            eventMeta_df['layer_id'] = [layer.id() for layer in layers_d.values()]
-            eventMeta_df['layer_fp'] = [layer.source() for layer in layers_d.values()]
-            eventMeta_df['prob'] = 0.0 #probability]]    
-            
-            assert_eventMeta_df(eventMeta_df)        
-            
-            #load this dataframe into the table widget
-            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(
-                eventMeta_df,widget_type_d=eventMeta_control_d)
-            
- 
-        
-        self.pushButton_HZ_hrlay_load.clicked.connect(load_selected_rasters_to_eventMeta_widget)
-        
-
+        self._connect_slots_haz(log)
         
         #=======================================================================
         # Model Suite---------
         #=======================================================================
-        #inint the model config dialog
-        self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
-        
+        self._connect_slots_modelSuite(log)
  
-        #retrieve all the group boxes inside the model set:
-        modelSet_groupBoxes = self.groupBox_MS_modelSet.findChildren(QtWidgets.QGroupBox)
-        
-        # Loop through each group box, and load the model template into it.
-        for gb in modelSet_groupBoxes:
-            #groupbox_name = gb.objectName()
-            groupbox_title = gb.title()
-            
-            category_code, category_desc = extract_gropubox_codes(groupbox_title)
-            
-            
-            # Create a new layout for the group box if it doesn't have one
-            if gb.layout() is None:
-                gb.setLayout(QtWidgets.QVBoxLayout())
-        
-            # Add the loaded widget to the group box's layout
-            self.add_model(gb.layout(), category_code, category_desc)
- 
-            
-        """stopped here... need to dynamically rename things ad collect in a contaoiner
-        to access later"""
-            
-
-            
-            
-        log.debug("populated model suite")
-        """
-        self.show()
-        """
-        
         
         #=======================================================================
         # wrap
         #=======================================================================
         log.debug('slots connected')
         
-    def add_model(self, layout, category_code, category_desc=None, logger=None):
-        """start a model object, then add the template to the layout"""
-        if logger is None: logger=self.logger.getChild('add_model')
-        
-        #setup the UI        
-        widget = load_model_widget_template() #load the model template
-        layout.addWidget(widget) #add it to the widget
-        
-        #retrieve the modelid
-        if not category_code in self.model_index_d:
-            self.model_index_d[category_code] = dict()
-            
-        modelid = len(self.model_index_d[category_code])
-        
-        
-        #setup the model object
-        wrkr = Model(parent=self,
-                     widget_suite=widget, 
-                     category_code=category_code, category_desc=category_desc, modelid=modelid,
-                     logger=self.logger)
-        
-        #connect the buttons
-        widget.pushButton_mod_run.clicked.connect(wrkr.run_model)
-        widget.pushButton_mod_config.clicked.connect(wrkr.launch_config_ui)
- 
- 
-        
-        #add to the index
-        assert not modelid in self.model_index_d[category_code]
-        self.model_index_d[category_code][modelid] = wrkr
-        
-    def _clear_all_models(self):
-        """clear all the models"""
 
-        log = self.logger.getChild('_clear_all_models')
-        cnt=0
-        log.debug('clearing all models')
-        for category_code, modelid_d in self.model_index_d.items():
-            for modelid, wrkr in modelid_d.items():
-                wrkr.__exit__()
-                del wrkr
-                
-        self.model_index_d = dict()
-        log.info(f'cleared {cnt} models')
         
         
 
@@ -798,6 +1098,18 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
         log.push(f'UI state saved to project database')
             
         return
+    
+    def get_projDB_fp(self):
+        """get the project database file path and do some formatting and checks"""
+        fp = self.lineEdit_PS_projDB_fp.text()
+        if fp=='':
+            fp = None
+        
+        if not fp is None:
+            assert isinstance(fp, str)
+            assert os.path.exists(fp), f'bad filepath for projDB: {fp}'
+            
+        return fp
         
     def projDB_get_tables(self, *table_names, projDB_fp=None):
         """Convenience wrapper to get multiple tables as DataFrames.
@@ -810,21 +1122,66 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
         If a single table name is passed, returns a DataFrame; otherwise, returns a tuple of DataFrames in the same order as table_names.
         """
         if projDB_fp is None:
-            projDB_fp = self.lineEdit_PS_projDB_fp.text()
+            projDB_fp = self.get_projDB_fp()
     
-        assert_proj_db_fp(projDB_fp)
+ 
     
         with sqlite3.connect(projDB_fp) as conn:
+            assert_proj_db(conn)
             dfs = tuple(pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names)
     
         return dfs[0] if len(dfs) == 1 else dfs
     
-    def get_model_index_dx(self, **kwargs):
-        df = self.projDB_get_tables('03_model_suite_index')
-        return df.set_index(['modelid', 'category_code'])
-        
-        
+    def projDB_set_tables(self, df_d, projDB_fp=None, logger=None):
+        """Convenience wrapper to set multiple tables from DataFrames.
+    
+        Parameters:
+        df_d: dict
+            Dictionary of DataFrames to set in the project database.
+        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+        """
+        if projDB_fp is None:
+            projDB_fp = self.get_projDB_fp()
             
+        if logger is None: logger=self.logger
+        log = logger.getChild('projDB_set_tables')
+    
+        assert_proj_db_fp(projDB_fp)
+    
+        with sqlite3.connect(projDB_fp) as conn:
+            for k, df in df_d.items():
+                assert k in project_db_schema_d.keys(), k
+                df.to_sql(k, conn, if_exists='replace', index=False)
+                
+        log.debug(f'updated {len(df_d)} tables in project database at\n    {df_d.keys()}')
+                
+    def projDB_drop_tables(self, *table_names, projDB_fp=None, logger=None):
+        """Convenience wrapper to drop multiple tables from the project database.
+    
+        Parameters:
+        *table_names: Variable number of table names (str) to drop.
+        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+        """
+        if projDB_fp is None:
+            projDB_fp = self.get_projDB_fp()
+        if logger is None: logger=self.logger
+        log = logger.getChild('projDB_drop_tables')
+    
+        assert_proj_db_fp(projDB_fp)
+    
+ 
+
+        with sqlite3.connect(projDB_fp) as conn:
+            for name in table_names:
+                assert name in get_table_names(conn), name
+                conn.execute(f'DROP TABLE IF EXISTS [{name}]')
+        
+                # Check if the table still exists
+                if name in get_table_names(conn):
+                    raise RuntimeError(f'Failed to drop table: {name}')
+        
+        log.debug(f'dropped {len(table_names)} tables from project database\n    {table_names}')
+
  
         
     def _load_project_database(self):
@@ -896,6 +1253,12 @@ class Main_dialog(Main_dialog_haz, QtWidgets.QDialog, FORM_CLASS):
 #===============================================================================
 # helpers-----
 #===============================================================================
+
+
+        
+ 
+    
+    
 # Load the widget from the .ui file
 def load_model_widget_template(
     model_template_ui = os.path.join(os.path.dirname(__file__), 'canflood2_model_widget.ui'), 

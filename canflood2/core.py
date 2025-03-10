@@ -7,14 +7,141 @@ import os, sys, platform, sqlite3
 import pandas as pd
 from datetime import datetime
 
-from PyQt5.QtWidgets import QLabel, QPushButton, QProgressBar
+
 
 
 from .assertions import assert_proj_db_fp, assert_haz_db_fp
-from .parameters import project_db_schema_nested_d
+from .parameters import project_db_schema_modelSuite_d
 from .hp.basic import view_web_df as view
 from .hp.sql import get_table_names
 from . import __version__
+
+
+class Model_suite_helper(object):
+    """skinny helper functions for dealing with an individual model 
+    on the model suite tab
+    
+    
+    went back and forth on this
+        seems a slightly more convenient to instance a small class like this for each model
+        needs to be very lightweight though
+        and needs to be properly closed
+        all configuration and running should be handled by the Model_config_dialog 
+            which is instanced once
+    """
+    
+    
+    """ 
+    status_label
+        initialized - templated, but not configured
+        incomplete – Implies the template is still in an unfinished, configurable state.
+        Ready – Indicates that the model is configured and waiting to run.
+        Failed – Clearly denotes that a model run has encountered an error.
+        Complete – Conveys that the model run has finished successfully.
+    """
+    status_label = 'initialized'
+    asset_label=''
+    consq_label=''
+    
+    
+    widget_suite = None
+    
+    def __init__(self,                  
+                 parent=None, 
+                 #widget_suite=None, 
+                  
+                 category_code='c1', 
+                 modelid=0, logger=None,
+                 ):
+ 
+        self.parent=parent
+        self.category_code = category_code
+        self.modelid = int(modelid)
+        self.name = f'{category_code}_{modelid}'
+        self.logger = logger.getChild(self.name)
+        
+        
+    def get_index_d(self):
+        return {'category_code':self.category_code, 'modelid':self.modelid, 
+                #'category_desc':self.category_desc,
+                'name':self.name}
+        
+    def get_model_index_ser(self, **kwargs):
+        """get row from model index for this model"""
+        model_index_dx = self.parent.get_model_index_dx()
+        modelid = self.modelid
+        category_code = self.category_code
+        
+        if (modelid, category_code) in model_index_dx.index:
+            return model_index_dx.loc[(modelid, category_code)]
+        else:
+            return None
+        
+    def get_model_tables_all(self, projDB_fp=None, logger=None):
+        """load all model specific tables from the project database"""
+        if logger is None: logger=self.logger
+        log = self.logger.getChild('get_model_tables_all')
+        if projDB_fp is None:
+            projDB_fp = self.parent.get_projDB_fp()
+            
+        assert os.path.exists(projDB_fp), f'bad projDB_fp: {projDB_fp}'
+            
+        with sqlite3.connect(projDB_fp) as conn:
+            #get the table names
+            table_names = get_table_names(conn)
+            
+            #find all those matching my search string
+            match_l = [k for k in table_names if f'model_{self.name}' in k]
+            
+            log.debug(f'found {len(match_l)}/{len(table_names)} matching tables')
+            
+            if len(match_l)>0:
+                df_d = dict()
+                for n in match_l:
+                    df_d[n] = pd.read_sql(f'SELECT * FROM [{n}]', conn)
+ 
+ 
+            else:
+                df_d = dict()
+                
+        #close the connection
+        return df_d
+ 
+
+    def get_table_names(self, *table_names):
+        template_names = project_db_schema_modelSuite_d.keys()
+        for tn in table_names:
+            assert tn in template_names, f'bad table name: {tn}'
+    
+        result = tuple(f'model_{self.name}_{k}' for k in table_names)
+        return result[0] if len(result) == 1 else result
+
+ 
+    def get_model_tables(self,*table_names, **kwargs):
+        """load model specific tables from generic table names"""        
+        return self.parent.projDB_get_tables(*get_table_names(table_names), **kwargs)
+    
+
+        
+        
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Cleanup resources when exiting the context or explicitly calling cleanup."""
+        if self.logger:
+            self.logger.debug(f'Exiting and destroying {self.name}')
+        
+ 
+        
+        # Break any remaining circular references or held pointers:
+        self.parent = None
+        self.logger = None
+        # You can delete attributes if needed:
+        # for attr in list(self.__dict__.keys()):
+        #     delattr(self, attr)
+        
+        # Returning False lets any exception propagate, which is standard
+        return False
+        
+        
 
 class Model(object):
     """Model class for CANFlood2
@@ -23,29 +150,14 @@ class Model(object):
         see .add_model()
         
         
-    model states
-        incomplete – Implies the template is still in an unfinished, configurable state.
-        Ready – Indicates that the model is configured and waiting to run.
-        Failed – Clearly denotes that a model run has encountered an error.
-        Complete – Conveys that the model run has finished successfully.
+
     """
     
-    # Widget attributes as a dictionary: {objectName: widget type}
-    widget_d = {
-        'label_mod_modelid': QLabel,
-        'label_mod_asset': QLabel,
-        'label_mod_consq': QLabel,
-        'label_mod_status': QLabel,
-        'progressBar_mod': QProgressBar,
-        'pushButton_mod_run': QPushButton,
-        'pushButton_mod_config': QPushButton,
-        'pushButton_mod_plus': QPushButton,
-        'pushButton_mod_minus': QPushButton
-    }
+
     
     def __init__(self,
                  parent=None, 
-                 widget_suite=None, 
+                 #widget_suite=None, 
                   
                  category_code='c1', category_desc='desc',
                  modelid=0, logger=None,
@@ -92,28 +204,28 @@ class Model(object):
         
         self.logger.debug(f'Model {self.name} initialized')
         
-    def get_index_d(self):
-        return {'category_code':self.category_code, 'modelid':self.modelid, 'category_desc':self.category_desc,
-                'name':self.name}
+
         
-    def _attach_widget(self, widget):
-        """Identify the widget children and assign pointers to myself using a recursive search."""
-        log =self.logger.getChild('attach_widget')
-        d = dict()
-        
-        # Loop through the widget dictionary and assign the widgets to the model.
-        #log.debug(f'iterating through widget dictionary w/ {len(self.widget_d)} entries') 
-        for name, widget_type in self.widget_d.items():
-            # Recursive search: findChild is recursive by default in PyQt.
-            child_widget = widget.findChild(widget_type, name)
-            
-            assert isinstance(child_widget, widget_type), f'failed to find widget: {name}'
-            setattr(self, name, child_widget)
-            d[name] = {'name': name, 'widget': child_widget}
-            
-        #log.debug(f'attached {len(d)} widgets')
-        
-        self.widget_suite=widget
+    #===========================================================================
+    # def _attach_widget(self, widget):
+    #     """Identify the widget children and assign pointers to myself using a recursive search."""
+    #     log =self.logger.getChild('attach_widget')
+    #     d = dict()
+    #     
+    #     # Loop through the widget dictionary and assign the widgets to the model.
+    #     #log.debug(f'iterating through widget dictionary w/ {len(self.widget_d)} entries') 
+    #     for name, widget_type in self.widget_d.items():
+    #         # Recursive search: findChild is recursive by default in PyQt.
+    #         child_widget = widget.findChild(widget_type, name)
+    #         
+    #         assert isinstance(child_widget, widget_type), f'failed to find widget: {name}'
+    #         setattr(self, name, child_widget)
+    #         d[name] = {'name': name, 'widget': child_widget}
+    #         
+    #     #log.debug(f'attached {len(d)} widgets')
+    #     
+    #     self.widget_suite=widget
+    #===========================================================================
             
  
         
@@ -139,9 +251,7 @@ class Model(object):
         assert_haz_db_fp(fp)
         return fp
     
-    def _get_model_tables(self,*table_names, **kwargs):
-        """load model specific tables from generic table names"""        
-        return self.parent.projDB_get_tables(*[f'model_{self.name}_{k}' for k in table_names], **kwargs)
+
 
     def _update_model_index(self, table_names_d, projDB_fp=None, logger=None):
         """update the model index in the project with my table names"""
@@ -240,67 +350,9 @@ class Model(object):
         
             
             
-            
-        
-            
-            
-    def launch_config_ui(self):
-        """launch the configuration dialog"""
-        log = self.logger.getChild('launch_config_ui')
-        log.debug(f'user pushed model config for {self.name}')
-        
-        #check ther eis a project database
-        projDB_fp = self._get_projDB_fp()
-        if projDB_fp is None or projDB_fp=='':
-            raise IOError('must set a project datatbase file before configuring models')
-        
-        #and the hazardss database
-        hazDB_fp = self._get_hazDB_fp()
-        if hazDB_fp is None or hazDB_fp=='':
-            raise IOError('must set a hazards datatbase file before configuring models')
-        
  
-        #setup the project database
-        self._create_tables(projDB_fp=projDB_fp, logger=self.logger)
         
-        dial = self.parent.Model_config_dialog
-        #check that the dialog is already closed
-        assert not dial.isVisible(), 'dialog is already open!'
-        
-        #load the model into the dialog
-        dial._load_model(self)
-        
-        #attach this dialog to yourself
-        #allows the model to pull values from the dialog
-        self.dial = dial
-        
-        #launch teh dialog
-        dial.show()
-        
-        
-    
-    def run_model(self):
-        """run the risk model"""
-        
-        #=======================================================================
-        # build the inventory vector layer (finv)
-        #=======================================================================
-        
-    def _get_finv(self):
-        """get the asset inventory vector layer from the ui"""
-        vlay = comboBox_finv_vlay.currentLayer()
-        assert isinstance(vlay, QgsVectorLayer), f'bad vlay: {vlay}'
-        
-    def __exit__(self):
-        self.logger.debug(f'destroying {self.name}')
-        
-        #remove the widget
-        #get the parent la yout of the widget
-        parent = self.widget_suite.parent()
-        parent.removeWidget(self.widget_suite)
-        self.widget_suite.deleteLater()
-        
-        del self
+
         
 
 def _get_proj_meta_d(log, 

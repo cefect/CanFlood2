@@ -91,7 +91,7 @@ QTabBar::tab:selected { /* Style for selected tabs */
       </font>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">
@@ -928,6 +928,39 @@ p, li { white-space: pre-wrap; }
          </property>
         </widget>
        </item>
+       <item alignment="Qt::AlignHCenter">
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>Control</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_10">
+          <item>
+           <widget class="QPushButton" name="pushButton_MS_clear">
+            <property name="text">
+             <string>Clear</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_MS_createTemplates">
+            <property name="text">
+             <string>Create Templates</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_18">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Run All</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
        <item>
         <widget class="QScrollArea" name="scrollArea">
          <property name="palette">
@@ -949,7 +982,7 @@ p, li { white-space: pre-wrap; }
             <x>0</x>
             <y>0</y>
             <width>941</width>
-            <height>637</height>
+            <height>620</height>
            </rect>
           </property>
           <property name="styleSheet">
@@ -1097,22 +1130,6 @@ QGroupBox {
            </item>
           </layout>
          </widget>
-        </widget>
-       </item>
-       <item alignment="Qt::AlignHCenter">
-        <widget class="QGroupBox" name="groupBox_7">
-         <property name="title">
-          <string/>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_7">
-          <item>
-           <widget class="QPushButton" name="pushButton_18">
-            <property name="text">
-             <string>Run All</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
         </widget>
        </item>
       </layout>

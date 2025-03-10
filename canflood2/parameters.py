@@ -7,30 +7,33 @@ import os
 from datetime import datetime
 import pandas as pd
 
+
 #===============================================================================
-# directories and files
+# generic params-------
+#===============================================================================
+fileDialog_filter_str="CanFlood2 database files (*.canflood2)" 
+
+#===============================================================================
+# directories and files-------
 #===============================================================================
 src_dir = os.path.dirname(os.path.dirname(__file__))
 plugin_dir = os.path.dirname(__file__)
 home_dir = os.path.join(os.path.expanduser('~'), 'CanFlood2')
 os.makedirs(home_dir, exist_ok=True)
 
-#===============================================================================
-# logging
-#===============================================================================
-
-
-
+ 
 
 
 #===============================================================================
-# autos
+# autos--------
 #===============================================================================
 today_str = datetime.now().strftime("%Y%m%d")
 
 
+
+
 #===============================================================================
-# project database
+# project database-------
 #===============================================================================
 project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_template.csv')
 
@@ -42,7 +45,7 @@ project_db_schema_d = {
             columns={
                 'modelid': int,
                 'category_code': str,
-                'category_desc': str,
+                #'category_desc': str,
                 'name': str,
                 'result_ead': float, #resulting integrated EAD
                 
@@ -52,7 +55,7 @@ project_db_schema_d = {
         )
     }
 
-project_db_schema_nested_d = {
+project_db_schema_modelSuite_d = {
     'table_parameters': None,  # name of parameter table: simple key, value for the parameters in the model config UI
     'table_vfunc_index': None,  # name of table for: index of vfunc tables
     'table_finv': None,  # name of table for: asset inventory (scale, elev, tag, cap)
@@ -62,7 +65,7 @@ project_db_schema_nested_d = {
 }
 
 #add each entry from project_db_schema_nested_d as a string column to the project_db_schema_d['00_model_suite_index']
-for key in project_db_schema_nested_d.keys():
+for key in project_db_schema_modelSuite_d.keys():
     project_db_schema_d['03_model_suite_index'][key] = ''
 
 
@@ -70,10 +73,11 @@ for key in project_db_schema_nested_d.keys():
 
 model_parameters_template_fp = os.path.join(plugin_dir, 'model_parameters_template.csv')
 
-project_db_schema_nested_d['table_parameters'] = pd.read_csv(model_parameters_template_fp)
+project_db_schema_modelSuite_d['table_parameters'] = pd.read_csv(
+    model_parameters_template_fp, dtype={'value': str})
 
 #===============================================================================
-# hazards: event metadata
+# hazards: event metadata---------
 #===============================================================================
 # Control dictionary with metadata for each field, including display label, widget type, lock status, and dtype.
 eventMeta_control_d = {
@@ -121,7 +125,7 @@ for col, meta in eventMeta_control_d.items():
  
 
 #===============================================================================
-# hazards: database
+# hazards: database------
 #===============================================================================
 hazDB_schema_d = {
     '04_haz_meta': None,
@@ -137,9 +141,20 @@ for k,v in hazDB_schema_d.items():
     else:
         project_db_schema_d[k] = v.copy()
         
+        
+        
+#===============================================================================
+# model suite----------
+#===============================================================================
+consequence_category_d = {
+    'c1':'People (Health and Safety)',
+    'c2':'People (Society)',
+    'c3':'Critical Infrastructure',
+    'c4':'Economy (Financial)',
+    'c5':'Environment',
+    'c6':'Culture',
+    'c7':'Government'    
+    }
+        
  
  
-#===============================================================================
-# generic params
-#===============================================================================
-fileDialog_filter_str="CanFlood2 database files (*.canflood2)" 

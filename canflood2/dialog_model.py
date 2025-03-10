@@ -12,11 +12,16 @@ ui dialog class for model config window
 import sys, os, datetime, time, configparser
 import pandas as pd
 
+
+from PyQt5 import uic, QtWidgets
+
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value
 
 
-from PyQt5 import uic, QtWidgets
+
+
+from  .core import Model
 #===============================================================================
 # load UI file
 #===============================================================================
@@ -26,7 +31,7 @@ assert os.path.exists(ui_fp), 'failed to find the ui file: \n    %s'%ui_fp
 FORM_CLASS, _ = uic.loadUiType(ui_fp)
 
 
-class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
+class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS, Model):
     
     def __init__(self, 
                  iface, 
@@ -121,3 +126,5 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
  
         
         self.reject()
+        
+

@@ -29,7 +29,7 @@ from tests.conftest import conftest_logger, assert_intersecting_values_match_ver
 from canflood2.assertions import assert_proj_db_fp, assert_haz_db_fp
 
 from canflood2.dialog_main import Main_dialog
-from canflood2.parameters import fileDialog_filter_str, eventMeta_control_d
+from canflood2.parameters import fileDialog_filter_str, eventMeta_control_d, consequence_category_d
 
 from canflood2.hp.basic import sanitize_filename
 from canflood2.hp.basic import view_web_df as view
@@ -45,7 +45,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS---------
 #===============================================================================
-overwrite_testdata=False
+overwrite_testdata=True
 def write_sqlite(result, ofp, write=overwrite_testdata):
     if write:
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
@@ -342,7 +342,7 @@ def test_dial_main_03_load_project_database(dialog, projDB_fp, monkeypatch):
     
     
     
- 
+
 @pytest.mark.parametrize("projDB_fp", [
     None, oj('01_create_new_projDB', 'projDB.canflood2')
     ])
@@ -375,9 +375,17 @@ def test_dial_main_04_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp
     assert  result== dummy_file 
     assert_haz_db_fp(result)
     
-    #write test data
+ 
+    
+    #write the resulting data
     if not projDB_fp is None:
+        #hazDB_fp
         write_sqlite(result, oj_out(test_name, result))
+        
+        #projDB
+        """this has also changed"""
+        fp = dialog.get_projDB_fp()
+        write_sqlite(fp, oj_out(test_name, fp))
 
 
 
@@ -423,23 +431,98 @@ def test_dial_main_05_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, haz_rlay_d, 
     assert_intersecting_values_match_verbose(expected_series, actual_series)
     
     
+
 @pytest.mark.dev 
+@pytest.mark.parametrize(
+    "projDB_fp, hazDB_fp, tutorial_name",
+    [(oj('04_create_new_hazDB_L___09_REP', 'projDB.canflood2'), 
+      oj('04_create_new_hazDB_L___09_REP', 'hazDB.db'), 
+      'cf1_tutorial_02')]
+)
+def test_dial_main_06_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d, 
+                                         tmpdir, test_name):
+    """test creation and clearing of the model suite"""
+    
+    _dialog_preloader(dialog, projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, haz_rlay_d=haz_rlay_d,
+                      tmpdir=tmpdir)
+    
+    #===========================================================================
+    # #create the model suite templates
+    #===========================================================================
+    QTest.mouseClick(dialog.pushButton_MS_createTemplates, Qt.LeftButton) #Main_dialog._create_model_templates()
+    
+    #check they have been added to the dialog index
+    assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
+    
+    #===========================================================================
+    # clear the model suite
+    #===========================================================================
+    print(f'clearing {len(dialog.model_index_d)} model suite templates\n===================================\n\n')
+    QTest.mouseClick(dialog.pushButton_MS_clear, Qt.LeftButton) #Main_dialog._clear_model_suite()
+    
+    #check they have been removed
+    assert len(dialog.model_index_d) == 0
+    
+    #===========================================================================
+    # #create the model suite templates
+    #===========================================================================
+    
+    """creating a second time as an additional test.. also gives us the result data"""
+    print(f'creating {len(consequence_category_d)} model suite templates\n======================================\n\n')
+    QTest.mouseClick(dialog.pushButton_MS_createTemplates, Qt.LeftButton) #Main_dialog._create_model_templates()
+    
+    #check they have been added to the dialog index
+    assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
+    
+    
+    #===========================================================================
+    # post
+    #===========================================================================3
+    result = dialog.get_projDB_fp()
+
+    assert_proj_db_fp(result)
+    
+    #write test data
+    if not projDB_fp is None:
+        write_sqlite(result, oj_out(test_name, result))
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+ 
 @pytest.mark.parametrize("projDB_fp", [
     oj('01_create_new_projDB', 'projDB.canflood2')
     ])
 @pytest.mark.parametrize("hazDB_fp", [oj('04_create_new_hazDB_L___09_REP', 'hazDB.db')])
 @pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02']) 
-def test_dial_main_06_model_configure(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eventMeta_df, tmpdir):
+def test_dial_main_07_model_configure(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eventMeta_df, tmpdir):
     """test launching the model configuration dialog"""
     
     _dialog_preloader(dialog, projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, haz_rlay_d=haz_rlay_d, eventMeta_df=eventMeta_df,
                       tmpdir=tmpdir)
     
-    #get the first model
-    model_wrkr = dialog.model_index_d['c1'][0]
+    #create the model suite templates
+    QTest.mouseClick(dialog.pushButton_MS_createTemplates, Qt.LeftButton) #Main_dialog._create_model_templates()
     
-    #click the button on the associated widget
-    QTest.mouseClick(model_wrkr.widget_suite.pushButton_mod_config, Qt.LeftButton) #Model.launch_config_ui
+
+    
+    #===========================================================================
+    # #get the first model
+    # model_wrkr = dialog.model_index_d['c1'][0]
+    # 
+    # #click the button on the associated widget
+    # QTest.mouseClick(model_wrkr.widget_suite.pushButton_mod_config, Qt.LeftButton) #Model.launch_config_ui
+    #===========================================================================
  
     
 

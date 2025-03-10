@@ -1,4 +1,7 @@
 varName,widgetName,value,value2,note
+modelid,,,,duplicated indexer for redundancy
+category_code,,,,duplicated indexer for redundancy
+name,,,,duplicated indexer for redundancy
 expo_level,comboBox_expoLevel,,,
 finv_vlay,comboBox_finv_vlay,,,
 finv_elevType,comboBox_AI_elevType,,,just the layer nam e
@@ -10,5 +13,5 @@ f01_cap,mFieldComboBox_AI_01_cap,,,netid 1 (basic)
 finv_dataSource,dataSourceLineEdit_AI,,,
 finv_label,labelLineEdit_AI,,,used for UI updates
 finv_date,dateLineEdit_AI,,,
-consq_label,consequenceLineEdit_V,,,used for UI updates
+consq_label,consequenceLineEdit_V,,,used for UI updates (not to be confused with category_desc)
 vfuncLib_fp,lineEdit_V_vfunc,,,filepath to the damage function library

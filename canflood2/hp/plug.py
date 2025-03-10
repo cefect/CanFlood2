@@ -55,15 +55,20 @@ class plugLogger(object):
         self.statusQlab = statusQlab
         self.parent=parent
         
+        #setup the name
+        parentClassName = self.parent.__class__.__name__
+        if 'None' in parentClassName:
+            parentClassName = ''
+        
         
         if  log_nm is None: #normal calls
-            self.log_nm = '%s.%s'%(self.log_nm_default, self.parent.__class__.__name__)
+            self.log_nm = '%s.%s'%(self.log_nm_default, parentClassName)
 
         else: #getChild calls
             self.log_nm = log_nm
             
         if not debug_logger is None:
-            debug_logger = debug_logger.getChild(self.parent.__class__.__name__)
+            debug_logger = debug_logger.getChild(parentClassName)
             
  
         

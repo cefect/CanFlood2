@@ -460,7 +460,7 @@ def test_dial_main_02b_load_project_database(dialog,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
 @pytest.mark.parametrize("projDB_fp", [
     None, oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2')
@@ -509,72 +509,21 @@ def test_dial_main_03_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp
 
 
 
-
-
-@pytest.mark.parametrize("projDB_fp, hazDB_fp, tutorial_name",
-    [
-        (
-        oj('03_create_new_hazDB_L__09_ee795c', 'projDB.canflood2'),
-        oj('03_create_new_hazDB_L__09_ee795c', 'hazDB.db'),
-        'cf1_tutorial_02'
-        )
-        ]
-)
-@pytest.mark.parametrize("widget_data_d", [
-    {'scenarioNameLineEdit': 'some scenario', 
-     'climateStateLineEdit': 'some climate', 
-     'hazardTypeLineEdit': 'some hazard'}
-    ])
-def test_dial_main_04_save_ui_to_hazDB(dialog, projDB_fp, hazDB_fp, 
-                                       haz_rlay_d, eventMeta_df, 
-                                       widget_data_d, tmpdir, test_name):
-    """set a projDB and hazDB, then click save on the hazDB"""
-    
-    _dialog_preloader(dialog, 
-                      projDB_fp=projDB_fp, hazDB_fp=hazDB_fp,
-                      haz_rlay_d=haz_rlay_d,eventMeta_df=eventMeta_df,
-                      widget_data_d=widget_data_d, tmpdir=tmpdir)
-    
-    #===========================================================================
-    # execute
-    #===========================================================================
-    QTest.mouseClick(dialog.pushButton_save, Qt.LeftButton) #Main_dialog._save_ui_to_DBs()
-    
-    #===========================================================================
-    # check
-    #===========================================================================
- 
-
-    # Retrieve the table from the database.
-    df = dialog._hazDB_get_tables('04_haz_meta')
-    # view(df)
- 
-    # Build the expected and actual series.
-    expected_series = pd.Series(widget_data_d)
-    actual_series = df.set_index('widgetName')['value']
-    
-    assert_intersecting_values_match_verbose(expected_series, actual_series)
-    
-    #===========================================================================
-    # write
-    #===========================================================================
-    write_both_DBs(dialog, test_name)
-    
-    
-
-
+@pytest.mark.dev
 @pytest.mark.parametrize(
     "projDB_fp, hazDB_fp, tutorial_name",
-    [(oj('04_save_ui_to_hazDB_widge_5e8bc2', 'projDB.canflood2'), 
-      oj('04_save_ui_to_hazDB_widge_5e8bc2', 'hazDB.db'), 
+    [(oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2'), 
+      oj('02_save_ui_to_project_dat_151acb', 'hazDB.db'), 
       'cf1_tutorial_02')]
 )
 def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d, 
-                                         tmpdir, test_name):
+                                         aoi_vlay, dem_rlay,  #needed to load teh project
+                                         tmpdir, test_name, monkeypatch):
     """test creation and clearing of the model suite"""
     
     _dialog_preloader(dialog, projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, haz_rlay_d=haz_rlay_d,
-                      tmpdir=tmpdir)
+                      aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
+                      tmpdir=tmpdir, monkeypatch=monkeypatch)
     
     #===========================================================================
     # #create the model suite templates

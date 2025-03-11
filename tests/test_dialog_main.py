@@ -28,7 +28,7 @@ from qgis.PyQt import QtWidgets
 import tests.conftest as conftest
 from tests.conftest import (
     conftest_logger, assert_intersecting_values_match_verbose,
-    test_result_write_filename_prep, click
+    result_write_filename_prep, click
     )
 
 from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp
@@ -51,7 +51,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS---------
 #===============================================================================
-overwrite_testdata=True
+overwrite_testdata=False
 def write_sqlite(result, ofp, write=overwrite_testdata):
     if write:
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
@@ -69,7 +69,7 @@ def oj(*args):
     return os.path.join(test_data_dir, *args)
 
 def oj_out(test_name, result):
-    return oj(test_result_write_filename_prep(test_name), os.path.basename(result))
+    return oj(result_write_filename_prep(test_name), os.path.basename(result))
 
 
  
@@ -120,7 +120,7 @@ def dialog_launch_modelConfig(dialog, consequence_category, modelid):
     return model
  
 #===============================================================================
-# FIXTURES------
+# FIXTURES: MAIN DIALOG------
 #===============================================================================
 
 #===============================================================================
@@ -227,53 +227,19 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
 
 
 
+
 # Default fixtures that return None unless overridden.
  
-@pytest.fixture
-def projDB_fp(request):
-    return getattr(request, "param", None)
+
 
 @pytest.fixture
 def widget_data_d(request):
     return getattr(request, "param", None)
 
-@pytest.fixture
-def model(dialog, consequence_category, modelid):
-    return dialog.model_index_d[consequence_category][modelid]
+
     
 
-@pytest.fixture
-def dialog_modelConfig(dialog, model,
-                       qtbot, monkeypatch):
-    """
-    Fixture to launch the model configuration dialog in a non-blocking way.
-    Instead of calling the normal modal exec_() (which blocks until closed),
-    we monkeypatch exec_() to automatically simulate a click on the OK button
-    (or otherwise close the dialog) and return Accepted.
-    """
-    # Retrieve the model from the main dialog and the button that launches the config dialog.
- 
-    
-    dlg = dialog.Model_config_dialog
 
-    # Override exec_() so it shows the dialog and returns immediately.
-    def non_blocking_exec():
-        dlg.show()
-        return QtWidgets.QDialog.Rejected  # dummy return value
-    monkeypatch.setattr(dlg, "exec_", non_blocking_exec)
-
-    # Launch the dialog by clicking the widget that opens it.
-    widget = model.widget_d['pushButton_mod_config']['widget']
-    click(widget)
-    qtbot.waitExposed(dlg)  # wait until the dialog is visible
-
-    # Yield the live dialog instance for test interaction.
-    yield dlg
-
-    # Teardown: simulate a click on the OK button to close the dialog.
-    print("Closing model configuration dialog")
-    qtbot.mouseClick(dlg.pushButton_ok, Qt.LeftButton)
-    qtbot.waitSignal(dlg.finished, timeout=5000)
     
  
  
@@ -461,71 +427,7 @@ def test_dial_main_04_MS_createTemplates(dialog, test_name):
 
 
 
-@pytest.mark.dev
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
-])
-@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_main_06_MS_launch_modelConfig(dialog_modelConfig,
-                                     model):
-    """test launching the model configuration dialog
-    
-    handled by the fixture
-    """    
- 
-    
-    assert dialog_modelConfig.model==model
-    
-    
- 
 
-
-    
-
-
-@pytest.mark.parametrize(
-    "projDB_fp, hazDB_fp, tutorial_name",
-    [(oj('06_MS_configure_L__09_REP_ba53e6', 'projDB.canflood2'), 
-      oj('06_MS_configure_L__09_REP_ba53e6', 'hazDB.db'), 
-      'cf1_tutorial_02')]
-)
-def test_dial_main_07_MS_run(dialog, tmpdir, test_name,
-                                   projDB_fp, hazDB_fp,
-                                   aoi_vlay, dem_rlay,
-                                   haz_rlay_d, eventMeta_df, finv_vlay,
-                                   monkeypatch,
-                                                                      ):
-    """test launching the model configuration dialog"""
-    
-    _dialog_preloader(dialog, 
-                      projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, monkeypatch=monkeypatch,
-                        haz_rlay_d=haz_rlay_d, 
-                      eventMeta_df=eventMeta_df, 
-                      finv_vlay=finv_vlay,
-                      aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
-                      tmpdir=tmpdir)
-    
-    #===========================================================================
-    # launch config window on first model
-    #===========================================================================
-    #schedule dialog to close
-    #model_config_dialog = dialog.Model_config_dialog
-    #QTimer.singleShot(200, lambda: QTest.mouseClick(model_config_dialog.pushButton_ok, Qt.LeftButton))
-    
-    
-    #retrieve the widge
-    model = dialog.model_index_d[list(consequence_category_d.keys())[0]][0]
-    widget = model.widget_d['pushButton_mod_run']['widget']
-    print(f'clicking run on model config dialog\n====================================\n\n')
-    
-    raise NotImplementedError('need to sort out the different run buttons')
-    click(widget)
- 
-    
-    #===========================================================================
-    # check
-    #===========================================================================
-    model.get_model_tables_all()
     
     
     

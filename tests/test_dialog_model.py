@@ -8,7 +8,7 @@ Created on Mar 6, 2025
 #===============================================================================
 # IMPORTS----------
 #===============================================================================
-import pytest, time, sys, inspect
+import pytest, time, sys, inspect, os
 
 
 from PyQt5.QtTest import QTest
@@ -22,8 +22,32 @@ from qgis.PyQt import QtWidgets
 
 from canflood2.dialog_model import Model_config_dialog
 
-from .test_core import model
+from .test_dialog_main import dialog as dialog_main
+from .test_dialog_main import oj as oj_main
+#need to import the fixture from dialog_main
+from .test_dialog_main import widget_data_d
 
+import tests.conftest as conftest
+from .conftest import (
+    conftest_logger, assert_intersecting_values_match_verbose,
+    result_write_filename_prep, click
+    )
+
+#===============================================================================
+# DATA--------
+#===============================================================================
+test_data_dir = os.path.join(conftest.test_data_dir, 'test_dialog_model')
+os.makedirs(test_data_dir, exist_ok=True)
+
+#===============================================================================
+# HELPERS----------
+#===============================================================================
+def oj(*args):
+    return os.path.join(test_data_dir, *args)
+
+def oj_out(test_name, result):
+    return oj(result_write_filename_prep(test_name), os.path.basename(result))
+ 
 #===============================================================================
 # FIXTURES------
 #===============================================================================
@@ -31,31 +55,62 @@ from .test_core import model
 #===============================================================================
 # dialog setup
 #===============================================================================
-"""need to handle:
-    different scenarios for user inputs (e.g., paramerterize populated fields on UI)
-    partial (for individual run) and complete (for full run) parameterization
-    
-use fixtures to parameterize in blocks
-    load the dialog, assign some variables
-    only need to call the fixture (and the dialog) in the test (don't need to use)
-"""
-    
-@pytest.fixture(scope='function') 
-def dialog(qgis_iface, logger):
-    """dialog fixture.
-    for interactive tests, see 'test_init' (uncomment block)"""
-    
-    #indirect parameters    
-    dialog =  Model_config_dialog(parent=None, 
-                          iface=qgis_iface,
-                          logger=logger, #connect python logger for rtests 
-                          )
+@pytest.fixture
+def dialog(dialog_main, model,finv_vlay, save_dialog,
+                       qtbot, monkeypatch):
+    """
+    Fixture to launch the model configuration dialog in a non-blocking way.
+    Instead of calling the normal modal exec_() (which blocks until closed),
+    we monkeypatch exec_() to automatically simulate a click on the OK button
+    (or otherwise close the dialog) and return Accepted.
+    """
+    # Retrieve the model from the main dialog and the button that launches the config dialog.
  
-    #post configuration
+    
+    dlg = dialog_main.Model_config_dialog
+
+    # Override exec_() so it shows the dialog and returns immediately.
+    def non_blocking_exec():
+        dlg.show()
+        return QtWidgets.QDialog.Rejected  # dummy return value
+    monkeypatch.setattr(dlg, "exec_", non_blocking_exec)
     
     
+    
+
+    #===========================================================================
+    # # Launch the dialog by clicking the widget that opens it.
+    #===========================================================================
+    widget = model.widget_d['pushButton_mod_config']['widget']
+    click(widget)
+    qtbot.waitExposed(dlg)  # wait until the dialog is visible
+    
+    
+    #===========================================================================
+    # post launch setup
+    #===========================================================================
+    if finv_vlay is not None:
+        dlg.comboBox_finv_vlay.setLayer(finv_vlay)
+
+    # Yield the live dialog instance for test interaction.
+    yield dlg
+
+    #===========================================================================
+    # # Teardown: simulate a click on the OK button to close the dialog.
+    #===========================================================================
+    print(f"Closing model configuration dialog w/ save_dialog={save_dialog}")
+    if save_dialog:
+        
+        qtbot.mouseClick(dlg.pushButton_ok, Qt.LeftButton)
+    else:
+        qtbot.mouseClick(dlg.pushButton_close, Qt.LeftButton)
+    qtbot.waitSignal(dlg.finished, timeout=5000)
     return dialog
 
+
+@pytest.fixture
+def model(dialog_main, consequence_category, modelid):
+    return dialog_main.model_index_d[consequence_category][modelid]
 
 #===============================================================================
 # TESTS------
@@ -64,20 +119,34 @@ def dialog(qgis_iface, logger):
 
 
 @pytest.mark.dev
-def test_dial_mod_00_init(dialog,):
+@pytest.mark.parametrize("projDB_fp", [oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2')])
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+@pytest.mark.parametrize("save_dialog", [False]) #teardown behavior
+def test_dial_model_01_launch_config(dialog,model):
+    """simple launching and closing of the model configuration dialog
     
+    handled by the fixture
+    """     
+    assert dialog.model==model
     
-    #===========================================================================
-    # """uncomment the below to use pytest to launch the dialog interactively"""
-    # dialog.show()
-    # QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
-    # sys.exit(QApp.exec_()) #wrap
-    #===========================================================================
+
+
+
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
+])
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+@pytest.mark.parametrize("save_dialog", [True])
+@pytest.mark.parametrize("finv_vlay", [None])
+def test_dial_model_02_save(dialog,model):
+    """add some data to the dialog then click save/OK
+    """     
+    assert dialog.model==model
+
  
  
+
+
     
-    assert hasattr(dialog, 'logger')
-    
-    
-def test_dial_mod_01_load(dialog, model):
-    dialog._load_model(model)
+
+ 

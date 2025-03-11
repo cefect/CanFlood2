@@ -126,7 +126,7 @@ def pytest_report_header(config):
 
 
 #===============================================================================
-# fixtrues--------
+# FIXTURES--------
 #===============================================================================
 
 
@@ -177,8 +177,13 @@ def logger():
 def test_name(request):
     return request.node.name
 
+
+@pytest.fixture
+def projDB_fp(request):
+    return getattr(request, "param", None)
+
 #===============================================================================
-# tutorial data
+# FIXTURES: TUTORIAL DATA---------
 #===============================================================================
 @pytest.fixture
 def tutorial_name(request):
@@ -290,7 +295,7 @@ def click(widget):
     return QTest.mouseClick(widget, Qt.LeftButton)
  
 
-def test_result_write_filename_prep(test_name, char_max=25):
+def result_write_filename_prep(test_name, char_max=25):
     """cleaning up the pytest names to use for auto result writing"""
 
     test_name1 = sanitize_filename(test_name)

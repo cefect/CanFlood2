@@ -1258,7 +1258,8 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
                     widget = getattr(self, widgetName)                
                     set_widget_value(widget, value)
                 except Exception as e:
-                    raise IOError(f'failed to set widget \'{widgetName}\' to \'{value}\': \n    {e}')
+                    log.error(f'failed to set widget \'{widgetName}\' to \'{value}\': \n'+\
+                               f'    {e}\nprojDB may be out of sync')
                 
         else:
             log.warning(f'no project parameters found in projDB')

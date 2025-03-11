@@ -346,21 +346,14 @@ def test_dial_main_03_load_projDB(dialog,
 
 
 
-
-@pytest.mark.parametrize(
-    "projDB_fp, hazDB_fp, tutorial_name",
-    [(oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2'), 
-      oj('02_save_ui_to_project_dat_151acb', 'hazDB.db'), 
-      'cf1_tutorial_02')]
-)
-def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d, 
-                                         aoi_vlay, dem_rlay,  #needed to load teh project
-                                         tmpdir, test_name, monkeypatch):
+@pytest.mark.dev
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2'))
+])
+def test_dial_main_04_MS_createTemplates(dialog, test_name):
     """test creation and clearing of the model suite"""
     
-    _dialog_preloader(dialog, projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, haz_rlay_d=haz_rlay_d,
-                      aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
-                      tmpdir=tmpdir, monkeypatch=monkeypatch)
+ 
     
     #===========================================================================
     # #create the model suite templates
@@ -374,7 +367,7 @@ def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d
     #===========================================================================
     # clear the model suite
     #===========================================================================
-    print(f'clearing {len(dialog.model_index_d)} model suite templates\n===================================\n\n')
+
     click(dialog.pushButton_MS_clear)  #Main_dialog._clear_model_suite()
     
     #check they have been removed
@@ -385,7 +378,7 @@ def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d
     #===========================================================================
     
     """creating a second time as an additional test.. also gives us the result data"""
-    print(f'creating {len(consequence_category_d)} model suite templates\n======================================\n\n')
+    
     click(dialog.pushButton_MS_createTemplates)  #Main_dialog._create_model_templates()
     
     #check they have been added to the dialog index

@@ -62,7 +62,7 @@ from .hp.sql import get_table_names
 from .parameters import (
     home_dir, plugin_dir,  project_db_schema_d,
     fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp,
-    project_db_schema_modelSuite_d, consequence_category_d,
+    projDB_schema_modelTables_d, consequence_category_d,
     eventMeta_control_d)
 
 from .assertions import (
@@ -487,7 +487,7 @@ class Main_dialog_modelSuite(object):
             # #add the parameter table
             #===================================================================
             table_name = model.get_table_names('table_parameters')
-            df_d[table_name] = project_db_schema_modelSuite_d['table_parameters'].copy()
+            df_d[table_name] = projDB_schema_modelTables_d['table_parameters'].copy()
             
             #add the indexers
             

@@ -62,7 +62,7 @@ from .hp.sql import get_table_names
 from .parameters import (
     home_dir, plugin_dir,  project_db_schema_d,
     fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp,
-    project_db_schema_modelSuite_d,
+    project_db_schema_modelSuite_d, consequence_category_d,
     eventMeta_control_d)
 
 from .assertions import (
@@ -420,17 +420,13 @@ class Main_dialog_modelSuite(object):
         def create_modelSuite_templates():
             #check that the model suites have been cleared
             assert len(self.model_index_d)==0, f'must clearn model suite before creating templates'
-            #retrieve all the group boxes inside the model set:
-            modelSet_groupBoxes = self.groupBox_MS_modelSet.findChildren(QtWidgets.QGroupBox)
+ 
             
             # Loop through each group box, and load the model template into it.
-            for gb in modelSet_groupBoxes:
-                #groupbox_name = gb.objectName()
-                groupbox_title = gb.title()
-                
-                category_code, category_desc = extract_gropubox_codes(groupbox_title)
-                
-                
+ 
+            for category_code, d in consequence_category_d.items():
+                gb = getattr(self, d['boxName'])
+ 
                 # Create a new layout for the group box if it doesn't have one
                 if gb.layout() is None:
                     gb.setLayout(QtWidgets.QVBoxLayout())
@@ -455,7 +451,9 @@ class Main_dialog_modelSuite(object):
     
     def _add_model(self, layout, category_code,
                     logger=None,
-                   projDB_fp=None):
+                   projDB_fp=None,
+                   check_projDB=False,
+                   ):
         """start a model object, then add the template to the layout"""
         if logger is None: logger=self.logger.getChild('add_model')
         log = logger.getChild('add_model')
@@ -488,16 +486,19 @@ class Main_dialog_modelSuite(object):
         assert not modelid in self.model_index_d[category_code], f'modelid already in index'
         
         #check model is not in the index
-        assert model.get_model_index_ser() is None, f'model in index'
         
-        #check there are no model tables
-
-        # Check for latent model tables and log details if any are found
-        latent_tables = model.get_model_tables_all()
-        if len(latent_tables) > 0:
-            error_message = f'Found {len(latent_tables)} latent model tables: {list(latent_tables.keys())}. Possible bad DB cleanup.'
-            #log.error(error_message)
-            raise AssertionError(error_message)
+        if check_projDB:
+            """ this can happen when we load a project database with models already in it"""
+            assert model.get_model_index_ser() is None, f'model already in index'
+ 
+    
+            # Check for latent model tables and log details if any are found
+        
+            latent_tables = model.get_model_tables_all()
+            if len(latent_tables) > 0:
+                error_message = f'Found {len(latent_tables)} latent model tables: {list(latent_tables.keys())}. Possible bad DB cleanup.'
+                #log.error(error_message)
+                raise AssertionError(error_message)
 
         
         
@@ -1345,9 +1346,20 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         
         if len(model_index_dx)>0:
             log.debug(f'loading {len(model_index_dx)} models')
-            raise NotImplementedError('need to add the model loading')
-            for i, row in model_index_dx.iterrows():
-                self._add_model(self.groupBox_MS_modelSet.layout(), row['category_code'], logger=log)
+            cnt=0
+            for (modelid, category_code) , row in model_index_dx.iterrows():
+ 
+                #get the groupbox
+                params = consequence_category_d[category_code]
+                gb = getattr(self, params['boxName'])                
+                
+                self._add_model(gb.layout(), category_code, logger=log)
+                
+                #check the modelid was added
+                assert modelid in self.model_index_d[category_code], f'failed to add model {modelid}'
+                cnt+=1
+            
+            log.info(f'loaded {cnt} models from project database')
                 
         else:
             log.warning(f'no models found in projDB')

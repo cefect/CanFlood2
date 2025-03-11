@@ -110,6 +110,7 @@ def _dialog_preloader(dialog,
         hazDB_fp:'pushButton_HZ_hazDB_load'}.items():
  
         if fp is None: continue
+        assert not monkeypatch is None, f'need to provide monkeypatch for loading from databases'
         #patch the dialog     
         monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (fp, ''))
     
@@ -509,7 +510,7 @@ def test_dial_main_03_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize(
     "projDB_fp, hazDB_fp, tutorial_name",
     [(oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2'), 
@@ -573,30 +574,35 @@ def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d
     
     
  
-
+@pytest.mark.dev
 @pytest.mark.parametrize(
     "projDB_fp, hazDB_fp, tutorial_name",
-    [(oj('05_MS_createTemplates_L___ba3ffa', 'projDB.canflood2'), 
-      oj('05_MS_createTemplates_L___ba3ffa', 'hazDB.db'), 
+    [(oj('05_MS_createTemplates_L___e728c7', 'projDB.canflood2'), 
+      oj('05_MS_createTemplates_L___e728c7', 'hazDB.db'), 
       'cf1_tutorial_02')]
 )
 def test_dial_main_06_MS_configure(dialog, tmpdir, test_name,
                                    projDB_fp, hazDB_fp,
+                                   aoi_vlay, dem_rlay,
                                    haz_rlay_d, eventMeta_df, finv_vlay,
-
-                                   ):
+                                   monkeypatch,
+                                                                      ):
     """test launching the model configuration dialog"""
     
     _dialog_preloader(dialog, 
-                      projDB_fp=projDB_fp, hazDB_fp=hazDB_fp,
+                      projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, monkeypatch=monkeypatch,
                         haz_rlay_d=haz_rlay_d, 
-                      eventMeta_df=eventMeta_df, finv_vlay=finv_vlay,
+                      eventMeta_df=eventMeta_df, 
+                      finv_vlay=finv_vlay,
+                      aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
                       tmpdir=tmpdir)
     
     #===========================================================================
     # #create the model suite templates
     #===========================================================================
+    """these should be loaded with the projDB
     QTest.mouseClick(dialog.pushButton_MS_createTemplates, Qt.LeftButton) #Main_dialog._create_model_templates()
+    """
     
     #check they have been added to the dialog index
     assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
@@ -621,10 +627,10 @@ def test_dial_main_06_MS_configure(dialog, tmpdir, test_name,
     #===========================================================================3
     result = dialog.get_projDB_fp()
 
-    assert_projDB_fp(result)
+    assert_projDB_fp(result, check_consistency=True)
     
  
-    write_sqlite(result, oj_out(test_name, result))
+    write_both_DBs(dialog, test_name)
     
 
 

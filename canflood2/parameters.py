@@ -150,15 +150,40 @@ project_db_schema_d['02_project_parameters'] = pd.concat(
 #===============================================================================
 # model suite----------
 #===============================================================================
+
+
 consequence_category_d = {
-    'c1':'People (Health and Safety)',
-    'c2':'People (Society)',
-    'c3':'Critical Infrastructure',
-    'c4':'Economy (Financial)',
-    'c5':'Environment',
-    'c6':'Culture',
-    'c7':'Government'    
+    'c1': {
+        'desc': 'People (Health and Safety)',
+        'boxName': 'groupBox_MS_c1'
+    },
+    'c2': {
+        'desc': 'People (Society)',
+        'boxName': 'groupBox_MS_c2'
+    },
+    'c3': {
+        'desc': 'Critical Infrastructure',
+        'boxName': 'groupBox_MS_c3'
+    },
+    'c4': {
+        'desc': 'Economy (Financial)',
+        'boxName': 'groupBox_MS_c4'
+    },
+    'c5': {
+        'desc': 'Environment',
+        'boxName': 'groupBox_MS_c5'
+    },
+    'c6': {
+        'desc': 'Culture',
+        'boxName': 'groupBox_MS_c6'
+    },
+    'c7': {
+        'desc': 'Government',
+        'boxName': 'groupBox_MS_c7'
     }
+}
+
+
         
  
  

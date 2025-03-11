@@ -10,6 +10,8 @@ import os, warnings
 import sqlite3
 import pandas as pd
 
+
+from .hp.sql import get_table_names
 from .parameters import project_db_schema_d, hazDB_schema_d, project_db_schema_modelSuite_d
 
 #===============================================================================
@@ -62,6 +64,7 @@ def assert_projDB_conn(conn,
         raise AssertionError(f"Missing tables in project database: {', '.join(missing_tables)}")
     
     if check_consistency:
+        all_table_names = get_table_names(conn)
         #=======================================================================
         # #check the model_index matches the model tables
         #=======================================================================
@@ -72,8 +75,25 @@ def assert_projDB_conn(conn,
         dx = dx.set_index(['modelid', 'category_code'])
         
         if len(dx)>0:
-            dx.loc[:, project_db_schema_modelSuite_d.keys()]
-            raise NotImplementedError(f'need to check model tables against {table_name}')
+            tables_dx = dx.loc[:, project_db_schema_modelSuite_d.keys()].dropna(axis=1)
+            
+            #flatten into a series
+            for indexers, table_name in tables_dx.stack().items():
+                assert table_name in all_table_names, f'{indexers} not found in tables'
+                
+        #=======================================================================
+        # check there are no orphaned tables
+        #=======================================================================
+        #identify all tables matching the model_name search pattern
+        model_table_names = [table_name for table_name in all_table_names if table_name.startswith('model_')]
+        
+        if not len(model_table_names) == 0:
+            assert len(dx)>0, f'no model tables found, but model_index table not empty'
+        
+            assert set(model_table_names) == set(tables_dx.values.flatten())
+        
+            
+ 
         
     
     

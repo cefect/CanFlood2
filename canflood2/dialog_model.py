@@ -122,7 +122,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_mod_asset.setText(model.asset_label)
         self.label_mod_consq.setText(model.consq_label)
         self.label_mod_status.setText(model.status_label)        
-        self.label_category.setText(consequence_category_d[model.category_code])
+        self.label_category.setText(consequence_category_d[model.category_code]['desc'])
         
         
         log.debug(f'loaded model {model.name}')

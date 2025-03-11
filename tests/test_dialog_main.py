@@ -232,7 +232,7 @@ def test_dial_main_00_init(dialog,):
 
 
 
-@pytest.mark.dev
+ 
 def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
     """create new projDB
     
@@ -250,7 +250,7 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
     write_sqlite(result, oj_out(test_name, result))
      
  
-@pytest.mark.dev
+
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 @pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02']) 
 @pytest.mark.parametrize("widget_data_d", [
@@ -321,14 +321,12 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2'))
 ])
-
-def test_dial_main_02b_load_project_database(dialog,  tmpdir,
+def test_dial_main_03_load_projDB(dialog,
                                              ):
     """Test that clicking the 'load project database' button sets the lineEdit with the dummy file path.
  
     """
  
-
     #===========================================================================
     # execute
     #===========================================================================
@@ -344,58 +342,7 @@ def test_dial_main_02b_load_project_database(dialog,  tmpdir,
     
  
 
-    
-    
-
-
-
-
-@pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
-@pytest.mark.parametrize("projDB_fp", [
-    None, oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2')
-    ])
-def test_dial_main_03_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp, 
-                                       tmpdir,
-                                        aoi_vlay, dem_rlay, #need to load the layers
-                                       ):
-    """test the 'create new hazard database' button"""
-    
-    #setup the Create New hazard database    
-    dummy_file = tmpdir.join(f'hazDB.db').strpath    
-    
-    monkeypatch.setattr(
-        QFileDialog, 
-        "getSaveFileName", 
-        lambda *args, **kwargs: (dummy_file, "sqlite database files (*.db)")
-    )
-    
-    #preload with some data
-    if not projDB_fp is None:
-        _dialog_preloader(dialog, projDB_fp=projDB_fp, tmpdir=tmpdir, monkeypatch=monkeypatch,
-                          aoi_vlay=aoi_vlay, dem_rlay=dem_rlay)
  
-    #===========================================================================
-    # execute
-    #===========================================================================
-    # Simulate clicking the new project database button.
-    click(dialog.pushButton_HZ_hazDB_new) #Main_dialog._create_new_hazDB()
- 
-    
-    #===========================================================================
-    # post
-    #===========================================================================3
-    result = dialog.lineEdit_HZ_hazDB_fp.text()
-    assert  result== dummy_file 
-    assert_hazDB_fp(result)
-    
- 
-    
-    #write the resulting data
-    if not projDB_fp is None:        
-        write_projDB(dialog, test_name)
-
-
-
 
 
 

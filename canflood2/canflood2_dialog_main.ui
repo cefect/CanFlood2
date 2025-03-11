@@ -528,43 +528,6 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="groupBox_24">
-         <property name="title">
-          <string>Hazard Scenario Database File</string>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_17">
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_6">
-            <item>
-             <widget class="QLineEdit" name="lineEdit_HZ_hazDB_fp">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="placeholderText">
-               <string>File location for hazard scenario database file</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_HZ_hazDB_new">
-              <property name="text">
-               <string>New</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_HZ_hazDB_load">
-              <property name="text">
-               <string>Load</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
         <widget class="QGroupBox" name="groupBox_8">
          <property name="title">
           <string>Hazard Scenario Metadata</string>
@@ -656,6 +619,30 @@ p, li { white-space: pre-wrap; }
              <widget class="QLineEdit" name="hazardTypeLineEdit">
               <property name="placeholderText">
                <string>Description of hazard type(s) described by this scenario (e.g., 'pluvial and ice-jam')</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_21">
+            <item>
+             <widget class="QPushButton" name="pushButton_HZ_hazDB_import">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>Import</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_HZ_hazDB_export">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>Export</string>
               </property>
              </widget>
             </item>

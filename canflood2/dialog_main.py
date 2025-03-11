@@ -101,21 +101,10 @@ class Main_dialog_haz(object):
         #=======================================================================
         # Hazard Scenario Database File
         #=======================================================================
-        def create_new_hazard_database_ui():
-            filename, _ = QFileDialog.getSaveFileName(
-                self,  # Parent widget (your dialog)
-                "Save hazard database (sqlite) file",  # Dialog title
-                home_dir,  # Initial directory (optional, use current working dir by default)
-                "sqlite database files (*.db)"  # Example file filters
-                )
-            if filename:
-                self.lineEdit_HZ_hazDB_fp.setText(filename)
-                self._create_new_hazDB(filename)
-                
-        self.pushButton_HZ_hazDB_new.clicked.connect(create_new_hazard_database_ui)
+ 
         
         
-        def load_hazard_database_ui():
+        def import_hazard_database_ui():
             filename, _ = QFileDialog.getOpenFileName(
                 self,  # Parent widget (your dialog)
                 "Open hazard database (sqlite) file",  # Dialog title
@@ -123,9 +112,12 @@ class Main_dialog_haz(object):
                 "sqlite database files (*.db)"  # Example file filters
                 )
             if filename:
-                self.lineEdit_HZ_hazDB_fp.setText(filename)
+                self._import_hazDB(filename)
+            else:
+                log.warning(f'no file selected')
+ 
                 
-        self.pushButton_HZ_hazDB_load.clicked.connect(load_hazard_database_ui)
+        self.pushButton_HZ_hazDB_import.clicked.connect(import_hazard_database_ui)
         
 
         
@@ -319,9 +311,9 @@ class Main_dialog_haz(object):
             
         return
     
-    def _load_hazDB(self, logger=None,  hazDB_fp=None):
+    def _import_hazDB(self, hazDB_fp, logger=None):
         """load the UI state from a hazard database file"""
-        
+        raise NotImplementedError('need to add the import logic')
         #=======================================================================
         # defautls
         #=======================================================================

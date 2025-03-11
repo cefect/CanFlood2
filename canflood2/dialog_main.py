@@ -1235,7 +1235,8 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
                     #===============================================================
                     # data checks
                     #===============================================================
-                    assert len(df)>0, f'empty DataFrame for {k}'
+                    if len(df)==0:
+                        log.warning(f'empty dataframe for {k}')
                     
                     if df.isin(['nan']).any().any():
                         raise AssertionError(f'found nan in {k}')

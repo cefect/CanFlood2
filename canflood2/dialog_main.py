@@ -870,7 +870,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             
         def load_project_database_ui():
             log.debug('create_new_project_database_ui')
-            print('create_new_project_database_ui')
+ 
             filename, _ = QFileDialog.getOpenFileName(
                 self,  # Parent widget (your dialog)
                 "Open project database (sqlite) file",  # Dialog title

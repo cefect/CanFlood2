@@ -41,40 +41,9 @@ project_db_schema_d = {
     '01_project_meta': None,
     '02_project_parameters': pd.read_csv(project_parameters_template_fp),
 
-    '03_model_suite_index': pd.DataFrame(
-            columns={
-                'modelid': int,
-                'category_code': str,
-                #'category_desc': str,
-                'name': str,
-                'result_ead': float, #resulting integrated EAD
-                
-                
-                
-            }
-        )
     }
 
-project_db_schema_modelSuite_d = {
-    'table_parameters': None,  # name of parameter table: simple key, value for the parameters in the model config UI
-    'table_vfunc_index': None,  # name of table for: index of vfunc tables
-    'table_finv': None,  # name of table for: asset inventory (scale, elev, tag, cap)
-    'tabel_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
-    'table_gels': None,  # name of table for: ground elevation data (columns: dem name, rows: assets)
-    'table_dmgs': None,  # name of table for: damage data (columns: hazard event names, rows: assets, values: exposure and curve intersect)
-}
 
-#add each entry from project_db_schema_nested_d as a string column to the project_db_schema_d['00_model_suite_index']
-for key in project_db_schema_modelSuite_d.keys():
-    project_db_schema_d['03_model_suite_index'][key] = ''
-
-
-
-
-model_parameters_template_fp = os.path.join(plugin_dir, 'model_parameters_template.csv')
-
-project_db_schema_modelSuite_d['table_parameters'] = pd.read_csv(
-    model_parameters_template_fp, dtype={'value': str})
 
 #===============================================================================
 # hazards: event metadata---------
@@ -148,10 +117,64 @@ project_db_schema_d['02_project_parameters'] = pd.concat(
     [project_db_schema_d['02_project_parameters'], hazDB_schema_d['04_haz_meta']])
         
 #===============================================================================
-# model suite----------
+# MODEL SUITE----------
 #===============================================================================
+#===============================================================================
+# database schema
+#===============================================================================
+project_db_schema_d['03_model_suite_index'] =     pd.DataFrame(
+            columns={
+                #indexers
+                'modelid': int,
+                'category_code': str,
+                'name': str,
+                
+                #suite display parameters
+                'status': str,
+                'finv_label': str,
+                'consq_label': str,                
+                  
+                
+                #model results
+                'result_ead': float, #resulting integrated EAD                
+                
+            }
+        )
+
+#special table parameters
+#these will be prefixed by the model name
+projDB_schema_modelTables_d = {
+    'table_parameters': None,  # name of parameter table: simple key, value for the parameters in the model config UI
+    'table_vfunc_index': None,  # name of table for: index of vfunc tables
+    'table_finv': None,  # name of table for: asset inventory (scale, elev, tag, cap)
+    'tabel_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
+    'table_gels': None,  # name of table for: ground elevation data (columns: dem name, rows: assets)
+    'table_dmgs': None,  # name of table for: damage data (columns: hazard event names, rows: assets, values: exposure and curve intersect)
+}
+
+ 
+
+#model_table_parameters
+model_parameters_template_fp = os.path.join(plugin_dir, 'model_parameters_template.csv')
 
 
+
+projDB_schema_modelTables_d['table_parameters'] = pd.read_csv(
+    model_parameters_template_fp, dtype={'value': str})
+
+#update the master schema
+for key in projDB_schema_modelTables_d.keys():
+    project_db_schema_d['03_model_suite_index'][key] = ''
+
+
+
+
+
+
+
+#===============================================================================
+# #consequence category lookup
+#===============================================================================
 consequence_category_d = {
     'c1': {
         'desc': 'People (Health and Safety)',
@@ -183,7 +206,14 @@ consequence_category_d = {
     }
 }
 
+#===============================================================================
+# vulnerabiltiy functions---------
+#===============================================================================
+vfunc_cdf_chk_d = {'tag':str, #parameters expected in crv_d (read from xls tab)
+                 'exposure':str,
+                 'impact_units':str}
 
-        
+def load_vfunc_to_df_d(fp):
+    return pd.read_excel(fp, sheet_name=None, **{'index_col':None, 'header':None})
  
  

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>978</width>
-    <height>991</height>
+    <height>992</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -229,7 +229,12 @@ QToolBox::tab {
          <widget class="QComboBox" name="comboBox_expoLevel">
           <item>
            <property name="text">
-            <string>Simple (L1)</string>
+            <string>binary (L1)</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>depth-dependent (L2)</string>
            </property>
           </item>
          </widget>
@@ -256,7 +261,7 @@ QToolBox::tab {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>625</height>
+        <height>626</height>
        </rect>
       </property>
       <attribute name="label">
@@ -378,6 +383,16 @@ QToolBox::tab {
                     <height>16777215</height>
                    </size>
                   </property>
+                  <item>
+                   <property name="text">
+                    <string>ground</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>datum</string>
+                   </property>
+                  </item>
                  </widget>
                 </item>
                 <item>
@@ -469,12 +484,16 @@ QToolBox::tab {
                   </widget>
                  </item>
                  <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev"/>
+                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
                  </item>
                  <item>
                   <widget class="QLabel" name="label_23">
                    <property name="enabled">
-                    <bool>false</bool>
+                    <bool>true</bool>
                    </property>
                    <property name="text">
                     <string>tag</string>
@@ -485,11 +504,7 @@ QToolBox::tab {
                   </widget>
                  </item>
                  <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
+                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev"/>
                  </item>
                  <item>
                   <widget class="QLabel" name="label_27">
@@ -821,7 +836,7 @@ QToolBox::tab {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>625</height>
+        <height>626</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1015,7 +1030,7 @@ QToolBox::tab {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>625</height>
+        <height>626</height>
        </rect>
       </property>
       <attribute name="label">

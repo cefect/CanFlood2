@@ -1,17 +1,18 @@
-varName,widgetName,value,note
-modelid,,,duplicated indexer for redundancy
-category_code,,,duplicated indexer for redundancy
-name,,,duplicated indexer for redundancy
-expo_level,comboBox_expoLevel,,
-finv_vlay,comboBox_finv_vlay,,
-finv_elevType,comboBox_AI_elevType,,just the layer nam e
-finv_indexField,mFieldComboBox_cid,,
-f01_scale,mFieldComboBox_AI_01_scale,,netid 1 (basic)
-f01_elev,mFieldComboBox_AI_01_elev,,netid 1 (basic)
-f01_tag,mFieldComboBox_AI_01_tag,,netid 1 (basic)
-f01_cap,mFieldComboBox_AI_01_cap,,netid 1 (basic)
-finv_dataSource,dataSourceLineEdit_AI,,
-finv_label,labelLineEdit_AI,,used for UI updates
-finv_date,dateLineEdit_AI,,
-consq_label,consequenceLineEdit_V,,used for UI updates (not to be confused with category_desc)
-vfuncLib_fp,lineEdit_V_vfunc,,filepath to the damage function library
+varName,widgetName,value,required,model_index,note
+modelid,,,TRUE,TRUE,duplicated indexer for redundancy
+category_code,,,TRUE,TRUE,duplicated indexer for redundancy
+name,,,TRUE,TRUE,duplicated indexer for redundancy
+status,,initialized,TRUE,TRUE,UI updates. dynamic model attribute. 
+expo_level,comboBox_expoLevel,,TRUE,FALSE,
+finv_vlay,comboBox_finv_vlay,,TRUE,FALSE,
+finv_elevType,comboBox_AI_elevType,,TRUE,FALSE,just the layer nam e
+finv_indexField,mFieldComboBox_cid,,TRUE,FALSE,
+f01_scale,mFieldComboBox_AI_01_scale,,TRUE,FALSE,netid 1 (basic)
+f01_elev,mFieldComboBox_AI_01_elev,,TRUE,FALSE,netid 1 (basic)
+f01_tag,mFieldComboBox_AI_01_tag,,TRUE,FALSE,netid 1 (basic)
+f01_cap,mFieldComboBox_AI_01_cap,,FALSE,FALSE,netid 1 (basic)
+finv_dataSource,dataSourceLineEdit_AI,,FALSE,FALSE,
+asset_label,labelLineEdit_AI,,TRUE,TRUE,used for UI updates
+finv_date,dateLineEdit_AI,,TRUE,FALSE,
+consq_label,consequenceLineEdit_V,,TRUE,TRUE,used for UI updates (not to be confused with category_desc)
+vfuncLib_fp,lineEdit_V_vfunc,,FALSE,FALSE,filepath to the damage function library

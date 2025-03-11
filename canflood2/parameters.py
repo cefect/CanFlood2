@@ -131,7 +131,7 @@ project_db_schema_d['03_model_suite_index'] =     pd.DataFrame(
                 
                 #suite display parameters
                 'status': str,
-                'finv_label': str,
+                'asset_label': str,
                 'consq_label': str,                
                   
                 
@@ -160,7 +160,7 @@ model_parameters_template_fp = os.path.join(plugin_dir, 'model_parameters_templa
 
 
 projDB_schema_modelTables_d['table_parameters'] = pd.read_csv(
-    model_parameters_template_fp, dtype={'value': str})
+    model_parameters_template_fp, dtype={'value': str}).drop('note', axis=1)
 
 #update the master schema
 for key in projDB_schema_modelTables_d.keys():

@@ -16,7 +16,7 @@ import numpy as np
 
 #Qgis imports
 from qgis.core import QgsVectorLayer, Qgis, QgsProject, QgsLogger, QgsMessageLog, QgsMapLayer
-from qgis.gui import QgisInterface, QgsMapLayerComboBox
+from qgis.gui import QgisInterface, QgsMapLayerComboBox, QgsFieldComboBox
 
 #pyQt
 from PyQt5.QtWidgets import (
@@ -157,7 +157,7 @@ class plugLogger(object):
     
 
 #===============================================================================
-# widget binds-------------
+# WIDGET binds-------------
 #===============================================================================
 class ListModel(QStandardItemModel): #wrapper for list functions with check boxes
     
@@ -525,6 +525,63 @@ def bind_MapLayerComboBox(widget, #
     #===========================================================================
     
     widget.set_layer_by_name = set_layer_by_name
+    
+    
+def bind_QgsFieldComboBox(widget, signal_emmiter_widget=None,   fn_str=None, fn_no_str=None):
+    """bind some methods to a QgsFieldComboBox
+
+    """
+ 
+
+    # Ensure the widget is a QgsFieldComboBox.
+    assert isinstance(widget, QgsFieldComboBox), f"Expected QgsFieldComboBox, got {type(widget)}"
+    
+    def setLayer_fallback(layer):
+ 
+        widget.clear()
+        if layer is None:
+            return
+        assert isinstance(layer, QgsVectorLayer), f'Expected QgsVectorLayer, got {type(layer)}'
+        
+        # Set the layer; this updates the combo box with the layer's fields.
+        widget.setLayer(layer)
+        
+        selected_field = None
+        
+        # Iterate through all fields to find a match.
+        for field in layer.fields():
+            # If an exclusion is specified, skip that field.
+            if fn_no_str is not None and field.name() == fn_no_str:
+                continue
+            
+            # If a matching substring is provided, check it.
+            if fn_str is not None:
+                if fn_str in field.name():
+                    selected_field = field.name()
+                    break
+            else:
+                # Without matching criteria, select the first field.
+                selected_field = field.name()
+                break
+        
+        # Fallback: if no field matched, use the first field (if any).
+        #=======================================================================
+        # if selected_field is None and layer.fields():
+        #     selected_field = layer.fields()[0].name()
+        #=======================================================================
+        
+        if selected_field is not None:
+            widget.setField(selected_field)
+    
+    widget.setLayer_fallback = setLayer_fallback
+    
+    # If a signal emitter widget is provided, connect its layer-changed signal.
+    if signal_emmiter_widget is not None:
+        assert isinstance(signal_emmiter_widget, QgsMapLayerComboBox), f'Expected QgsMapLayerComboBox, got {type(signal_emmiter_widget)}'
+        # Assumes that the signal is named "currentLayerChanged" and emits a layer.
+        signal_emmiter_widget.layerChanged.connect(
+            lambda: widget.setLayer_fallback(signal_emmiter_widget.currentLayer())
+            )
  
         
         

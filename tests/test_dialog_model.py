@@ -19,6 +19,8 @@ from PyQt5.QtWidgets import (
     )
 from qgis.PyQt import QtWidgets
 
+from canflood2.hp.qt import set_widget_value, get_widget_value
+from canflood2.assertions import assert_vfunc_fp
 
 from canflood2.dialog_model import Model_config_dialog
 
@@ -56,8 +58,14 @@ def oj_out(test_name, result):
 # dialog setup
 #===============================================================================
 @pytest.fixture
-def dialog(dialog_main, model,finv_vlay, save_dialog,
-                       qtbot, monkeypatch):
+def dialog(dialog_main, model,
+           #turtorial data
+           finv_vlay, vfunc_fp, 
+           widget_modelConfig_data_d, 
+           
+           #control
+           save_dialog,
+           qtbot, monkeypatch):
     """
     Fixture to launch the model configuration dialog in a non-blocking way.
     Instead of calling the normal modal exec_() (which blocks until closed),
@@ -91,8 +99,23 @@ def dialog(dialog_main, model,finv_vlay, save_dialog,
     #===========================================================================
     if finv_vlay is not None:
         dlg.comboBox_finv_vlay.setLayer(finv_vlay)
+        
+    if widget_modelConfig_data_d is not None:
+        for k,v in widget_modelConfig_data_d.items():
+            widget = getattr(dlg, k)
+            set_widget_value(widget, v)
+            
+    if vfunc_fp is not None:
+        assert_vfunc_fp(vfunc_fp)
+        
+        #monkeypatch the browse button (pushButton_SScurves)
+        
+ 
+        
 
-    # Yield the live dialog instance for test interaction.
+    #===========================================================================
+    # # Yield the live dialog instance for test interaction.
+    #===========================================================================
     yield dlg
 
     #===========================================================================
@@ -112,13 +135,18 @@ def dialog(dialog_main, model,finv_vlay, save_dialog,
 def model(dialog_main, consequence_category, modelid):
     return dialog_main.model_index_d[consequence_category][modelid]
 
+#dummy fixtures
+@pytest.fixture
+def widget_modelConfig_data_d(request):
+    return getattr(request, "param", None)
+
 #===============================================================================
 # TESTS------
 #===============================================================================
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("projDB_fp", [oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2')])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 @pytest.mark.parametrize("save_dialog", [False]) #teardown behavior
@@ -131,13 +159,18 @@ def test_dial_model_01_launch_config(dialog,model):
     
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 @pytest.mark.parametrize("save_dialog", [True])
-@pytest.mark.parametrize("finv_vlay", [None])
+@pytest.mark.parametrize("widget_modelConfig_data_d", [
+{
+    'comboBox_expoLevel':'binary (L1)',    
+    'mFieldComboBox_cid':'xid',
+     }
+])
 def test_dial_model_02_save(dialog,model):
     """add some data to the dialog then click save/OK
     """     

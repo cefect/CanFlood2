@@ -12,7 +12,10 @@ import pandas as pd
 
 
 from .hp.sql import get_table_names
-from .parameters import project_db_schema_d, hazDB_schema_d, project_db_schema_modelSuite_d
+from .parameters import (
+    project_db_schema_d, hazDB_schema_d, projDB_schema_modelTables_d,
+    vfunc_cdf_chk_d, load_vfunc_to_df_d
+    )
 
 #===============================================================================
 # helpers--------
@@ -75,11 +78,12 @@ def assert_projDB_conn(conn,
         dx = dx.set_index(['modelid', 'category_code'])
         
         if len(dx)>0:
-            tables_dx = dx.loc[:, project_db_schema_modelSuite_d.keys()].dropna(axis=1)
+            tables_dx = dx.loc[:, projDB_schema_modelTables_d.keys()].dropna(axis=1)
             
             #flatten into a series
-            for indexers, table_name in tables_dx.stack().items():
-                assert table_name in all_table_names, f'{indexers} not found in tables'
+            for indexers, table_name in tables_dx.stack().dropna().items():
+                if not table_name in all_table_names:
+                    raise AssertionError(f'{indexers} not found in tables')
                 
         #=======================================================================
         # check there are no orphaned tables
@@ -157,7 +161,87 @@ def assert_eventMeta_df(df):
         raise AssertionError(f"Empty strings found in eventMeta_df in columns: {details}")
 
         
- 
+#===============================================================================
+# INPUT DATA----------
+#===============================================================================
+import os
+import pandas as pd
+
+def assert_vfunc_fp(fp, msg=''):
+    """
+    Check the vfunc file path and validate its contents.
+
+    Parameters:
+        fp (str): The Excel file path.
+        msg (str): Additional context message.
+
+    Raises:
+        AssertionError: With details including the file path if a check fails.
+    """
+    if not isinstance(fp, str):
+        raise AssertionError(f"Expected a string for file path, got {type(fp)}. {msg}")
+    if not os.path.exists(fp):
+        raise AssertionError(f"File does not exist: {fp}. {msg}")
+    
+    try:
+        vfunc_df_d = load_vfunc_to_df_d(fp)
+    except Exception as e:
+        raise AssertionError(f"Failed to read Excel file at '{fp}'. Error: {e}. {msg}")
+    
+    try:
+        assert_vfunc_df_d(vfunc_df_d)
+    except Exception as e:
+        raise AssertionError(f"bad vfunc\n    {fp}\n    {e}\n    {msg}")
+
+def assert_vfunc_df_d(df_d):
+    """
+    Validate that the Excel file was read as a dictionary of DataFrames,
+    and perform checks on each sheet.
+
+    Parameters:
+        df_d (dict): Dictionary of DataFrames from the Excel file.
+        fp (str): The file path for context.
+
+    Raises:
+        AssertionError: If a sheet fails validation, including its name.
+    """
+    if not isinstance(df_d, dict):
+        raise AssertionError(f"Expected a dict of DataFrames from file   got {type(df_d)}.") from None
+    
+    for sheet_name, df in df_d.items():
+        try:
+            assert_vfunc_df(df)
+        except Exception as e:
+            raise AssertionError(f"Error in sheet '{sheet_name}'\n {e}") from None
+
+def assert_vfunc_df(df_raw):
+    """
+        df_raw: pd.DataFrame
+            >=2 column frame with
+                first column (name '0') containing indexers (should loosen this)
+                second column containing values
+                additional columns used for 'curve_deviations'
+    """
+    if not isinstance(df_raw, pd.DataFrame):
+        raise AssertionError(f" Input is not a DataFrame; got {type(df_raw)}.") from None
+    
+    assert 0 in df_raw.columns
+    
+    try:
+        assert_vfunc_d(df_raw.set_index(0, drop=True).iloc[:, 0].dropna().to_dict())
+    except Exception as e:
+        raise AssertionError(f"Error in DataFrame\n    {e}") from None
+    
+def assert_vfunc_d(crv_d):
+    assert isinstance(crv_d, dict)
+    
+    #check the keys and the dtypes match the vfunc_cdf_chk_d
+    assert set(vfunc_cdf_chk_d.keys()).issubset(set(crv_d.keys())), f'key mismatch: {set(crv_d.keys()) - set(vfunc_cdf_chk_d.keys())}'
+    
+    for key, val in vfunc_cdf_chk_d.items():
+        assert isinstance(crv_d[key], val), f'bad type for {key}: {type(val)}'
+    
+  
 
 
 

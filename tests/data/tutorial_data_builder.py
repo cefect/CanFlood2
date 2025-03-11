@@ -58,7 +58,7 @@ def get_test_data_filepaths_for_tutorials(
         for root, dirs, files in os.walk(tutorial_dir):
             for file in files:
                 #only include tif and geojson
-                if file.endswith(('.tif', '.geojson', '.csv')):
+                if file.endswith(('.tif', '.geojson', '.csv', '.xls')):
                     pass
                 else:
                     continue
@@ -106,12 +106,15 @@ def get_test_data_filepaths_for_tutorials(
 tutorial_data_lib = get_test_data_filepaths_for_tutorials()
 
 #===============================================================================
-# FIXTURES
+# FIXTURES---------------
 #===============================================================================
 @pytest.fixture
 def tutorial_name(request):
     return getattr(request, "param", None)
 
+#===============================================================================
+# FIXTURES:FILEPATHS------------
+#===============================================================================
 
 @pytest.fixture
 def dem_fp(tutorial_name):
@@ -143,8 +146,15 @@ def eventMeta_fp(tutorial_name):
         return None
     return tutorial_data_lib[tutorial_name]['eventMeta']
 
+@pytest.fixture
+def vfunc_fp(tutorial_name):
+    if tutorial_name is None:
+        return None
+    return tutorial_data_lib[tutorial_name]['vfunc']
 
-
+#===============================================================================
+# FIXTURES:OBJECTS------------
+#===============================================================================
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def dem_rlay(dem_fp):
@@ -201,3 +211,17 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
     
     assert_eventMeta_df(df)
     return df
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+

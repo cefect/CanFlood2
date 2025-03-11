@@ -14,6 +14,10 @@ import pandas as pd
 
 
 from PyQt5 import uic, QtWidgets
+from PyQt5.QtWidgets import (
+    QAction, QFileDialog, QListWidget, QTableWidgetItem, QDoubleSpinBox,
+    QLabel, QPushButton, QProgressBar
+    )
 
 from qgis.core import (
     QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel,
@@ -22,12 +26,13 @@ from qgis.core import (
 
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
+from .hp.plug import bind_QgsFieldComboBox
 
-from .assertions import assert_projDB_fp, assert_hazDB_fp 
+from .assertions import assert_projDB_fp, assert_vfunc_fp
 
-from .parameters import consequence_category_d
+from .parameters import consequence_category_d, home_dir
 
-from .core import Model_suite_helper
+from .core import Model
 
 
 
@@ -43,6 +48,8 @@ FORM_CLASS, _ = uic.loadUiType(ui_fp)
 
 class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
     
+    
+    
     def __init__(self, 
                  iface, 
                  parent=None,
@@ -53,6 +60,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         super(Model_config_dialog, self).__init__(parent) #only calls QtWidgets.QDialog
         
  
+        self.parent=parent
         self.iface = iface
         self.logger=logger.getChild('model_config')
         self.setupUi(self)
@@ -75,20 +83,76 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton_run.clicked.connect(self._run_model)
         
         #=======================================================================
-        # Asset Inventory
+        # Asset Inventory--------
         #=======================================================================
         self.comboBox_finv_vlay.setFilters(QgsMapLayerProxyModel.VectorLayer)
         self.comboBox_finv_vlay.setCurrentIndex(-1)
         
         
+        #=======================================================================
+        # Vulnerability-----------
+        #=======================================================================
+        def load_vfunc_fp():
+            filename, _ = QFileDialog.getOpenFileName(
+                self,  # Parent widget (your dialog)
+                "Select Vulnerability Function Set",  # Dialog title
+                home_dir,  # Initial directory (optional, use current working dir by default)
+                fileDialogfilterstr = "Excel Files (*.xls *.xlsx)",
+                )
+            if filename:
+                self._update_vfunc()
+
+                
+             
+        self.pushButton_SScurves.clicked.connect(load_vfunc_fp)
+        
+        #=======================================================================
+        # #finv bindings
+        #=======================================================================
+        #loop through and connect all the field combo boxes to the finv map layer combo box
+        for comboBox, fn_str in {
+            self.mFieldComboBox_cid:'xid',
+            self.mFieldComboBox_AI_01_scale:'f0_scale',
+            self.mFieldComboBox_AI_01_tag:'f0_tag',
+            self.mFieldComboBox_AI_01_elev:'f0_elev',
+            self.mFieldComboBox_AI_01_cap:'f0_cap',
+            }.items():
+            
+            bind_QgsFieldComboBox(comboBox, 
+                                  signal_emmiter_widget=self.comboBox_finv_vlay,
+                                  fn_str=fn_str)
+        
         
         log.debug('slots connected')
+        
+    def get_vfunc_fp(self):
+        fp = self.lineEdit_SScurves.text()
+        
+        assert_vfunc_fp(fp)
+        
+        return fp
+        
+    def _update_vfunc(self, vfunc_fp=None, logger=None):
+        """load the vfunc, do some checks, and set some stats"""
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log=logger.getChild('_update_vfunc')
+        if vfunc_fp is None: vfunc_fp = self.get_vfunc_fp() #does checks
+        
+        
+        #=======================================================================
+        # get stats
+        #=======================================================================
+        df_d = pd.read_excel(vfunc_fp, sheet_name=None)
+        
         
         
     def load_model(self, model, projDB_fp=None):
         """load the model worker into the dialog"""
         log = self.logger.getChild('load_model')
-        assert isinstance(model, Model_suite_helper), f'bad model type: {type(model)}'
+        assert isinstance(model, Model), f'bad model type: {type(model)}'
         self.model = model
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
@@ -97,7 +161,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # #load parameters from the table
         #=======================================================================
-        params_df = model.get_model_tables('table_parameters', projDB_fp=projDB_fp)
+        params_df = model.get_table_parameters(projDB_fp=projDB_fp)
         
         #get just those with values
         params_df = params_df.loc[:, ['widgetName', 'value']].dropna(subset=['value', 'widgetName']
@@ -116,20 +180,33 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
             
             
         
-        
         #=======================================================================
-        # #set the lables
+        # update hte labels
         #=======================================================================
-        self.label_mod_modelid.setText('%2d'%model.modelid)
-        self.label_mod_asset.setText(model.asset_label)
-        self.label_mod_consq.setText(model.consq_label)
-        self.label_mod_status.setText(model.status_label)        
-        self.label_category.setText(consequence_category_d[model.category_code]['desc'])
+        model.compute_status()
+        self._update_model_labels(model=model)
+ 
         
         
         log.debug(f'finished loaded model {model.name}')
         
         assert not self.model is None, 'failed to load model'
+        
+    def _update_model_labels(self, model=None):
+        """set the labels for the model"""
+        log = self.logger.getChild('_update_model_labels')
+        if model is None: model = self.model
+        
+        #retrieve from model
+        s = model.get_model_index_ser().fillna('')
+        
+        self.label_mod_modelid.setText('%2d'%model.modelid)
+        self.label_mod_asset.setText(s['asset_label'])
+        self.label_mod_consq.setText(s['consq_label'])
+        self.label_mod_status.setText(s['status'])        
+        self.label_category.setText(consequence_category_d[s['category_code']]['desc'])
+        
+        log.debug(f'updated labels for model {model.name}')
         
     def _run_model(self):
         """run the model"""
@@ -183,19 +260,45 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         """
         if logger is None: logger = self.logger
         log = logger.getChild('_set_ui_to_table_parameters')
+        
         #retrieve the parameter table
-        params_df = model.get_model_tables('table_parameters')
+        params_df = model.get_tables('table_parameters').set_index('varName')
+        
+        """
+        view(params_df)
+        """
+        #=======================================================================
+        # collect from ui
+        #=======================================================================
         #loop through each widget and collect the state from the ui
         d = dict()
         for i, widgetName in params_df['widgetName'].dropna().items():
+            
             widget = getattr(self, widgetName)
             d[i] = get_widget_value(widget)
+            
+        #=======================================================================
+        # specials
+        #=======================================================================
+        """maybe not the most elegent to add this here... but this attribute is special"""
+        for k in ['status']:
+            assert k in params_df.index
+            d[k] = getattr(model, k)
         
-        s = pd.Series({k:v for (k, v) in d.items() if not v == ''}, name='value')
+        s = pd.Series(d, name='value').replace('', pd.NA)
+        
         #update the parameters table with the ui state
         params_df.loc[s.index, 'value'] = s
+        
         #write to the parent
-        model.set_model_tables({'table_parameters':params_df}, logger=log)
+        model.set_model_tables({'table_parameters':params_df.reset_index()}, logger=log)
+        
+        #=======================================================================
+        # update model index
+        #=======================================================================
+        """called by set_model_tables()
+        self.parent.update_model_index_dx(model, logger=log)"""
+        
         log.push(f'saved {len(s)} parameters for model {model.name}')
 
     def _save_and_close(self):
@@ -209,7 +312,12 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # retrieve, set, and save the paramter table
         #=======================================================================
+        self.model.compute_status()
+        
         self._set_ui_to_table_parameters(model, logger=log)
+        
+        
+        
         
  
         self._custom_cleanup()
@@ -222,6 +330,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         self.reject()
         
     def _custom_cleanup(self):
+        
         self.model=None
         
         

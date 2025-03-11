@@ -69,7 +69,7 @@ from .assertions import (
     assert_projDB_fp, assert_projDB_conn, assert_hazDB_conn, assert_hazDB_fp, assert_eventMeta_df
     )
 
-from .core import _get_proj_meta_d, Model_suite_helper
+from .core import _get_proj_meta_d, Model
 from .dialog_model import Model_config_dialog
 #===============================================================================
 # load UI and resources
@@ -444,7 +444,7 @@ class Main_dialog_modelSuite(object):
         
         log.debug(f'initiating model \'{modelName}\'')
         
-        model = Model_suite_helper(
+        model = Model(
             parent=self,
             category_code=category_code, modelid=modelid, logger=self.logger)
         
@@ -465,7 +465,7 @@ class Main_dialog_modelSuite(object):
     
             # Check for latent model tables and log details if any are found
         
-            latent_tables = model.get_model_tables_all()
+            latent_tables = model.get_tables_all()
             if len(latent_tables) > 0:
                 error_message = f'Found {len(latent_tables)} latent model tables: {list(latent_tables.keys())}. Possible bad DB cleanup.'
                 #log.error(error_message)
@@ -489,39 +489,47 @@ class Main_dialog_modelSuite(object):
             table_name = model.get_table_names('table_parameters')
             df_d[table_name] = projDB_schema_modelTables_d['table_parameters'].copy()
             
-            #add the indexers
-            
+            #add the indexers            
             for k,v in index_d.items():
                 df_d[table_name].loc[df_d[table_name]['varName']==k, 'value'] = str(v)
  
             
+            df_d[table_name].to_sql(table_name, conn, if_exists='replace', index=False)
             
-            #===================================================================
-            # #add entry to model index
-            #===================================================================
-            model_index_dx = self.get_model_index_dx()
+        log.debug(f'created parameter table for model \'{modelName}\'')
+ 
+        #===================================================================
+        # #add entry to model index
+        #===================================================================
+        self.update_model_index_dx(model, projDB_fp=projDB_fp, logger=log)
+ 
+ #==============================================================================
+ #        df_d = dict()
+ #        with sqlite3.connect(projDB_fp) as conn:
+ #            table_name = '03_model_suite_index'
+ #            model_index_dx = self.get_model_index_dx() #get the current index
+ # 
+ #            """needs the parameter table to be set"""
+ #            s = model.get_model_index_ser() #extract values from models parameter trable
+ #            
+ #            
+ #            model_index_dx.loc[(modelid, category_code), :] = s 
+ # 
+ #            
+ #            df_d[table_name] = model_index_dx.reset_index()
+ #            
+ #            df_d[table_name].to_sql(table_name, conn, if_exists='replace', index=False)
+ #==============================================================================
+            
  
             
-            model_index_dx.loc[(modelid, category_code), :] = pd.Series(index_d) #only updates the name
-            model_index_dx.loc[(modelid, category_code), 'table_parameters'] = table_name
-            
-            df_d['03_model_suite_index'] = model_index_dx.reset_index()
-            
-            #===================================================================
-            # wrjite
-            #===================================================================
-            for k, df in df_d.items():
-                df.to_sql(k, conn, if_exists='replace', index=False)
-            
-            """
-            view(model_index_dx)
-            """
-            
-        log.debug(f'added {len(df_d)} tables to project database\n    {projDB_fp}')
+        #log.debug(f'added {table_name} to project database\n    {projDB_fp}')
             
         #check it
-        assert isinstance(model.get_model_index_ser(), pd.Series), 'failed to add model to index'
-        assert model.get_model_tables_all().keys()=={table_name:None}.keys()
+        assert self.get_model_index_dx().loc[(modelid, category_code), 'status']=='initialized', \
+            'failed to add model to index'
+        assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly'
+ 
  
         
         #=======================================================================
@@ -578,15 +586,17 @@ class Main_dialog_modelSuite(object):
         if model is None:
             raise NotImplementedError('extract by index')
         
+        #retrieve values from model index
+        s = model.get_model_index_ser().fillna('')
  
         widget_d = model.widget_d
         
         widget_d['label_mod_modelid']['widget'].setText('%2d' % model.modelid)
-        widget_d['label_mod_asset']['widget'].setText(model.asset_label)
-        widget_d['label_mod_consq']['widget'].setText(model.consq_label)
-        widget_d['label_mod_status']['widget'].setText(model.status_label)
+        widget_d['label_mod_asset']['widget'].setText(s['asset_label'])
+        widget_d['label_mod_consq']['widget'].setText(s['consq_label'])
+        widget_d['label_mod_status']['widget'].setText(s['status'])
         
-        if model.status_label == 'complete':
+        if s['status'] == 'complete':
             widget_d['progressBar_mod']['widget'].setValue(100)
         else:
             widget_d['progressBar_mod']['widget'].setValue(0)
@@ -670,7 +680,7 @@ class Main_dialog_modelSuite(object):
         if clear_projDB:
             #sometimes we dont want to touch the projectDatabase
             #model tables
-            model_table_names_l = list(model.get_model_tables_all().keys())
+            model_table_names_l = model.get_table_names_all()
             self.projDB_drop_tables(*model_table_names_l, logger=log)
             
             #remove entry from model index table
@@ -752,6 +762,27 @@ class Main_dialog_modelSuite(object):
     
     def set_model_index_dx(self, dx, **kwargs):
         self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, **kwargs)
+        
+    def update_model_index_dx(self, model, **kwargs):
+        """update the model index table with the model"""
+        dx = self.get_model_index_dx()
+        
+        """
+        view(dx)
+        """
+ 
+        
+        #retrieve the parameters from teh models parameter table
+        s = model.get_model_index_ser()
+ 
+        
+        assert 'status' in s.index, 'missing status' #should always be present
+        
+        #update the dx (where teh column names match the param_s index
+        dx.loc[(model.modelid, model.category_code), :] = s
+        
+
+        self.set_model_index_dx(dx, **kwargs)
 
             
             
@@ -1117,8 +1148,10 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             for category_code, modelid_d in self.model_index_d.items():
  
                 for modelid, wrkr in modelid_d.items():
+                    raise NotImplementedError('use update_model_index_dx')
                     #add the model
-                    d[f'{category_code}_{modelid}'] = wrkr.get_index_d()
+                    s = wrkr.get_model_index_ser()
+                    d[s.name] = s
             
             # Convert the dictionary to a DataFrame and concatenate with the blank DataFrame
             result_df = pd.concat([blank_df, pd.DataFrame(d).T], ignore_index=True)
@@ -1155,26 +1188,30 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             
         return fp
         
-    def projDB_get_tables(self, *table_names, projDB_fp=None):
+
+    def projDB_get_tables(self, *table_names, projDB_fp=None, result_as_dict=False):
         """Convenience wrapper to get multiple tables as DataFrames.
     
         Parameters:
         *table_names: Variable number of table names (str) to fetch.
         projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+        result_as_dict: Optional; if True, returns a dictionary {name: df} instead of a tuple.
     
         Returns:
-        If a single table name is passed, returns a DataFrame; otherwise, returns a tuple of DataFrames in the same order as table_names.
+        If a single table name is passed, returns a DataFrame; otherwise, returns a tuple of DataFrames in the same order as table_names or a dictionary {name: df} if result_as_dict is True.
         """
         if projDB_fp is None:
             projDB_fp = self.get_projDB_fp()
     
- 
-    
         with sqlite3.connect(projDB_fp) as conn:
             assert_projDB_conn(conn)
-            dfs = tuple(pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names)
+            dfs = {name: pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names}
     
-        return dfs[0] if len(dfs) == 1 else dfs
+        if result_as_dict:
+            return dfs
+        else:
+            return dfs[table_names[0]] if len(table_names) == 1 else tuple(dfs[name] for name in table_names)
+
     
     def projDB_set_tables(self, df_d, projDB_fp=None, logger=None):
         """Convenience wrapper to set multiple tables from DataFrames.
@@ -1194,9 +1231,49 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
     
         with sqlite3.connect(projDB_fp) as conn:
             for k, df in df_d.items():
-                """NO! model tables dont show up in the schema
-                assert k in project_db_schema_d.keys(), k"""
-                df.to_sql(k, conn, if_exists='replace', index=False)
+                try:
+                    #===============================================================
+                    # data checks
+                    #===============================================================
+                    assert len(df)>0, f'empty DataFrame for {k}'
+                    
+                    if df.isin(['nan']).any().any():
+                        raise AssertionError(f'found nan in {k}')
+                    
+                    
+                    #===============================================================
+                    # schema checks
+                    #===============================================================
+                    if k in project_db_schema_d.keys():
+                        
+    
+                        expected_columns = project_db_schema_d[k].columns
+                        actual_columns = df.columns
+                        
+                        if not actual_columns.equals(expected_columns):
+                            mismatched_columns = {
+                                'missing_in_actual': list(set(expected_columns) - set(actual_columns)),
+                                'extra_in_actual': list(set(actual_columns) - set(expected_columns))
+                            }
+                            log.error(f"Column mismatch for table '{k}':")
+                            log.error(f"Mismatched columns: \n{mismatched_columns}")
+                            raise AssertionError(f"Columns mismatch on {k}")
+                        
+     
+    
+    
+                    
+                    elif 'model_' in k:
+                        k_strip = k.replace('model_', '')
+                        
+                    else:
+                        raise KeyError(f'bad table name: {k}')
+                    
+    
+     
+                    df.to_sql(k, conn, if_exists='replace', index=False)
+                except Exception as e:
+                    raise IOError(f'failed to set table \'{k}\' to project database:\n     {e}')
                 
         log.debug(f'updated {len(df_d)} tables in project database at\n    {df_d.keys()}')
                 

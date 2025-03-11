@@ -181,39 +181,58 @@ def test_name(request):
 # tutorial data
 #===============================================================================
 @pytest.fixture
+def tutorial_name(request):
+    return getattr(request, "param", None)
+
+
+@pytest.fixture
 def dem_fp(tutorial_name):
+    if tutorial_name is None:
+        return None
     return tutorial_data_lib[tutorial_name]['dem']
 
 @pytest.fixture
 def aoi_fp(tutorial_name):
+    if tutorial_name is None:
+        return None
     return tutorial_data_lib[tutorial_name]['aoi']
 
 @pytest.fixture
 def finv_fp(tutorial_name):
+    if tutorial_name is None:
+        return None
     return tutorial_data_lib[tutorial_name]['finv']
 
 @pytest.fixture
 def haz_fp_d(tutorial_name):
+    if tutorial_name is None:
+        return None
     return tutorial_data_lib[tutorial_name]['haz']
 
 @pytest.fixture
 def eventMeta_fp(tutorial_name):
+    if tutorial_name is None:
+        return None
     return tutorial_data_lib[tutorial_name]['eventMeta']
+
 
 
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def dem_rlay(dem_fp):
+    if dem_fp is None:
+        return None
     layer = QgsRasterLayer(dem_fp, 'dem_rlay')
-    #qgis_new_project.addMapLayer(layer)
-    QgsProject.instance().addMapLayer(layer) 
+    QgsProject.instance().addMapLayer(layer)
     return layer
 
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def aoi_vlay(aoi_fp):
+    if aoi_fp is None:
+        return None
     assert os.path.exists(aoi_fp), f'bad filepath on aoi_vlay fixture:\n    {aoi_fp}'
-    layer =  QgsVectorLayer(aoi_fp, 'aoi_vlay', 'ogr')
+    layer = QgsVectorLayer(aoi_fp, 'aoi_vlay', 'ogr')
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
     return layer
@@ -221,8 +240,10 @@ def aoi_vlay(aoi_fp):
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def finv_vlay(finv_fp):
+    if finv_fp is None:
+        return None
     assert os.path.exists(finv_fp), f'bad filepath on finv_vlay fixture:\n    {finv_fp}'
-    layer =  QgsVectorLayer(finv_fp, 'finv_vlay', 'ogr')
+    layer = QgsVectorLayer(finv_fp, 'finv_vlay', 'ogr')
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
     return layer
@@ -230,7 +251,9 @@ def finv_vlay(finv_fp):
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def haz_rlay_d(haz_fp_d):
-    d = dict()
+    if haz_fp_d is None:
+        return None
+    d = {}
     for ari, fp in haz_fp_d.items():
         layer = QgsRasterLayer(fp, os.path.basename(fp).split('.')[0])
         QgsProject.instance().addMapLayer(layer)
@@ -238,15 +261,17 @@ def haz_rlay_d(haz_fp_d):
     return d
 
 @pytest.fixture(scope='function')
-def eventMeta_df(eventMeta_fp, haz_rlay_d):    
-    df =  pd.read_csv(eventMeta_fp, dtype=hazDB_schema_d['05_haz_events'].dtypes.to_dict())
+def eventMeta_df(eventMeta_fp, haz_rlay_d):
+    if eventMeta_fp is None:
+        return None
+    print(f'loading eventMeta_df from {eventMeta_fp}')   
+    df = pd.read_csv(eventMeta_fp, dtype=hazDB_schema_d['05_haz_events'].dtypes.to_dict())
     
-    #set the layer_ids
-    df['layer_id'] = df.iloc[:,0].map(pd.Series({k:v.id() for k,v in haz_rlay_d.items()}))
-    df['layer_fp'] = df.iloc[:,0].map(pd.Series({k:v.source() for k,v in haz_rlay_d.items()}))
+    # Map layer IDs and file paths from haz_rlay_d.
+    df['layer_id'] = df.iloc[:, 0].map(pd.Series({k: v.id() for k, v in haz_rlay_d.items()}))
+    df['layer_fp'] = df.iloc[:, 0].map(pd.Series({k: v.source() for k, v in haz_rlay_d.items()}))
     
     assert_eventMeta_df(df)
-    
     return df
  
  

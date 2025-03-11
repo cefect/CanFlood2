@@ -1242,8 +1242,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         
         assert_projDB_fp(fp, check_consistency=True)
         
-        """using the hazDB specifeid in the parameters table"""
-        self.lineEdit_HZ_hazDB_fp.setText('')
+ 
             
         #=======================================================================
         # set the ui state from the project parameters
@@ -1266,21 +1265,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         else:
             log.warning(f'no project parameters found in projDB')
         
-                
-        #=======================================================================
-        # load the hazard parameters
-        #=======================================================================
-        hazDB_fp = self.get_hazDB_fp()
-        if not hazDB_fp is None:
-            log.debug(f'loading hazard database from\n    {hazDB_fp}')
-            
-            if not os.path.exists(hazDB_fp):
-                #shouldnt hit anymore.. check is done in get_hazDB_fp
-                log.error(f'bad hazard database file path specified in projDB')
-            else:
-                self._load_hazDB(hazDB_fp=hazDB_fp, logger=log)
-        else:
-            log.warning(f'no hazard database file specified in projDB')
+ 
         
         
                 
@@ -1317,6 +1302,8 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         # wrap
         #=======================================================================
         log.push(f'loaded project from {os.path.basename(fp)}')
+        
+        return
                 
 
             

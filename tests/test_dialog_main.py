@@ -244,22 +244,16 @@ QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to ma
 sys.exit(QApp.exec_()) #wrap
 """
 
- 
+
 def test_dial_main_00_init(dialog,):
     
-    
-    #===========================================================================
-    # """uncomment the below to use pytest to launch the dialog interactively"""
-    # dialog.show()
-    # QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
-    # sys.exit(QApp.exec_()) #wrap
-    #===========================================================================
+ 
  
     assert hasattr(dialog, 'logger')
     
     
  
-
+@pytest.mark.dev
 def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
     """Test that clicking the 'create new project database' button sets the lineEdit with the dummy file path.
  
@@ -286,7 +280,7 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
     write_sqlite(result, oj_out(test_name, result))
      
     # Verify that the lineEdit now contains the dummy file path.
-    assert_projDB_fp(result)
+    assert_projDB_fp(result, check_consistency=True)
     assert  dialog.lineEdit_PS_projDB_fp.text()== dummy_file
     
  
@@ -645,7 +639,7 @@ def test_dial_main_06_MS_configure(dialog, tmpdir, test_name,
 
     
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize(
     "projDB_fp, hazDB_fp, tutorial_name",
     [(oj('06_MS_configure_L__09_REP_ba53e6', 'projDB.canflood2'), 

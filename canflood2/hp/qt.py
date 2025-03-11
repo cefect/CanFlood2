@@ -20,7 +20,7 @@ from qgis.PyQt import QtWidgets
 #from PyQt5.QtCore import QObject
 
 from qgis.core import QgsProject, QgsMapLayer
-from qgis.gui import QgsMapLayerComboBox
+from qgis.gui import QgsMapLayerComboBox, QgsFieldComboBox
 
 
 def get_widget_value(widget):
@@ -76,6 +76,14 @@ def set_widget_value(widget, value):
             widget.set_layer_by_name(value)
         else:
             raise NotImplementedError(type(value))
+        
+    elif isinstance(widget, QgsFieldComboBox): 
+        if isinstance(value, str):
+            widget.setField(value)
+        else:
+            raise NotImplementedError(type(value))
+        
+        assert value==widget.currentText(), f'failed to set field to \'{value}\''
         
     elif isinstance(widget, QComboBox):
         if isinstance(value, str):

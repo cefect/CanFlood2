@@ -316,11 +316,10 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         self._set_ui_to_table_parameters(model, logger=log)
         
-        
-        
-        
+ 
  
         self._custom_cleanup()
+        log.info(f'finished saving model {model.name}')
         self.accept()
         
     def _close(self):
@@ -331,7 +330,11 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         
     def _custom_cleanup(self):
         
+        self.parent._update_model_widget_labels(model=self.model)
+        
         self.model=None
+        
+        
         
         
         

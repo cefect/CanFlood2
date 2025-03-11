@@ -484,7 +484,7 @@ QToolBox::tab {
                   </widget>
                  </item>
                  <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag">
+                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev">
                    <property name="enabled">
                     <bool>true</bool>
                    </property>
@@ -504,7 +504,7 @@ QToolBox::tab {
                   </widget>
                  </item>
                  <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev"/>
+                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag"/>
                  </item>
                  <item>
                   <widget class="QLabel" name="label_27">

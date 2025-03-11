@@ -8,7 +8,7 @@ Created on Mar 6, 2025
 #===============================================================================
 # IMPORTS----------
 #===============================================================================
-import pytest, time, sys, inspect, os
+import pytest, time, sys, inspect, os, shutil
 
 
 from PyQt5.QtTest import QTest
@@ -49,6 +49,20 @@ def oj(*args):
 
 def oj_out(test_name, result):
     return oj(result_write_filename_prep(test_name), os.path.basename(result))
+
+overwrite_testdata=True
+def write_projDB(dialog, test_name):
+ 
+    projDB_fp = dialog.parent.get_projDB_fp()
+    ofp = oj_out(test_name, projDB_fp)
+ 
+    if overwrite_testdata:
+        os.makedirs(os.path.dirname(ofp), exist_ok=True)
+        
+        #copy over the .sqlite file
+        shutil.copyfile(projDB_fp, ofp) 
+ 
+        conftest_logger.info(f'wrote result to \n    {ofp}')
  
 #===============================================================================
 # FIXTURES------
@@ -57,6 +71,7 @@ def oj_out(test_name, result):
 #===============================================================================
 # dialog setup
 #===============================================================================
+interactive = False
 @pytest.fixture
 def dialog(dialog_main, model,
            #turtorial data
@@ -76,7 +91,17 @@ def dialog(dialog_main, model,
  
     
     dlg = dialog_main.Model_config_dialog
+    
 
+
+
+    
+    
+    print(f"\n\nlaunching model configuration dialog for model \'{model.name}\'\n{'='*80}")
+    
+    #===========================================================================
+    # # Launch the dialog by clicking the widget that opens it.
+    #===========================================================================
     # Override exec_() so it shows the dialog and returns immediately.
     def non_blocking_exec():
         dlg.show()
@@ -84,16 +109,12 @@ def dialog(dialog_main, model,
     monkeypatch.setattr(dlg, "exec_", non_blocking_exec)
     
     
-    
-
-    #===========================================================================
-    # # Launch the dialog by clicking the widget that opens it.
-    #===========================================================================
     widget = model.widget_d['pushButton_mod_config']['widget']
     click(widget)
-    qtbot.waitExposed(dlg)  # wait until the dialog is visible
+    if not interactive: qtbot.waitExposed(dlg)  # wait until the dialog is visible
     
     
+
     #===========================================================================
     # post launch setup
     #===========================================================================
@@ -103,42 +124,47 @@ def dialog(dialog_main, model,
     if widget_modelConfig_data_d is not None:
         for k,v in widget_modelConfig_data_d.items():
             widget = getattr(dlg, k)
-            set_widget_value(widget, v)
+            try:
+                set_widget_value(widget, v)
+            except Exception as e:
+                raise IOError(f'failed to set widget \'{k}\' to value \'{v}\' w/\n    {e}')
             
     if vfunc_fp is not None:
         assert_vfunc_fp(vfunc_fp)
         
-        #monkeypatch the browse button (pushButton_SScurves)
-        
- 
-        
-
     #===========================================================================
     # # Yield the live dialog instance for test interaction.
     #===========================================================================
-    yield dlg
+    #yield dlg
 
     #===========================================================================
     # # Teardown: simulate a click on the OK button to close the dialog.
     #===========================================================================
     print(f"Closing model configuration dialog w/ save_dialog={save_dialog}")
-    if save_dialog:
-        
-        qtbot.mouseClick(dlg.pushButton_ok, Qt.LeftButton)
+    """ 
+    dlg.show()
+    QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+    sys.exit(QApp.exec_()) #wrap
+    """
+    if not interactive:
+        if save_dialog:
+              
+            qtbot.mouseClick(dlg.pushButton_ok, Qt.LeftButton)
+        else:
+            qtbot.mouseClick(dlg.pushButton_close, Qt.LeftButton)
+        qtbot.waitSignal(dlg.finished, timeout=5000)
+        return dlg
     else:
-        qtbot.mouseClick(dlg.pushButton_close, Qt.LeftButton)
-    qtbot.waitSignal(dlg.finished, timeout=5000)
-    return dialog
+        dlg.show()
+        QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+        sys.exit(QApp.exec_()) #wrap
 
 
 @pytest.fixture
 def model(dialog_main, consequence_category, modelid):
     return dialog_main.model_index_d[consequence_category][modelid]
 
-#dummy fixtures
-@pytest.fixture
-def widget_modelConfig_data_d(request):
-    return getattr(request, "param", None)
+
 
 #===============================================================================
 # TESTS------
@@ -155,7 +181,7 @@ def test_dial_model_01_launch_config(dialog,model):
     
     handled by the fixture
     """     
-    assert dialog.model==model
+    #assert dialog.model==model
     
 
 
@@ -165,17 +191,47 @@ def test_dial_model_01_launch_config(dialog,model):
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 @pytest.mark.parametrize("save_dialog", [True])
-@pytest.mark.parametrize("widget_modelConfig_data_d", [
-{
-    'comboBox_expoLevel':'binary (L1)',    
-    'mFieldComboBox_cid':'xid',
-     }
-])
-def test_dial_model_02_save(dialog,model):
+#===============================================================================
+# @pytest.mark.parametrize("widget_modelConfig_data_d", [
+# {
+#     'comboBox_expoLevel':'binary (L1)',    
+#     'mFieldComboBox_cid':'xid',
+#      }
+# ])
+#===============================================================================
+def test_dial_model_02_save(dialog,model, widget_modelConfig_data_d, test_name):
     """add some data to the dialog then click save/OK
     """     
-    assert dialog.model==model
-
+    #assert dialog.model==model
+    
+    #===========================================================================
+    # check
+    #===========================================================================
+    
+    #against testing parameters
+    for k,v in widget_modelConfig_data_d.items():
+        #print(f'checking \'{k}\'==\'{v}\'')
+        widget = getattr(dialog, k)
+        assert get_widget_value(widget)==v, f'for \'{k}\' got bad value \'{get_widget_value(widget)}\''
+        
+    #against set projeft Database
+    param_df = model.get_table_parameters()
+    
+    ##param_df = param_df.set_index('varName').loc[:, ['widgetName', 'value']]
+    param_d = param_df.dropna(subset=['widgetName']).set_index('widgetName')['value'].dropna().to_dict()
+    assert len(param_d)>0, f'no parameters found for model \'{model.name}\''
+    #checkc that the keys match
+    assert set(widget_modelConfig_data_d.keys()).issubset(param_d.keys()), 'parameter keys do not match the widget data keys'
+    
+    
+    #loop and check each
+    for k,v in widget_modelConfig_data_d.items():
+        assert v==param_d[k], f'for \'{k}\' got bad value \'{v}\''
+        
+    #===========================================================================
+    # write
+    #===========================================================================
+    write_projDB(dialog, test_name)
  
  
 

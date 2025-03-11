@@ -32,7 +32,7 @@ widget_settings_d = {
         'comboBox_AI_elevType':'ground',
         'mFieldComboBox_cid':'xid',
         'mFieldComboBox_AI_01_scale':'f0_scale',
-        'mFieldComboBox_AI_01_elev':'f0_elev',
+        'mFieldComboBox_AI_01_elev':'f0_elv',
         'mFieldComboBox_AI_01_tag':'f0_tag',
         'mFieldComboBox_AI_01_cap':'f0_cap',    
     },
@@ -214,7 +214,11 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
 
 
  
-
+@pytest.fixture
+def widget_modelConfig_data_d(tutorial_name):
+    if tutorial_name is None:
+        return None
+    return widget_settings_d[tutorial_name]
 
 
 

@@ -37,6 +37,7 @@ from canflood2.parameters import fileDialog_filter_str, eventMeta_control_d, con
 
 
 from canflood2.hp.basic import view_web_df as view
+from canflood2.hp.qt import set_widget_value
 
 #===============================================================================
 # DATA--------
@@ -70,132 +71,27 @@ def oj_out(test_name, result):
     return oj(test_result_write_filename_prep(test_name), os.path.basename(result))
 
 
-def _dialog_preloader(dialog,  
-                      tmpdir=None,
-                      projDB_fp=None, hazDB_fp=None, monkeypatch=None,
-                      aoi_vlay=None, dem_rlay=None,
-                      finv_vlay=None,
-                      widget_data_d = None,
-                      haz_rlay_d=None,
-                      eventMeta_df=None,
-                      ):
-    """
-    Helper to preload the dialog with some data.
-
  
-    """
-    # Dictionary to store info about the applied settings.
-    applied_data = {}
 
-    #===========================================================================
-    # setup databases
-    #===========================================================================
-    if projDB_fp is not None: 
-        projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp)))
-        assert_projDB_fp(projDB_fp)
-        applied_data['projDB_fp'] = projDB_fp
-        
-    if hazDB_fp is not None:
-        hazDB_fp = shutil.copyfile(hazDB_fp, os.path.join(tmpdir, os.path.basename(hazDB_fp)))
-        assert_hazDB_fp(hazDB_fp)
-        applied_data['hazDB_fp'] = hazDB_fp
-        
-        
-    #===========================================================================
-    # patch load buttons on databases
-    #===========================================================================
-    """using the loader functions to set the UI state"""
-    for fp, buttonName in {
-        projDB_fp:'pushButton_PS_projDB_load',
-        hazDB_fp:'pushButton_HZ_hazDB_load'}.items():
+
+def write_projDB(dialog, test_name):
  
-        if fp is None: continue
-        assert not monkeypatch is None, f'need to provide monkeypatch for loading from databases'
-        #patch the dialog     
-        monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (fp, ''))
-    
- 
-        print(f'clicking {buttonName}\n====================================\n\n')
-        # Simulate clicking the load project database button.
-        button = getattr(dialog, buttonName)
-        click(button)
- 
-    
-    
-    
-    
-    
-    
-    #===========================================================================
-    # setup other attributes
-    #===========================================================================
-
-    # Add some default text to specific line edits.
-    if widget_data_d is not None:
-        for widget_name, text in widget_data_d.items():
-            widget = getattr(dialog, widget_name, None)
-            if widget is not None:
-                widget.setText(text)
-                applied_data[widget_name] = text
-        applied_data['widget_data_d'] = widget_data_d
-
-    # Load and attach layers only if provided.
-    if aoi_vlay is not None:
-        combo_aoi = getattr(dialog, 'comboBox_aoi', None)
-        if combo_aoi is not None:
-            combo_aoi.setLayer(aoi_vlay)
-            applied_data['comboBox_aoi'] = aoi_vlay.id() if hasattr(aoi_vlay, 'id') else None
-
-    if dem_rlay is not None:
-        combo_dem = getattr(dialog, 'comboBox_dem', None)
-        if combo_dem is not None:
-            combo_dem.setLayer(dem_rlay)
-            applied_data['comboBox_dem'] = dem_rlay.id() if hasattr(dem_rlay, 'id') else None
-            
-    if haz_rlay_d is not None:
-        #select all of these layers in listView_HZ_hrlay
-        dialog.listView_HZ_hrlay.populate_layers()
-        dialog.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
-        
-        #load into the event metadata
-        click(dialog.pushButton_HZ_hrlay_load)
- 
-        
-    if finv_vlay is not None:
-        pass
-        
-    #===========================================================================
-    # event values in tableWidget_HZ_eventMeta
-    #===========================================================================
-    if eventMeta_df is not None:
-        assert not haz_rlay_d is None, 'must provide haz_rlay_d to load eval_d'
-        #check the keys match
-        assert set(eventMeta_df.iloc[:,0]) == set(haz_rlay_d.keys()), 'eval_d keys do not match haz_rlay_d keys'
-
-        """just ignoring what is set above        
-        #populate hte new event meta data
-        eventMeta_df = dialog.tableWidget_HZ_eventMeta.get_df_from_QTableWidget()
-        eventMeta_df[eventMeta_df.columns[1]] = eventMeta_df.iloc[:, 0].map(pd.Series(eval_d))
-        """
-        
-        #eventMeta_df.to_csv(r'l:\09_REPOS\04_TOOLS\CanFlood2\tests\data\cf1_tutorial_02\eventMeta_df.csv', index=False)
-        #set the updated on the widget
-
-        dialog.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)        
- 
-        
-    print(f'dialog preloaded with {len(applied_data)} settings')
-    return applied_data
-
-
-def write_both_DBs(dialog, test_name):
-    #hazDB_fp
-    hazDB_fp = dialog.get_hazDB_fp()
-    write_sqlite(hazDB_fp, oj_out(test_name, hazDB_fp))
 #projDB
     projDB_fp = dialog.get_projDB_fp()
     write_sqlite(projDB_fp, oj_out(test_name, projDB_fp))
-    
+
+
+def dialog_create_new_projDB(monkeypatch, dialog, tmpdir):
+    """wrapper to patch and click Create New ProjDB"""
+    print('setting up Create New ProjDB')
+    dummy_file = tmpdir.join(f'projDB.canflood2').strpath
+    monkeypatch.setattr(
+        QFileDialog, 
+        "getSaveFileName", 
+        lambda*args, **kwargs:(dummy_file, "sqlite database files (*.canflood2)"))
+    # Simulate clicking the new project database button.
+    click(dialog.pushButton_PS_projDB_new)
+    return dummy_file
  
  
 #===============================================================================
@@ -215,24 +111,101 @@ use fixtures to parameterize in blocks
 """
     
 @pytest.fixture(scope='function') 
-def dialog(qgis_iface, qgis_new_project, logger):
+def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
+           projDB_fp,
+           widget_data_d,
+           aoi_vlay, dem_rlay, haz_rlay_d, 
+           eventMeta_df,           
+           ):
     """dialog fixture.
     for interactive tests, see 'test_init' (uncomment block)"""
     
-    #indirect parameters    
+    #===========================================================================
+    # init  
+    #===========================================================================
     dialog =  Main_dialog(parent=None, 
                           iface=qgis_iface,
                           debug_logger=logger, #connect python logger for rtests 
                           )
  
-    #post configuration
+ 
     
+    #===========================================================================
+    # setup databases
+    #===========================================================================
+    if projDB_fp is not None:
+        print(f'copying projDB_fp \'{projDB_fp}\' to tmpdir')
+        projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp)))
+        assert_projDB_fp(projDB_fp)
+        
+        #patch the load button
+        monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (projDB_fp, ''))
+        
+        #load the project database
+        click(dialog.pushButton_PS_projDB_load)
+        
+        
+    #===========================================================================
+    # # Add some default text to specific line edits.
+    #===========================================================================
+    if widget_data_d is not None:
+        print('setting widget data')
+        for widget_name, v in widget_data_d.items():
+            widget = getattr(dialog, widget_name, None)
+            if widget is not None:
+                set_widget_value(widget, v)
+                
+    
+    #===========================================================================
+    # layers
+    #===========================================================================
+    if aoi_vlay is not None:
+        dialog.comboBox_aoi.setLayer(aoi_vlay)
+        
+    if dem_rlay is not None:
+        dialog.comboBox_dem.setLayer(dem_rlay)
+        
+        
+    if haz_rlay_d is not None:
+        print(f'loading {len(haz_rlay_d)} hazard layers')
+        #select all of these layers in listView_HZ_hrlay
+        dialog.listView_HZ_hrlay.populate_layers()
+        dialog.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
+        
+        #load into the event metadata
+        click(dialog.pushButton_HZ_hrlay_load)
+        
+    #===========================================================================
+    # event values in tableWidget_HZ_eventMeta
+    #===========================================================================
+    if eventMeta_df is not None:
+        print(f'loading {eventMeta_df.shape} eventMeta_df')
+        """this will overwrite click(dialog.pushButton_HZ_hrlay_load)"""
+        assert not haz_rlay_d is None, 'must provide haz_rlay_d to load eval_d'
+        #check the keys match
+        assert set(eventMeta_df.iloc[:,0]) == set(haz_rlay_d.keys()), 'eval_d keys do not match haz_rlay_d keys'
+ 
+
+        dialog.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)  
+        
+ 
     
     return dialog
 
 
- 
-    
+# Default fixtures that return None unless overridden.
+@pytest.fixture
+def projDB_fp(request):
+    return getattr(request, "param", None)
+
+@pytest.fixture
+def widget_data_d(request):
+    return getattr(request, "param", None)
+
+
+@pytest.fixture
+def eventMeta_df(request):
+    return getattr(request, "param", None)
     
  
 #===============================================================================
@@ -245,51 +218,32 @@ sys.exit(QApp.exec_()) #wrap
 """
 
 
-def test_dial_main_00_init(dialog,):
-    
- 
- 
+#need to over-ride the layer fixtures from conftest
+@pytest.mark.parametrize("aoi_vlay, dem_rlay, haz_rlay_d",[(None, None, None)])
+def test_dial_main_00_init(dialog,): 
     assert hasattr(dialog, 'logger')
     
     
- 
-@pytest.mark.dev
+
+
+
+
+@pytest.mark.parametrize("aoi_vlay, dem_rlay, haz_rlay_d",[(None, None, None)])
 def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
-    """Test that clicking the 'create new project database' button sets the lineEdit with the dummy file path.
- 
- 
-    """
-    dummy_file = tmpdir.join(f'projDB.canflood2').strpath
-    
-    
-    
-    monkeypatch.setattr(
-        QFileDialog, 
-        "getSaveFileName", 
-        lambda *args, **kwargs: (dummy_file, "sqlite database files (*.canflood2)")
-    )
- 
-    # Simulate clicking the new project database button.
-    click(dialog.pushButton_PS_projDB_new)
+    """create new projDB"""
+    dialog_create_new_projDB(monkeypatch, dialog, tmpdir)
  
     
     #===========================================================================
     # post
     #===========================================================================
-    result = dialog.lineEdit_PS_projDB_fp.text()
+    result = dialog.get_projDB_fp()
+    assert_projDB_fp(result, check_consistency=True)
+    
     write_sqlite(result, oj_out(test_name, result))
      
-    # Verify that the lineEdit now contains the dummy file path.
-    assert_projDB_fp(result, check_consistency=True)
-    assert  dialog.lineEdit_PS_projDB_fp.text()== dummy_file
-    
  
 
-    
- 
-
-
- 
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 @pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02']) 
 @pytest.mark.parametrize("widget_data_d", [
@@ -300,12 +254,8 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
         'climateStateLineEdit': 'some climate', 
         'hazardTypeLineEdit': 'some hazard',
           }])
-def test_dial_main_02_save_ui_to_project_database(dialog, 
-                                                  monkeypatch,
-                                                  aoi_vlay, dem_rlay, widget_data_d,
-                                                  haz_rlay_d, eventMeta_df, 
-                                                  tmpdir, test_name,
-                                                  ):
+def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monkeypatch, 
+                                                  widget_data_d):
     """
     after creating a new project database,
     Test that clicking the 'save' button saves the UI to the project database.
@@ -317,52 +267,20 @@ def test_dial_main_02_save_ui_to_project_database(dialog,
     # prep
     #===========================================================================
  
-    _ = _dialog_preloader(dialog, 
-                          #projDB_fp=projDB_fp, 
-                          aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
-                          widget_data_d=widget_data_d,
-                          haz_rlay_d=haz_rlay_d, eventMeta_df=eventMeta_df,
-                          tmpdir=tmpdir)
-    
+ 
     #===========================================================================
     # #create a new projDB
     #===========================================================================
-    dummy_file = tmpdir.join(f'projDB.canflood2').strpath    
-    
-    monkeypatch.setattr(
-        QFileDialog, 
-        "getSaveFileName", 
-        lambda *args, **kwargs: (dummy_file, "sqlite database files (*.canflood2)")
-    )
+    dialog_create_new_projDB(monkeypatch, dialog, tmpdir)
  
-    print('clicking new project database\n====================================\n\n')
-    # Simulate clicking the new project database button.
-    click(dialog.pushButton_PS_projDB_new)
  
-    
-    #===========================================================================
-    # create a new HazDB
-    #===========================================================================
-    dummy_file = tmpdir.join(f'hazDB.db').strpath    
-    
-    monkeypatch.setattr(
-        QFileDialog, 
-        "getSaveFileName", 
-        lambda *args, **kwargs: (dummy_file, "sqlite database files (*.db)")
-    )
-    
-    print('clicking new hazard database\n====================================\n\n')
-    # Simulate clicking the new project database button.
-    click(dialog.pushButton_HZ_hazDB_new)  #Main_dialog._create_new_hazDB()
  
     #===========================================================================
     # execute
     #===========================================================================
-
-    
-    print('clicking save\n====================================\n\n')
+ 
     # Simulate clicking the save button.
-    click(dialog.pushButton_save) #Main_dialog._save_ui_to_DBs()
+    click(dialog.pushButton_save) #Main_dialog._save_ui_to_projDB()
  
     
     
@@ -386,7 +304,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog,
     #===========================================================================
     # write
     #===========================================================================
-    write_both_DBs(dialog, test_name)
+    write_projDB(dialog, test_name)
  
  
 
@@ -503,7 +421,7 @@ def test_dial_main_03_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp
     
     #write the resulting data
     if not projDB_fp is None:        
-        write_both_DBs(dialog, test_name)
+        write_projDB(dialog, test_name)
 
 
 
@@ -559,7 +477,7 @@ def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d
     #===========================================================================
     # post
     #===========================================================================3
-    write_both_DBs(dialog, test_name)
+    write_projDB(dialog, test_name)
     
     
     
@@ -633,7 +551,7 @@ def test_dial_main_06_MS_configure(dialog, tmpdir, test_name,
     assert_projDB_fp(result, check_consistency=True)
     
  
-    write_both_DBs(dialog, test_name)
+    write_projDB(dialog, test_name)
     
 
 

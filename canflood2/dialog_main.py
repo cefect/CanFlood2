@@ -356,28 +356,7 @@ class Main_dialog_haz(object):
     
         return dfs[0] if len(dfs) == 1 else dfs
     
-    def get_hazDB_fp(self, logger=None):
-        """get the project database file path and do some formatting and checks"""
-        if logger is None: logger=self.logger
-        log = logger.getChild('get_hazDB_fp')
-        fp = self.lineEdit_HZ_hazDB_fp.text()
-        if fp=='':
-            fp = None
-        
-        if not fp is None:
-            assert isinstance(fp, str)
-            
-            #try and make the path absolute
-            if not os.path.isabs(fp):
-                projDB_fp= self.get_projDB_fp() 
-                fp = os.path.join(os.path.dirname(projDB_fp), fp)
-            
-            if not os.path.exists(fp):
-                """allowing this for now.. not sure if this makes sense"""
-                log.warning(f'bad filepath for projDB: {fp}')
-                fp = None
-            
-        return fp
+
  
             
             
@@ -849,7 +828,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         self.pushButton_close.clicked.connect(close_dialog)
         
         
-        self.pushButton_save.clicked.connect(self._save_ui_to_DBs)
+        self.pushButton_save.clicked.connect(self._save_ui_to_projDB)
         
         
         """not using 
@@ -981,7 +960,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         #=======================================================================
         # model suite template
         #=======================================================================
-        """this will be over-written in _save_ui_to_DBs
+        """this will be over-written in _save_ui_to_projDB
         but we need it here to pass the check
         """
         table_name='03_model_suite_index'
@@ -1017,7 +996,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         # wrap
         #=======================================================================
         """no.. lets wait til the user hits save
-        self._save_ui_to_DBs(projDB_fp=fp)"""
+        self._save_ui_to_projDB(projDB_fp=fp)"""
         
         
 
@@ -1072,8 +1051,8 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
 
         return d
 
-    def _save_ui_to_DBs(self, *args, projDB_fp=None, hazDB_fp=None):
-        """save the current UI state to the project and HAZ database
+    def _save_ui_to_projDB(self, *args, projDB_fp=None):
+        """save the current UI state to the projDB
         
         the save button is on all tabs, so the user will expect this to dave all ui elements
         first we save the hazDB, then the project (which mirrors the hazDB)
@@ -1081,24 +1060,13 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         #=======================================================================
         # defaults
         #=======================================================================
-        log = self.logger.getChild('_save_ui_to_DBs')
+        log = self.logger.getChild('_save_ui_to_projDB')
         
         if projDB_fp is None:
             projDB_fp = self.get_projDB_fp()
             
         assert not projDB_fp is None, 'must set a project database file before saving'
         
- 
-        
-        if hazDB_fp is None:
-            hazDB_fp = self.get_hazDB_fp()
-        
-        assert not hazDB_fp is None, 'must set a hazard database file before saving'
-        #=======================================================================
-        # hazard data
-        #=======================================================================
- 
-        self._save_haz_ui_to_hazDB(projDB_fp=projDB_fp, hazDB_fp=hazDB_fp)
  
  
 
@@ -1120,7 +1088,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             #===================================================================
             table_name='01_project_meta'
             d = _get_proj_meta_d(log)
-            d.update(dict(function_name='_save_ui_to_DBs', misc=''))
+            d.update(dict(function_name='_save_ui_to_projDB', misc=''))
             df_d[table_name] = pd.DataFrame(d)
             
             #===================================================================
@@ -1129,18 +1097,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             table_name='02_project_parameters'
             df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
             
-            d = self._set_ui_state_from_df_template(df_d[table_name])
-            
-            #set hazDB_fp to relative path
-            idxloc = df_d[table_name].loc[df_d[table_name]['varName']=='hazDB_fp', 'value'].index
- 
-            if idxloc[0] in d:
-                #check that the hazDB is in the same (or a child) directoryy as the project database
-                if not os.path.commonpath([os.path.dirname(projDB_fp), hazDB_fp]) == os.path.dirname(projDB_fp):
-                    raise ValueError(f'hazDB_fp must be in the same directory as the project database')
-                
-                d[idxloc[0]] = os.path.relpath(hazDB_fp, os.path.dirname(projDB_fp))
- 
+            d = self._set_ui_state_from_df_template(df_d[table_name]) 
             
                         
             df_d[table_name]['value'] = pd.Series(d)

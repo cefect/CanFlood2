@@ -606,10 +606,7 @@ class Main_dialog_modelSuite(object):
         projDB_fp = self.get_projDB_fp()
  
         
-        #and the hazardss database
-        hazDB_fp = self.get_hazDB_fp()
-        if hazDB_fp is None:
-            raise IOError('must set a hazards datatbase file before configuring models')
+ 
         
  
         #get this model

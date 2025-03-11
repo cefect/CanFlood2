@@ -93,6 +93,30 @@ def dialog_create_new_projDB(monkeypatch, dialog, tmpdir):
     click(dialog.pushButton_PS_projDB_new)
     return dummy_file
  
+def dialog_launch_modelConfig(dialog, consequence_category, modelid):
+    #===========================================================================
+    # #create the model suite templates
+    #===========================================================================
+    """these should be loaded with the projDB
+    
+    QTest.mouseClick(dialog.pushButton_MS_createTemplates, Qt.LeftButton) #Main_dialog._create_model_templates()
+    
+    """
+    #check they have been added to the dialog index
+    assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
+    #===========================================================================
+    # launch config window on first model
+    #===========================================================================
+    #schedule dialog to close
+    model_config_dialog = dialog.Model_config_dialog
+    QTimer.singleShot(200, lambda:click(model_config_dialog.pushButton_ok))
+    
+    #retrieve the widget
+    model = dialog.model_index_d[consequence_category][modelid]
+    widget = model.widget_d['pushButton_mod_config']['widget']
+    click(widget)
+    
+    return model
  
 #===============================================================================
 # FIXTURES------
@@ -346,7 +370,7 @@ def test_dial_main_03_load_projDB(dialog,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2'))
 ])
@@ -393,64 +417,22 @@ def test_dial_main_04_MS_createTemplates(dialog, test_name):
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+ 
  
 
-@pytest.mark.parametrize(
-    "projDB_fp, hazDB_fp, tutorial_name",
-    [(oj('05_MS_createTemplates_L___e728c7', 'projDB.canflood2'), 
-      oj('05_MS_createTemplates_L___e728c7', 'hazDB.db'), 
-      'cf1_tutorial_02')]
-)
-def test_dial_main_06_MS_configure(dialog, tmpdir, test_name,
-                                   projDB_fp, hazDB_fp,
-                                   aoi_vlay, dem_rlay,
-                                   haz_rlay_d, eventMeta_df, finv_vlay,
-                                   monkeypatch,
-                                                                      ):
+
+
+@pytest.mark.dev
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02', oj('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
+])
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+def test_dial_main_06_MS_launch_modelConfig(dialog,   test_name,
+                                     consequence_category, modelid):
     """test launching the model configuration dialog"""
     
-    _dialog_preloader(dialog, 
-                      projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, monkeypatch=monkeypatch,
-                        haz_rlay_d=haz_rlay_d, 
-                      eventMeta_df=eventMeta_df, 
-                      finv_vlay=finv_vlay,
-                      aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
-                      tmpdir=tmpdir)
-    
-    #===========================================================================
-    # #create the model suite templates
-    #===========================================================================
-    """these should be loaded with the projDB
-    QTest.mouseClick(dialog.pushButton_MS_createTemplates, Qt.LeftButton) #Main_dialog._create_model_templates()
-    """
-    
-    #check they have been added to the dialog index
-    assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
-    
-    
-    #===========================================================================
-    # launch config window on first model
-    #===========================================================================
-    #schedule dialog to close
-    model_config_dialog = dialog.Model_config_dialog
-    QTimer.singleShot(200, lambda: click(model_config_dialog.pushButton_ok))
-    
  
-    
-    #retrieve the widget
-    model = dialog.model_index_d[list(consequence_category_d.keys())[0]][0]
-    widget = model.widget_d['pushButton_mod_config']['widget']
-    click(widget)
+    model = dialog_launch_modelConfig(dialog, consequence_category, modelid)
  
     
     
@@ -461,8 +443,8 @@ def test_dial_main_06_MS_configure(dialog, tmpdir, test_name,
 
     assert_projDB_fp(result, check_consistency=True)
     
- 
-    write_projDB(dialog, test_name)
+    """no need to write.. havent made any changes
+    write_projDB(dialog, test_name)"""
     
 
 

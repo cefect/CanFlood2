@@ -13,7 +13,7 @@ from pytest_qgis.utils import clean_qgis_layer
 import pandas as pd
 
 from PyQt5.QtTest import QTest
-from PyQt5.Qt import Qt, QApplication, QPoint
+from PyQt5.Qt import Qt 
 from PyQt5.QtWidgets import (
     QAction, QFileDialog, QListWidget, QTableWidgetItem,
     QComboBox,
@@ -27,7 +27,7 @@ from qgis.PyQt import QtWidgets
 import tests.conftest as conftest
 from tests.conftest import (
     conftest_logger, assert_intersecting_values_match_verbose,
-    test_result_write_filename_prep
+    test_result_write_filename_prep, click
     )
 
 from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp
@@ -118,7 +118,8 @@ def _dialog_preloader(dialog,
         print(f'clicking {buttonName}\n====================================\n\n')
         # Simulate clicking the load project database button.
         button = getattr(dialog, buttonName)
-        QTest.mouseClick(button, Qt.LeftButton)
+        click(button)
+ 
     
     
     
@@ -157,7 +158,8 @@ def _dialog_preloader(dialog,
         dialog.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
         
         #load into the event metadata
-        QTest.mouseClick(dialog.pushButton_HZ_hrlay_load, Qt.LeftButton)
+        click(dialog.pushButton_HZ_hrlay_load)
+ 
         
     if finv_vlay is not None:
         pass
@@ -274,7 +276,8 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
     )
  
     # Simulate clicking the new project database button.
-    QTest.mouseClick(dialog.pushButton_PS_projDB_new, Qt.LeftButton)
+    click(dialog.pushButton_PS_projDB_new)
+ 
     
     #===========================================================================
     # post
@@ -340,7 +343,8 @@ def test_dial_main_02_save_ui_to_project_database(dialog,
  
     print('clicking new project database\n====================================\n\n')
     # Simulate clicking the new project database button.
-    QTest.mouseClick(dialog.pushButton_PS_projDB_new, Qt.LeftButton)
+    click(dialog.pushButton_PS_projDB_new)
+ 
     
     #===========================================================================
     # create a new HazDB
@@ -355,7 +359,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog,
     
     print('clicking new hazard database\n====================================\n\n')
     # Simulate clicking the new project database button.
-    QTest.mouseClick(dialog.pushButton_HZ_hazDB_new, Qt.LeftButton) #Main_dialog._create_new_hazDB()
+    click(dialog.pushButton_HZ_hazDB_new)  #Main_dialog._create_new_hazDB()
  
     #===========================================================================
     # execute
@@ -364,7 +368,8 @@ def test_dial_main_02_save_ui_to_project_database(dialog,
     
     print('clicking save\n====================================\n\n')
     # Simulate clicking the save button.
-    QTest.mouseClick(dialog.pushButton_save, Qt.LeftButton) #Main_dialog._save_ui_to_DBs()
+    click(dialog.pushButton_save) #Main_dialog._save_ui_to_DBs()
+ 
     
     
     #===========================================================================
@@ -439,7 +444,7 @@ def test_dial_main_02b_load_project_database(dialog,
     #===========================================================================
     print('clicking load project database\n====================================\n\n')
     # Simulate clicking the load project database button.
-    QTest.mouseClick(dialog.pushButton_PS_projDB_load, Qt.LeftButton)
+    click(dialog.pushButton_PS_projDB_load)
     
     #===========================================================================
     # check
@@ -490,7 +495,8 @@ def test_dial_main_03_create_new_hazDB(monkeypatch, dialog, test_name, projDB_fp
     # execute
     #===========================================================================
     # Simulate clicking the new project database button.
-    QTest.mouseClick(dialog.pushButton_HZ_hazDB_new, Qt.LeftButton) #Main_dialog._create_new_hazDB()
+    click(dialog.pushButton_HZ_hazDB_new) #Main_dialog._create_new_hazDB()
+ 
     
     #===========================================================================
     # post
@@ -529,7 +535,8 @@ def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d
     #===========================================================================
     # #create the model suite templates
     #===========================================================================
-    QTest.mouseClick(dialog.pushButton_MS_createTemplates, Qt.LeftButton) #Main_dialog._create_model_templates()
+    click(dialog.pushButton_MS_createTemplates)
+ 
     
     #check they have been added to the dialog index
     assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
@@ -538,7 +545,7 @@ def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d
     # clear the model suite
     #===========================================================================
     print(f'clearing {len(dialog.model_index_d)} model suite templates\n===================================\n\n')
-    QTest.mouseClick(dialog.pushButton_MS_clear, Qt.LeftButton) #Main_dialog._clear_model_suite()
+    click(dialog.pushButton_MS_clear)  #Main_dialog._clear_model_suite()
     
     #check they have been removed
     assert len(dialog.model_index_d) == 0
@@ -549,7 +556,7 @@ def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d
     
     """creating a second time as an additional test.. also gives us the result data"""
     print(f'creating {len(consequence_category_d)} model suite templates\n======================================\n\n')
-    QTest.mouseClick(dialog.pushButton_MS_createTemplates, Qt.LeftButton) #Main_dialog._create_model_templates()
+    click(dialog.pushButton_MS_createTemplates)  #Main_dialog._create_model_templates()
     
     #check they have been added to the dialog index
     assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
@@ -613,13 +620,15 @@ def test_dial_main_06_MS_configure(dialog, tmpdir, test_name,
     #===========================================================================
     #schedule dialog to close
     model_config_dialog = dialog.Model_config_dialog
-    QTimer.singleShot(200, lambda: QTest.mouseClick(model_config_dialog.pushButton_ok, Qt.LeftButton))
+    QTimer.singleShot(200, lambda: click(model_config_dialog.pushButton_ok))
     
+ 
     
     #retrieve the widget
     model = dialog.model_index_d[list(consequence_category_d.keys())[0]][0]
     widget = model.widget_d['pushButton_mod_config']['widget']
-    QTest.mouseClick(widget, Qt.LeftButton)
+    click(widget)
+ 
     
     
     #===========================================================================
@@ -673,7 +682,8 @@ def test_dial_main_07_MS_run(dialog, tmpdir, test_name,
     print(f'clicking run on model config dialog\n====================================\n\n')
     
     raise NotImplementedError('need to sort out the different run buttons')
-    QTest.mouseClick(widget, Qt.LeftButton)
+    click(widget)
+ 
     
     #===========================================================================
     # check

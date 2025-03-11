@@ -9,6 +9,8 @@ import pytest
 import pandas as pd
 from pytest_qgis.utils import clean_qgis_layer
  
+from PyQt5.QtTest import QTest
+from PyQt5.Qt import Qt 
 
 from qgis.core import (
     QgsApplication, QgsProject, Qgis, QgsLogger, QgsMessageLog,
@@ -254,6 +256,11 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
 # HERLPERS---------
 #===============================================================================
 
+def click(widget):
+    #check that the widget is enabled
+    assert widget.isEnabled(), f'widget is not enabled: {widget}'
+    print(f'clicking: {widget}\n===========================================\n\n')
+    return QTest.mouseClick(widget, Qt.LeftButton)
  
 
 def test_result_write_filename_prep(test_name, char_max=25):

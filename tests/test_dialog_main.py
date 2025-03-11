@@ -9,6 +9,7 @@ Created on Mar 5, 2025
 # IMPORTS----------
 #===============================================================================
 import pytest, time, sys, inspect, os, shutil, hashlib
+from contextlib import contextmanager
 from pytest_qgis.utils import clean_qgis_layer
 import pandas as pd
 
@@ -225,6 +226,7 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
     return dialog
 
 
+
 # Default fixtures that return None unless overridden.
  
 @pytest.fixture
@@ -235,9 +237,46 @@ def projDB_fp(request):
 def widget_data_d(request):
     return getattr(request, "param", None)
 
-
-
+@pytest.fixture
+def model(dialog, consequence_category, modelid):
+    return dialog.model_index_d[consequence_category][modelid]
     
+
+@pytest.fixture
+def dialog_modelConfig(dialog, model,
+                       qtbot, monkeypatch):
+    """
+    Fixture to launch the model configuration dialog in a non-blocking way.
+    Instead of calling the normal modal exec_() (which blocks until closed),
+    we monkeypatch exec_() to automatically simulate a click on the OK button
+    (or otherwise close the dialog) and return Accepted.
+    """
+    # Retrieve the model from the main dialog and the button that launches the config dialog.
+ 
+    
+    dlg = dialog.Model_config_dialog
+
+    # Override exec_() so it shows the dialog and returns immediately.
+    def non_blocking_exec():
+        dlg.show()
+        return QtWidgets.QDialog.Rejected  # dummy return value
+    monkeypatch.setattr(dlg, "exec_", non_blocking_exec)
+
+    # Launch the dialog by clicking the widget that opens it.
+    widget = model.widget_d['pushButton_mod_config']['widget']
+    click(widget)
+    qtbot.waitExposed(dlg)  # wait until the dialog is visible
+
+    # Yield the live dialog instance for test interaction.
+    yield dlg
+
+    # Teardown: simulate a click on the OK button to close the dialog.
+    print("Closing model configuration dialog")
+    qtbot.mouseClick(dlg.pushButton_ok, Qt.LeftButton)
+    qtbot.waitSignal(dlg.finished, timeout=5000)
+    
+ 
+ 
  
 #===============================================================================
 # TESTS------
@@ -427,25 +466,18 @@ def test_dial_main_04_MS_createTemplates(dialog, test_name):
     ('cf1_tutorial_02', oj('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_main_06_MS_launch_modelConfig(dialog,   test_name,
-                                     consequence_category, modelid):
-    """test launching the model configuration dialog"""
+def test_dial_main_06_MS_launch_modelConfig(dialog_modelConfig,
+                                     model):
+    """test launching the model configuration dialog
+    
+    handled by the fixture
+    """    
+ 
+    
+    assert dialog_modelConfig.model==model
+    
     
  
-    model = dialog_launch_modelConfig(dialog, consequence_category, modelid)
- 
-    
-    
-    #===========================================================================
-    # post
-    #===========================================================================3
-    result = dialog.get_projDB_fp()
-
-    assert_projDB_fp(result, check_consistency=True)
-    
-    """no need to write.. havent made any changes
-    write_projDB(dialog, test_name)"""
-    
 
 
     

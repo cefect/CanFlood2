@@ -604,10 +604,9 @@ class Main_dialog_modelSuite(object):
         #=======================================================================
         #check ther eis a project database
         projDB_fp = self.get_projDB_fp()
+        assert not projDB_fp is None, 'must set a project database file'
  
-        
- 
-        
+
  
         #get this model
         model = self.model_index_d[category_code][modelid]
@@ -627,11 +626,13 @@ class Main_dialog_modelSuite(object):
         #launch teh dialog modally
         result = dial.exec_()
         
+        #move teardown onto the child dialog for cleaner testing
+        #dial.model=None #clear the model
         
-        dial.model=None #clear the model
-        
-    def _run_model(self, category_code, modelid):
-        raise NotImplementedError('need to add the run logic')
+    #===========================================================================
+    # def _run_model(self, category_code, modelid):
+    #     raise NotImplementedError('need to add the run logic')
+    #===========================================================================
         
     def _remove_model(self, category_code, modelid, 
                       clear_projDB=True,

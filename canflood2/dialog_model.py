@@ -23,11 +23,11 @@ from qgis.core import (
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
 
-from .assertions import assert_projDB_fp, assert_hazDB_fp
-
- 
+from .assertions import assert_projDB_fp, assert_hazDB_fp 
 
 from .parameters import consequence_category_d
+
+from .core import Model_suite_helper
 
 
 
@@ -88,10 +88,12 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
     def load_model(self, model, projDB_fp=None):
         """load the model worker into the dialog"""
         log = self.logger.getChild('load_model')
-        
+        assert isinstance(model, Model_suite_helper), f'bad model type: {type(model)}'
         self.model = model
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
+            
+        log.debug(f'loading model {model.name} onto configDialog')
         #=======================================================================
         # #load parameters from the table
         #=======================================================================
@@ -125,31 +127,48 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_category.setText(consequence_category_d[model.category_code]['desc'])
         
         
-        log.debug(f'loaded model {model.name}')
+        log.debug(f'finished loaded model {model.name}')
+        
+        assert not self.model is None, 'failed to load model'
         
     def _run_model(self):
         """run the model"""
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
         log = self.logger.getChild('_run_model')
         model = self.model        
+        assert not model is None, 'no model loaded'
         
-        log.info(f'running model {model.name}')
-        
-        
-        #=======================================================================
-        # precheck
-        #=======================================================================
         projDB_fp = self.parent.get_projDB_fp()
         assert_projDB_fp(projDB_fp)
         
-        hazDB_fp = self.parent.get_hazDB_fp()
-        assert_hazDB_fp(hazDB_fp)
+        log.info(f'running model {model.name}')
         
         #=======================================================================
-        # write the ui state to the t
+        # trigger save        
         #=======================================================================
         self._set_ui_to_table_parameters(model, logger=log)
         
-        raise NotImplementedError('stopped here')
+        
+        #=======================================================================
+        # #=======================================================================
+        # # precheck
+        # #=======================================================================
+        # projDB_fp = self.parent.get_projDB_fp()
+        # assert_projDB_fp(projDB_fp)
+        # 
+        # hazDB_fp = self.parent.get_hazDB_fp()
+        # assert_hazDB_fp(hazDB_fp)
+        # 
+        # #=======================================================================
+        # # write the ui state to the t
+        # #=======================================================================
+        # self._set_ui_to_table_parameters(model, logger=log)
+        # 
+        # raise NotImplementedError('stopped here')
+        #=======================================================================
     
         #=======================================================================
         # smaple rasters
@@ -177,12 +196,11 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         params_df.loc[s.index, 'value'] = s
         #write to the parent
         model.set_model_tables({'table_parameters':params_df}, logger=log)
-        log.debug(f'saved {len(s)} parameters for model {model.name}')
+        log.push(f'saved {len(s)} parameters for model {model.name}')
 
     def _save_and_close(self):
-        """write the model config window parameter state to the approriate table_parameters
-        this is not a full run, just how the user would expect to close/open the dialog 
-        and see the parameters for the specific model"""
+        """save the dialog to the model parameters table"""
+ 
         log = self.logger.getChild('_save_and_close')
         log.debug('closing')
         
@@ -193,12 +211,27 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         self._set_ui_to_table_parameters(model, logger=log)
         
+ 
+        self._custom_cleanup()
         self.accept()
         
     def _close(self):
-        """close the dialog"""
+        """close the dialog without saving"""
  
-        
+        self._custom_cleanup()
         self.reject()
+        
+    def _custom_cleanup(self):
+        self.model=None
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
 

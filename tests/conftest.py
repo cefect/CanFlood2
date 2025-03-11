@@ -282,9 +282,11 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
 #===============================================================================
 
 def click(widget):
+    widgetname = widget.objectName() if widget.objectName() else str(widget)
+    
     #check that the widget is enabled
-    assert widget.isEnabled(), f'widget is not enabled: {widget}'
-    print(f"clicking: {widget}\n{'=' * 80}\n\n")
+    assert widget.isEnabled(), f'widget is not enabled: {widgetname}'
+    print(f"clicking: \'{widgetname}\'\n{'=' * 80}\n\n")
     return QTest.mouseClick(widget, Qt.LeftButton)
  
 

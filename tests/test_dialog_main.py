@@ -574,7 +574,7 @@ def test_dial_main_05_MS_createTemplates(dialog, projDB_fp, hazDB_fp, haz_rlay_d
     
     
  
-@pytest.mark.dev
+
 @pytest.mark.parametrize(
     "projDB_fp, hazDB_fp, tutorial_name",
     [(oj('05_MS_createTemplates_L___e728c7', 'projDB.canflood2'), 
@@ -636,18 +636,49 @@ def test_dial_main_06_MS_configure(dialog, tmpdir, test_name,
 
     
 
+@pytest.mark.dev
 @pytest.mark.parametrize(
     "projDB_fp, hazDB_fp, tutorial_name",
-    [(oj('07_MS_configure_L__09_REP_f4e1d9', 'projDB.canflood2'), 
-      oj('04_create_new_hazDB_L__09_6f664d', 'hazDB.db'), 
+    [(oj('06_MS_configure_L__09_REP_ba53e6', 'projDB.canflood2'), 
+      oj('06_MS_configure_L__09_REP_ba53e6', 'hazDB.db'), 
       'cf1_tutorial_02')]
 )
-def test_dial_main_08_MS_run(dialog, projDB_fp, hazDB_fp, haz_rlay_d, eventMeta_df, tmpdir, test_name):
+def test_dial_main_07_MS_run(dialog, tmpdir, test_name,
+                                   projDB_fp, hazDB_fp,
+                                   aoi_vlay, dem_rlay,
+                                   haz_rlay_d, eventMeta_df, finv_vlay,
+                                   monkeypatch,
+                                                                      ):
     """test launching the model configuration dialog"""
     
-    _dialog_preloader(dialog, projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, haz_rlay_d=haz_rlay_d, eventMeta_df=eventMeta_df,
+    _dialog_preloader(dialog, 
+                      projDB_fp=projDB_fp, hazDB_fp=hazDB_fp, monkeypatch=monkeypatch,
+                        haz_rlay_d=haz_rlay_d, 
+                      eventMeta_df=eventMeta_df, 
+                      finv_vlay=finv_vlay,
+                      aoi_vlay=aoi_vlay, dem_rlay=dem_rlay,
                       tmpdir=tmpdir)
-
+    
+    #===========================================================================
+    # launch config window on first model
+    #===========================================================================
+    #schedule dialog to close
+    #model_config_dialog = dialog.Model_config_dialog
+    #QTimer.singleShot(200, lambda: QTest.mouseClick(model_config_dialog.pushButton_ok, Qt.LeftButton))
+    
+    
+    #retrieve the widge
+    model = dialog.model_index_d[list(consequence_category_d.keys())[0]][0]
+    widget = model.widget_d['pushButton_mod_run']['widget']
+    print(f'clicking run on model config dialog\n====================================\n\n')
+    
+    raise NotImplementedError('need to sort out the different run buttons')
+    QTest.mouseClick(widget, Qt.LeftButton)
+    
+    #===========================================================================
+    # check
+    #===========================================================================
+    model.get_model_tables_all()
     
     
     

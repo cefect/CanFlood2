@@ -20,8 +20,10 @@ from PyQt5.QtWidgets import (
 from qgis.PyQt import QtWidgets
 
 from canflood2.hp.qt import set_widget_value, get_widget_value
+from canflood2.hp.vfunc import load_vfunc_to_df_d
+
 from canflood2.assertions import assert_vfunc_fp
-from canflood2.parameters import load_vfunc_to_df_d
+
 from canflood2.dialog_model import Model_config_dialog
 
 from .test_dialog_main import dialog as dialog_main
@@ -139,7 +141,7 @@ def dialog(dialog_main, model,
         """over-writes the monkeypatch from teh main dialog test?"""
         monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (vfunc_fp, ''))
         
-        click(dlg.pushButton_SScurves)
+        click(dlg.pushButton_V_vfunc_load)
         
         
  
@@ -182,7 +184,7 @@ def test_dial_model_01_launch_config(dialog,model, qtbot):
     
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
 ])
@@ -232,7 +234,13 @@ def test_dial_model_02_save(dialog,
     if not vfunc_fp is None:
         df_d = load_vfunc_to_df_d(vfunc_fp)
         assert len(df_d)==int(dialog.label_V_functionCount.text()), f'vfunc count failed to set'
-        assert param_df.loc['vfunc_fp', 'value']==vfunc_fp, f'vfunc_fp failed to set'
+        
+        #check the vfunc index 
+        vfunc_index_df = model.get_tables('table_vfunc_index')
+        
+        #check the keys match
+        assert set(df_d.keys())==set(vfunc_index_df['tag']), 'vfunc keys do not match the index'
+
         
     #===========================================================================
     # write------
@@ -241,7 +249,7 @@ def test_dial_model_02_save(dialog,
  
  
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_c1-0-cf1_tutorial_04e68f', 'projDB.canflood2'))
 ])
@@ -249,6 +257,7 @@ def test_dial_model_02_save(dialog,
 def test_dial_model_03_run(dialog, model,
                            test_name, qtbot,
                            ):
+    """Test running from the model config dialog"""
     
     #===========================================================================
     # load parameters

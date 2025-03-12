@@ -14,7 +14,7 @@ import numpy as np
 #===============================================================================
 from .assertions import assert_projDB_fp, assert_hazDB_fp
 from .parameters import (
-    projDB_schema_modelTables_d, load_vfunc_to_df_d,
+    projDB_schema_modelTables_d, 
     )
 from .hp.basic import view_web_df as view
 from .hp.sql import get_table_names
@@ -24,7 +24,98 @@ from . import __version__
 #===============================================================================
 # CLASSES--------
 #===============================================================================
-class Model(object):
+
+class Model_run_methods(object):
+    """organizer for the model run methods"""
+    
+    def run_model(self,
+                  projDB_fp=None,
+                  ):
+        """run the model"""
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        log = self.logger.getChild('run_model')
+ 
+        
+        if projDB_fp is None:
+            projDB_fp = self.parent.get_projDB_fp()
+        
+        
+        log.info(f'running model from {os.path.basename(projDB_fp)}') 
+        
+        assert_projDB_fp(projDB_fp, check_consistency=True)
+        
+ 
+    
+        #=======================================================================
+        # smaple rasters
+        #=======================================================================
+        self.r01_build_table_finv(projDB_fp)
+        
+    def r01_build_table_finv(self):
+        """build the asset inventory table"""
+        log = self.logger.getChild('r01_build_table_finv')
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
+ 
+            
+        model = self.model
+        assert not model is None, 'no model loaded'
+        
+        log.info(f'building asset inventory table for model {model.name}')
+        
+        #=======================================================================
+        # #get the asset inventory layer
+        #=======================================================================
+        vlay = self.comboBox_finv_vlay.currentLayer()
+        assert not vlay is None, 'no asset inventory layer selected'
+        
+        #=======================================================================
+        # #get the field names
+        #=======================================================================
+        d = dict()
+        for comboBox, fn_str in {
+            self.mFieldComboBox_cid:'xid',
+            self.mFieldComboBox_AI_01_scale:'f0_scale',
+            self.mFieldComboBox_AI_01_tag:'f0_tag',
+            self.mFieldComboBox_AI_01_elev:'f0_elev',
+            self.mFieldComboBox_AI_01_cap:'f0_cap',
+            }.items():
+            
+            d[fn_str] = comboBox.currentField()
+            
+        #=======================================================================
+        # #build the table
+        #=======================================================================
+        model.build_table_finv(vlay, d, projDB_fp=projDB_fp)
+        
+        log.info(f'finished building asset inventory table for model {model.name}')
+        
+        #=======================================================================
+        # #update the labels
+        #=======================================================================
+        self._update_model_labels(model=model)
+        
+        #=======================================================================
+        # #update the model widget labels
+        #=======================================================================
+        self.parent._update_model_widget_labels(model=model)
+        
+        #=======================================================================
+        # #update the model index
+        #=======================================================================
+        self.parent.update_model_index_dx(model, logger=log)
+        
+        log.info(f'finished building asset inventory table for model {model.name}')
+        
+        return True
+    
+    
+class Model(Model_run_methods):
     """skinny helper functions for dealing with an individual model 
     on the model suite tab
     
@@ -70,6 +161,7 @@ class Model(object):
         self.name = f'{category_code}_{modelid}'
         self.logger = logger.getChild(self.name)
         
+        self.logger.debug(f'initialized')
         
     def get_index_d(self):
         return {'category_code':self.category_code, 'modelid':self.modelid, 
@@ -176,7 +268,7 @@ class Model(object):
  
 
     
-    def set_model_tables(self, df_d, **kwargs):
+    def set_tables(self, df_d, **kwargs):
         """write the tables to the project database"""
         
         #recase the names
@@ -194,10 +286,20 @@ class Model(object):
         # Write the tables to the project database
         result =  self.parent.projDB_set_tables(df_d_recast, **kwargs)
         
-        #update hte model index
-        if 'table_parameters' in df_d.keys():
-            self.parent.update_model_index_dx(self)
-            
+        #=======================================================================
+        # #handle updates
+        #=======================================================================
+        names_d = dict(zip(df_d.keys(), table_names ))
+        for template_name, full_name in names_d.items():
+            if template_name=='table_parameters':
+                self.parent.update_model_index_dx(self)
+            elif template_name in projDB_schema_modelTables_d.keys():
+                self.set_parameter_value(template_name, full_name)
+                self.compute_status()
+            else:
+                raise IOError(f'unknown table name: {template_name}')
+ 
+        
         return result
     
     def set_parameter_value(self, varName, value, projDB_fp=None):
@@ -205,7 +307,7 @@ class Model(object):
         param_df = self.get_table_parameters(projDB_fp=projDB_fp)
         param_df.loc[param_df['varName']==varName, 'value'] = value
         
-        self.set_model_tables({'table_parameters':param_df}, projDB_fp=projDB_fp)
+        self.set_tables({'table_parameters':param_df}, projDB_fp=projDB_fp)
         
     
     

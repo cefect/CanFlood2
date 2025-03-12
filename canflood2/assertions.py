@@ -14,8 +14,12 @@ import pandas as pd
 from .hp.sql import get_table_names
 from .parameters import (
     project_db_schema_d, hazDB_schema_d, projDB_schema_modelTables_d,
-    vfunc_cdf_chk_d, load_vfunc_to_df_d
+ 
+    
     )
+
+from .hp.vfunc import load_vfunc_to_df_d, vfunc_df_to_dict, vfunc_cdf_chk_d
+from .hp.basic import view_web_df as view
 
 #===============================================================================
 # helpers--------
@@ -44,7 +48,7 @@ def assert_projDB_fp(fp, **kwargs):
             assert_projDB_conn(conn, **kwargs)
     
     except Exception as e:
-        raise ValueError(f'project DB connection failed w/\n    {e}')
+        raise ValueError(f'projDB failed validation w/ \n    {e}')
         
         
     
@@ -78,7 +82,16 @@ def assert_projDB_conn(conn,
         dx = dx.set_index(['modelid', 'category_code'])
         
         if len(dx)>0:
-            tables_dx = dx.loc[:, projDB_schema_modelTables_d.keys()].dropna(axis=1)
+            tables_dx = dx.loc[:, projDB_schema_modelTables_d.keys()] 
+            
+            """
+            view(tables_dx)
+            view(dx)
+            for k in all_table_names:
+                if 'vfunc_index' in k:
+                    print(k)
+            
+            """
             
             #flatten into a series
             for indexers, table_name in tables_dx.stack().dropna().items():
@@ -94,7 +107,16 @@ def assert_projDB_conn(conn,
         if not len(model_table_names) == 0:
             assert len(dx)>0, f'no model tables found, but model_index table not empty'
         
-            assert set(model_table_names) == set(tables_dx.values.flatten())
+            if not set(model_table_names).issubset(tables_dx.values.flatten()):
+                raise AssertionError(f'orphaned model tables: {set(model_table_names) - set(tables_dx.values.flatten())}')
+            
+            
+        #=======================================================================
+        # check for orphonzed vfuncs
+        #=======================================================================
+        #collect all the vfunc indexes
+        
+        #see of all of these tables exist
         
             
  
@@ -228,7 +250,7 @@ def assert_vfunc_df(df_raw):
     assert 0 in df_raw.columns
     
     try:
-        assert_vfunc_d(df_raw.set_index(0, drop=True).iloc[:, 0].dropna().to_dict())
+        assert_vfunc_d(vfunc_df_to_dict(df_raw))
     except Exception as e:
         raise AssertionError(f"Error in DataFrame\n    {e}") from None
     

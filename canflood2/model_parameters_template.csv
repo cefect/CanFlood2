@@ -15,4 +15,3 @@ finv_dataSource,dataSourceLineEdit_AI,,FALSE,FALSE,
 asset_label,labelLineEdit_AI,,TRUE,TRUE,used for UI updates
 finv_date,dateLineEdit_AI,,TRUE,FALSE,
 consq_label,consequenceLineEdit_V,,TRUE,TRUE,used for UI updates (not to be confused with category_desc)
-vfunc_fp,lineEdit_V_vfunc,,FALSE,FALSE,filepath to the damage function library

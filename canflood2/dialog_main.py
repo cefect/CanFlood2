@@ -528,7 +528,8 @@ class Main_dialog_modelSuite(object):
         #check it
         assert self.get_model_index_dx().loc[(modelid, category_code), 'status']=='initialized', \
             'failed to add model to index'
-        assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly'
+        if check_projDB:
+            assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly'
  
  
         
@@ -1205,6 +1206,14 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
     
         with sqlite3.connect(projDB_fp) as conn:
             assert_projDB_conn(conn)
+            
+            #===================================================================
+            # #check that the tables exist
+            # table_names = get_table_names(conn)            
+            # for name in table_names:
+            #     assert name in table_names
+            #===================================================================
+                
             dfs = {name: pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names}
     
         if result_as_dict:
@@ -1264,8 +1273,11 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
     
     
                     
-                    elif 'model_' in k:
-                        k_strip = k.replace('model_', '')
+                    elif k.startswith('model_'):
+                        pass
+                    
+                    elif k.startswith('vfunc_'):
+                        pass
                         
                     else:
                         raise KeyError(f'bad table name: {k}')
@@ -1304,6 +1316,22 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
                     raise RuntimeError(f'Failed to drop table: {name}')
         
         log.debug(f'dropped {len(table_names)} tables from project database\n    {table_names}')
+        
+    def projDB_get_table_names_all(self, projDB_fp=None):
+        """Convenience wrapper to get all table names from the project database.
+    
+        Parameters:
+        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+    
+        Returns:
+        List of table names in the project database.
+        """
+        if projDB_fp is None:
+            projDB_fp = self.get_projDB_fp()
+    
+        with sqlite3.connect(projDB_fp) as conn:
+ 
+            return get_table_names(conn)
 
  
         

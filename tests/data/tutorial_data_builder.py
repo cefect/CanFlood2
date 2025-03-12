@@ -6,7 +6,7 @@ Created on Mar 11, 2025
 helper functions for working with tutorial data in the tests
 '''
 
-import os, logging, sys, hashlib
+import os, logging, sys, hashlib, shutil
 import pytest
 import pandas as pd
 
@@ -147,10 +147,16 @@ def eventMeta_fp(tutorial_name):
     return tutorial_data_lib[tutorial_name]['eventMeta']
 
 @pytest.fixture
-def vfunc_fp(tutorial_name):
+def vfunc_fp(tutorial_name, tmpdir):
     if tutorial_name is None:
         return None
-    return tutorial_data_lib[tutorial_name]['vfunc']
+    
+    #copy over to the testin directory for relative pathing
+    fp = tutorial_data_lib[tutorial_name]['vfunc']
+ 
+    
+    
+    return shutil.copyfile(fp, os.path.join(tmpdir, os.path.basename(fp)))
 
 #===============================================================================
 # FIXTURES:OBJECTS------------

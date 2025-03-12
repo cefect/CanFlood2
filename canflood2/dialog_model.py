@@ -30,7 +30,8 @@ from .hp.plug import bind_QgsFieldComboBox
 
 from .assertions import assert_projDB_fp, assert_vfunc_fp
 
-from .parameters import consequence_category_d, home_dir, load_vfunc_to_df_d
+from .parameters import consequence_category_d, home_dir
+from .hp.vfunc import  load_vfunc_to_df_d, vfunc_df_to_dict, vfunc_cdf_chk_d
 
 from .core import Model
 
@@ -44,6 +45,7 @@ from .core import Model
 ui_fp = os.path.join(os.path.dirname(__file__), 'canflood2_model_config.ui')
 assert os.path.exists(ui_fp), 'failed to find the ui file: \n    %s'%ui_fp
 FORM_CLASS, _ = uic.loadUiType(ui_fp)
+
 
 
 class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
@@ -124,46 +126,105 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
                 "Excel Files (*.xls *.xlsx)",
                 )
             if filename:
-                self.lineEdit_V_vfunc.setText(filename)
-                self._update_vfunc()
+                self._vfunc_load_from_file(filename)
 
                 
              
-        self.pushButton_SScurves.clicked.connect(load_vfunc_fp)
+        self.pushButton_V_vfunc_load.clicked.connect(load_vfunc_fp)
         
 
         
         
         log.debug('slots connected')
         
-    def get_vfunc_fp(self):
-        fp = self.lineEdit_V_vfunc.text()
-        assert not fp == '', 'no vfunc file path set'
+ 
         
-        assert_vfunc_fp(fp)
-        
-        return fp
-        
-    def _update_vfunc(self, vfunc_fp=None, logger=None):
+    def _vfunc_load_from_file(self, vfunc_fp, logger=None):
         """load the vfunc, do some checks, and set some stats"""
         #=======================================================================
         # defaults
         #=======================================================================
         if logger is None: logger=self.logger
-        log=logger.getChild('_update_vfunc')
-        if vfunc_fp is None: vfunc_fp = self.get_vfunc_fp() #does checks
-        
+        log=logger.getChild('_vfunc_load_from_file')
+        model = self.model
+ 
+        assert_vfunc_fp(vfunc_fp)
         
         #=======================================================================
         # get stats
         #=======================================================================
-        df_d = load_vfunc_to_df_d(vfunc_fp)
-        
+        df_d = load_vfunc_to_df_d(vfunc_fp)      
         
         #set count
         self.label_V_functionCount.setText(str(len(df_d)))
         
-        log.debug(f'loaded {len(df_d)} vulnerability functions from \n    {vfunc_fp}')
+        #=======================================================================
+        # build index
+        #=======================================================================
+        #look through each and collect some info
+        index_d = dict()
+        for k, df in df_d.items():
+            cv_d = vfunc_df_to_dict(df)
+            assert k==cv_d['tag'], 'mismatch on tag on %s'%k 
+            index_d[k] = {k:v for k,v in cv_d.items() if k in vfunc_cdf_chk_d.keys()}
+            
+        index_df = pd.DataFrame.from_dict(index_d, orient='index').reset_index(drop=True)
+        
+        #create table names
+ 
+        index_df['table_name'] =  'vfunc_' + index_df.index.astype(str).str.zfill(3) + '_' + index_df['tag'].str.replace('_', '')        
+        
+        log.debug(f'built vfunc index w/ {len(index_df)} records')
+        
+        #=======================================================================
+        # filter based on finv
+        #=======================================================================
+        if 'table_finv' in model.get_table_names_all():
+            raise NotImplementedError('remove vfuncs not in the finv')
+    
+        #=======================================================================
+        # filter based on other indexes
+        #=======================================================================
+        """we only want to add new vfuncs"""
+        all_table_names = self.parent.projDB_get_table_names_all()
+        
+        #check for any vfunc index
+        sibling_vfunc_index_table_names = [n for n in all_table_names if 'table_vfunc_index' in n]
+        
+        if len(sibling_vfunc_index_table_names)>0:
+            log.debug(f'filtering based on {len(sibling_vfunc_index_table_names)} sibling vfunc index tables')
+            raise NotImplementedError('remove vfuncs not in the sibling vfunc indexs')
+        
+        
+        #=======================================================================
+        # remap onto new table names
+        #=======================================================================\
+        index_d = index_df.set_index('tag')['table_name'].to_dict()
+        df_d2 = {index_d[tag]:df for tag, df in df_d.items()}
+ 
+ 
+        #=======================================================================
+        # load into project database
+        #=======================================================================
+        
+        #set the vfunc tables on to the project
+        """these are shared amongst models"""
+        self.parent.projDB_set_tables(df_d2, logger=log)
+        
+        #set the vfunc index for the model
+        self.model.set_tables({'table_vfunc_index':index_df}, logger=log)
+        
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        #update the model index
+        """this is called by model.set_tables
+        self.model.set_parameter_value()
+        self.model.compute_status()
+        self.parent.update_model_index_dx(model, logger=log)"""
+        
+         
+ 
         df_d=None
         
     def load_model(self, model, projDB_fp=None):
@@ -225,33 +286,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         log.debug(f'updated labels for model {model.name}')
         
-    def _run_model(self):
-        """run the model"""
-        
-        #=======================================================================
-        # defaults
-        #=======================================================================
-        log = self.logger.getChild('_run_model')
-        model = self.model        
-        assert not model is None, 'no model loaded'
-        
-        projDB_fp = self.parent.get_projDB_fp()
-        
-        
-        log.info(f'running model {model.name}')
-        
-        #=======================================================================
-        # trigger save        
-        #=======================================================================
-        self._set_ui_to_table_parameters(model, logger=log)
-        
-        assert_projDB_fp(projDB_fp, check_consistency=True)
-        
- 
-    
-        #=======================================================================
-        # smaple rasters
-        #=======================================================================
+
         
         
         
@@ -288,8 +323,8 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
             d[k] = getattr(model, k)
         
         
-        for k in ['vfunc_fp']:
-            d[k] = self.get_vfunc_fp()
+
+ 
         
         #=======================================================================
         # wrap
@@ -301,15 +336,39 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         params_df.loc[s.index, 'value'] = s
         
         #write to the parent
-        model.set_model_tables({'table_parameters':params_df.reset_index()}, logger=log)
+        model.set_tables({'table_parameters':params_df.reset_index()}, logger=log)
         
         #=======================================================================
         # update model index
         #=======================================================================
-        """called by set_model_tables()
+        """called by set_tables()
         self.parent.update_model_index_dx(model, logger=log)"""
         
         log.push(f'saved {len(s)} parameters for model {model.name}')
+        
+    def _run_model(self):
+        """run the model"""
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        log = self.logger.getChild('_run_model')
+        model = self.model        
+        assert not model is None, 'no model loaded'
+        
+ 
+        
+        log.info(f'running model {model.name}')
+        
+        #=======================================================================
+        # trigger save        
+        #=======================================================================
+        self._set_ui_to_table_parameters(model, logger=log)
+        
+        #=======================================================================
+        # run it
+        #=======================================================================
+        model.run_model(projDB_fp=self.parent.get_projDB_fp())
 
     def _save_and_close(self):
         """save the dialog to the model parameters table"""

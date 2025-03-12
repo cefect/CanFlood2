@@ -209,11 +209,8 @@ consequence_category_d = {
 #===============================================================================
 # vulnerabiltiy functions---------
 #===============================================================================
-vfunc_cdf_chk_d = {'tag':str, #parameters expected in crv_d (read from xls tab)
-                 'exposure':str,
-                 'impact_units':str}
 
-def load_vfunc_to_df_d(fp):
-    return pd.read_excel(fp, sheet_name=None, **{'index_col':None, 'header':None})
+
+
  
  

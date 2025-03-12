@@ -253,7 +253,7 @@ QToolBox::tab {
       <enum>QFrame::Raised</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="page">
       <property name="geometry">
@@ -884,30 +884,25 @@ QToolBox::tab {
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_11">
+           <layout class="QHBoxLayout" name="horizontalLayout_12">
             <item>
-             <widget class="QLineEdit" name="lineEdit_V_vfunc">
-              <property name="placeholderText">
-               <string>Specify vulnerability function set filepath or select one from the library</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_SScurves">
+             <widget class="QPushButton" name="pushButton_V_vfunc_load">
               <property name="enabled">
                <bool>true</bool>
               </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="text">
-               <string>Browse</string>
+               <string>Load From File</string>
               </property>
              </widget>
             </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_12">
             <item>
-             <widget class="QPushButton" name="pushButton_inv_vfunc">
+             <widget class="QPushButton" name="pushButton_V_vfunc_library">
               <property name="enabled">
                <bool>false</bool>
               </property>
@@ -955,7 +950,7 @@ QToolBox::tab {
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_Inv_purge">
+             <widget class="QPushButton" name="pushButton_V_vfunc_purge">
               <property name="enabled">
                <bool>false</bool>
               </property>

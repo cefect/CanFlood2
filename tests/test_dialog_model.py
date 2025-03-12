@@ -21,7 +21,7 @@ from qgis.PyQt import QtWidgets
 
 from canflood2.hp.qt import set_widget_value, get_widget_value
 from canflood2.assertions import assert_vfunc_fp
-
+from canflood2.parameters import load_vfunc_to_df_d
 from canflood2.dialog_model import Model_config_dialog
 
 from .test_dialog_main import dialog as dialog_main
@@ -132,6 +132,13 @@ def dialog(dialog_main, model,
     if vfunc_fp is not None:
         assert_vfunc_fp(vfunc_fp)
         
+        #patch the file dialog
+        """over-writes the monkeypatch from teh main dialog test?"""
+        monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (vfunc_fp, ''))
+        
+        click(dlg.pushButton_SScurves)
+        
+        
     #===========================================================================
     # # Yield the live dialog instance for test interaction.
     #===========================================================================
@@ -199,13 +206,16 @@ def test_dial_model_01_launch_config(dialog,model):
 #      }
 # ])
 #===============================================================================
-def test_dial_model_02_save(dialog,model, widget_modelConfig_data_d, test_name):
+def test_dial_model_02_save(dialog,
+                            model, 
+                            widget_modelConfig_data_d, vfunc_fp,
+                            test_name):
     """add some data to the dialog then click save/OK
     """     
     #assert dialog.model==model
     
     #===========================================================================
-    # check
+    # check---------
     #===========================================================================
     
     #against testing parameters
@@ -215,7 +225,7 @@ def test_dial_model_02_save(dialog,model, widget_modelConfig_data_d, test_name):
         assert get_widget_value(widget)==v, f'for \'{k}\' got bad value \'{get_widget_value(widget)}\''
         
     #against set projeft Database
-    param_df = model.get_table_parameters()
+    param_df = model.get_table_parameters().set_index('varName')
     
     ##param_df = param_df.set_index('varName').loc[:, ['widgetName', 'value']]
     param_d = param_df.dropna(subset=['widgetName']).set_index('widgetName')['value'].dropna().to_dict()
@@ -228,8 +238,14 @@ def test_dial_model_02_save(dialog,model, widget_modelConfig_data_d, test_name):
     for k,v in widget_modelConfig_data_d.items():
         assert v==param_d[k], f'for \'{k}\' got bad value \'{v}\''
         
+    #check vfunc status
+    if not vfunc_fp is None:
+        df_d = load_vfunc_to_df_d(vfunc_fp)
+        assert len(df_d)==int(dialog.label_V_functionCount.text()), f'vfunc count failed to set'
+        param_df.loc['vfunc_fp', 'value']==vfunc_fp
+        
     #===========================================================================
-    # write
+    # write------
     #===========================================================================
     write_projDB(dialog, test_name)
  

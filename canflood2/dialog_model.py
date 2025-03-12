@@ -30,7 +30,7 @@ from .hp.plug import bind_QgsFieldComboBox
 
 from .assertions import assert_projDB_fp, assert_vfunc_fp
 
-from .parameters import consequence_category_d, home_dir
+from .parameters import consequence_category_d, home_dir, load_vfunc_to_df_d
 
 from .core import Model
 
@@ -97,9 +97,10 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
                 self,  # Parent widget (your dialog)
                 "Select Vulnerability Function Set",  # Dialog title
                 home_dir,  # Initial directory (optional, use current working dir by default)
-                fileDialogfilterstr = "Excel Files (*.xls *.xlsx)",
+                "Excel Files (*.xls *.xlsx)",
                 )
             if filename:
+                self.lineEdit_V_vfunc.setText(filename)
                 self._update_vfunc()
 
                 
@@ -126,7 +127,8 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         log.debug('slots connected')
         
     def get_vfunc_fp(self):
-        fp = self.lineEdit_SScurves.text()
+        fp = self.lineEdit_V_vfunc.text()
+        assert not fp == '', 'no vfunc file path set'
         
         assert_vfunc_fp(fp)
         
@@ -145,9 +147,14 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # get stats
         #=======================================================================
-        df_d = pd.read_excel(vfunc_fp, sheet_name=None)
+        df_d = load_vfunc_to_df_d(vfunc_fp)
         
         
+        #set count
+        self.label_V_functionCount.setText(str(len(df_d)))
+        
+        log.debug(f'loaded {len(df_d)} vulnerability functions from \n    {vfunc_fp}')
+        df_d=None
         
     def load_model(self, model, projDB_fp=None):
         """load the model worker into the dialog"""
@@ -284,6 +291,14 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         for k in ['status']:
             assert k in params_df.index
             d[k] = getattr(model, k)
+        
+        
+        for k in ['vfunc_fp']:
+            d[k] = self.get_vfunc_fp()
+        
+        #=======================================================================
+        # wrap
+        #=======================================================================
         
         s = pd.Series(d, name='value').replace('', pd.NA)
         

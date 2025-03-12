@@ -253,7 +253,7 @@ QToolBox::tab {
       <enum>QFrame::Raised</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="page">
       <property name="geometry">
@@ -929,7 +929,7 @@ QToolBox::tab {
               </property>
               <property name="maximumSize">
                <size>
-                <width>125</width>
+                <width>150</width>
                 <height>16777215</height>
                </size>
               </property>

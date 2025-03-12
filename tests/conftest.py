@@ -136,6 +136,14 @@ def projDB_fp(request):
 #===============================================================================
 # HERLPERS---------
 #===============================================================================
+def fake_getOpenFileName(parent, caption, directory, filter, **kwargs):
+    if caption == "Select Vulnerability Function Set":
+        # Return a specific fake file path for this call.
+        return ("/path/to/fake_vfunc.xlsx", "")
+    # For other dialogs, you can either provide different return values or
+    # delegate to the original function if needed.
+    return ("", "")
+
 
 def click(widget):
     widgetname = widget.objectName() if widget.objectName() else str(widget)

@@ -79,7 +79,7 @@ def dialog(dialog_main, model,
            widget_modelConfig_data_d, 
            
            #control
-           save_dialog,
+ 
            qtbot, monkeypatch):
     """
     Fixture to launch the model configuration dialog in a non-blocking way.
@@ -139,32 +139,15 @@ def dialog(dialog_main, model,
         click(dlg.pushButton_SScurves)
         
         
-    #===========================================================================
-    # # Yield the live dialog instance for test interaction.
-    #===========================================================================
-    #yield dlg
-
-    #===========================================================================
-    # # Teardown: simulate a click on the OK button to close the dialog.
-    #===========================================================================
-    print(f"Closing model configuration dialog w/ save_dialog={save_dialog}")
+ 
     """ 
     dlg.show()
     QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
     sys.exit(QApp.exec_()) #wrap
     """
-    if not interactive:
-        if save_dialog:
-              
-            qtbot.mouseClick(dlg.pushButton_ok, Qt.LeftButton)
-        else:
-            qtbot.mouseClick(dlg.pushButton_close, Qt.LeftButton)
-        qtbot.waitSignal(dlg.finished, timeout=5000)
-        return dlg
-    else:
-        dlg.show()
-        QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
-        sys.exit(QApp.exec_()) #wrap
+ 
+        
+    return dlg
 
 
 @pytest.fixture
@@ -182,41 +165,45 @@ def model(dialog_main, consequence_category, modelid):
 
 @pytest.mark.parametrize("projDB_fp", [oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2')])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-@pytest.mark.parametrize("save_dialog", [False]) #teardown behavior
-def test_dial_model_01_launch_config(dialog,model):
+def test_dial_model_01_launch_config(dialog,model, qtbot):
     """simple launching and closing of the model configuration dialog
     
     handled by the fixture
     """     
     #assert dialog.model==model
     
+    #===========================================================================
+    # close
+    #===========================================================================
+    qtbot.mouseClick(dialog.pushButton_close, Qt.LeftButton)
+    
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-@pytest.mark.parametrize("save_dialog", [True])
-#===============================================================================
-# @pytest.mark.parametrize("widget_modelConfig_data_d", [
-# {
-#     'comboBox_expoLevel':'binary (L1)',    
-#     'mFieldComboBox_cid':'xid',
-#      }
-# ])
-#===============================================================================
 def test_dial_model_02_save(dialog,
                             model, 
                             widget_modelConfig_data_d, vfunc_fp,
-                            test_name):
+                            test_name, qtbot):
     """add some data to the dialog then click save/OK
     """     
     #assert dialog.model==model
+    #===========================================================================
+    # load parameters
+    #===========================================================================
+    """done by fixture"""
+    #===========================================================================
+    # resolve dialog
+    #===========================================================================
+    qtbot.mouseClick(dialog.pushButton_ok, Qt.LeftButton)
     
     #===========================================================================
     # check---------
     #===========================================================================
+    print(f'\n\nchecking dialog\n{"="*80}')
     
     #against testing parameters
     for k,v in widget_modelConfig_data_d.items():
@@ -242,7 +229,7 @@ def test_dial_model_02_save(dialog,
     if not vfunc_fp is None:
         df_d = load_vfunc_to_df_d(vfunc_fp)
         assert len(df_d)==int(dialog.label_V_functionCount.text()), f'vfunc count failed to set'
-        param_df.loc['vfunc_fp', 'value']==vfunc_fp
+        assert param_df.loc['vfunc_fp', 'value']==vfunc_fp, f'vfunc_fp failed to set'
         
     #===========================================================================
     # write------
@@ -251,7 +238,45 @@ def test_dial_model_02_save(dialog,
  
  
 
-
+@pytest.mark.dev
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
+])
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+def test_dial_model_03_run(dialog, model,
+                           test_name, qtbot,
+                           ):
     
+    #===========================================================================
+    # load parameters
+    #===========================================================================
+    """done by fixture"""
+    
+    #===========================================================================
+    # execute
+    #===========================================================================
+    click(dialog.pushButton_run)
+    
+    
+    #===========================================================================
+    # check
+    #===========================================================================
+    print(f'\n\nchecking dialog\n{"="*80}')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     
 
  

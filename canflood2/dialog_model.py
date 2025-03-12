@@ -76,7 +76,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         log.debug('connecting slots')
  
         #=======================================================================
-        # generic
+        # generic-------
         #=======================================================================
         self.pushButton_ok.clicked.connect(self._save_and_close)
         self.pushButton_close.clicked.connect(self._close)
@@ -87,6 +87,30 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         self.comboBox_finv_vlay.setFilters(QgsMapLayerProxyModel.VectorLayer)
         self.comboBox_finv_vlay.setCurrentIndex(-1)
+        
+        #bind the exposure geometry label
+        def update_finv_geometry_label():
+            layer = self.comboBox_finv_vlay.currentLayer()
+            if not layer is None:
+                self.label_EX_geometryType.setText(QgsWkbTypes.displayString(layer.wkbType()))
+            
+        self.comboBox_finv_vlay.layerChanged.connect(update_finv_geometry_label)
+        
+        #=======================================================================
+        # #finv bindings
+        #=======================================================================
+        #loop through and connect all the field combo boxes to the finv map layer combo box
+        for comboBox, fn_str in {
+            self.mFieldComboBox_cid:'xid',
+            self.mFieldComboBox_AI_01_scale:'f0_scale',
+            self.mFieldComboBox_AI_01_tag:'f0_tag',
+            self.mFieldComboBox_AI_01_elev:'f0_elev',
+            self.mFieldComboBox_AI_01_cap:'f0_cap',
+            }.items():
+            
+            bind_QgsFieldComboBox(comboBox, 
+                                  signal_emmiter_widget=self.comboBox_finv_vlay,
+                                  fn_str=fn_str)
         
         
         #=======================================================================
@@ -107,21 +131,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
              
         self.pushButton_SScurves.clicked.connect(load_vfunc_fp)
         
-        #=======================================================================
-        # #finv bindings
-        #=======================================================================
-        #loop through and connect all the field combo boxes to the finv map layer combo box
-        for comboBox, fn_str in {
-            self.mFieldComboBox_cid:'xid',
-            self.mFieldComboBox_AI_01_scale:'f0_scale',
-            self.mFieldComboBox_AI_01_tag:'f0_tag',
-            self.mFieldComboBox_AI_01_elev:'f0_elev',
-            self.mFieldComboBox_AI_01_cap:'f0_cap',
-            }.items():
-            
-            bind_QgsFieldComboBox(comboBox, 
-                                  signal_emmiter_widget=self.comboBox_finv_vlay,
-                                  fn_str=fn_str)
+
         
         
         log.debug('slots connected')
@@ -226,7 +236,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         assert not model is None, 'no model loaded'
         
         projDB_fp = self.parent.get_projDB_fp()
-        assert_projDB_fp(projDB_fp)
+        
         
         log.info(f'running model {model.name}')
         
@@ -235,24 +245,9 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         self._set_ui_to_table_parameters(model, logger=log)
         
+        assert_projDB_fp(projDB_fp, check_consistency=True)
         
-        #=======================================================================
-        # #=======================================================================
-        # # precheck
-        # #=======================================================================
-        # projDB_fp = self.parent.get_projDB_fp()
-        # assert_projDB_fp(projDB_fp)
-        # 
-        # hazDB_fp = self.parent.get_hazDB_fp()
-        # assert_hazDB_fp(hazDB_fp)
-        # 
-        # #=======================================================================
-        # # write the ui state to the t
-        # #=======================================================================
-        # self._set_ui_to_table_parameters(model, logger=log)
-        # 
-        # raise NotImplementedError('stopped here')
-        #=======================================================================
+ 
     
         #=======================================================================
         # smaple rasters

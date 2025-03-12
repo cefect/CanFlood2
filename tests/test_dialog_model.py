@@ -44,11 +44,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS----------
 #===============================================================================
-def oj(*args):
-    return os.path.join(test_data_dir, *args)
 
-def oj_out(test_name, result):
-    return oj(result_write_filename_prep(test_name), os.path.basename(result))
 
 overwrite_testdata=True
 def write_projDB(dialog, test_name):
@@ -63,6 +59,13 @@ def write_projDB(dialog, test_name):
         shutil.copyfile(projDB_fp, ofp) 
  
         conftest_logger.info(f'wrote result to \n    {ofp}')
+        
+
+def oj(*args):
+    return os.path.join(test_data_dir, *args)
+
+def oj_out(test_name, result):
+    return oj(result_write_filename_prep(test_name, clear_str='test_dial_model_'), os.path.basename(result))
  
 #===============================================================================
 # FIXTURES------
@@ -240,7 +243,7 @@ def test_dial_model_02_save(dialog,
 
 @pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('02_save_c1-0-cf1_tutorial_04e68f', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_03_run(dialog, model,

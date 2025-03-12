@@ -154,11 +154,11 @@ def click(widget):
     return QTest.mouseClick(widget, Qt.LeftButton)
  
 
-def result_write_filename_prep(test_name, char_max=25):
+def result_write_filename_prep(test_name, char_max=25, clear_str='test_dial_main_'):
     """cleaning up the pytest names to use for auto result writing"""
 
     test_name1 = sanitize_filename(test_name)
-    test_name1 = test_name1.replace('test_dial_main_', '').replace('__', '_')
+    test_name1 = test_name1.replace(clear_str, '').replace('__', '_')
 
     if len(test_name1) > char_max:
         # Generate a 6-digit hash of the raw test_name

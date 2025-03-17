@@ -7,6 +7,8 @@ import os
 from datetime import datetime
 import pandas as pd
 
+from .hp.vfunc import vfunc_cdf_chk_d
+
 
 #===============================================================================
 # generic params-------
@@ -33,7 +35,7 @@ today_str = datetime.now().strftime("%Y%m%d")
 
 
 #===============================================================================
-# project database-------
+# ProjDB==================================-------
 #===============================================================================
 project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_template.csv')
 
@@ -117,7 +119,7 @@ project_db_schema_d['02_project_parameters'] = pd.concat(
     [project_db_schema_d['02_project_parameters'], hazDB_schema_d['04_haz_meta']])
         
 #===============================================================================
-# MODEL SUITE----------
+# MODEL SUITE===================----------
 #===============================================================================
 #===============================================================================
 # database schema
@@ -145,7 +147,6 @@ project_db_schema_d['03_model_suite_index'] =     pd.DataFrame(
 #these will be prefixed by the model name
 projDB_schema_modelTables_d = {
     'table_parameters': None,  # name of parameter table: simple key, value for the parameters in the model config UI
-    'table_vfunc_index': None,  # name of table for: index of vfunc tables
     'table_finv': None,  # name of table for: asset inventory (scale, elev, tag, cap)
     'tabel_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
     'table_gels': None,  # name of table for: ground elevation data (columns: dem name, rows: assets)
@@ -209,7 +210,12 @@ consequence_category_d = {
 #===============================================================================
 # vulnerabiltiy functions---------
 #===============================================================================
+project_db_schema_d['06_vfunc_index'] = pd.DataFrame(columns=vfunc_cdf_chk_d)
 
+project_db_schema_d['07_vfunc_data'] = pd.DataFrame(columns={
+    'tag': str,'exposure': float, 'impact': float
+    })
+        
 
 
  

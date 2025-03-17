@@ -250,14 +250,14 @@ def test_dial_model_02_save(dialog,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_02_save_vfunc(dialog, model,                                  
+def test_dial_model_03_save_vfunc(dialog, model,                                  
                             vfunc,
-                            test_name, qtbot, monkeypatch):
+                            test_name, qtbot):
     """basic + vfunc loading
     """     
     #assert dialog.model==model
@@ -300,8 +300,10 @@ def test_dial_model_02_save_vfunc(dialog, model,
     write_projDB(dialog, test_name)
 
 
+
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_save_c1-0-cf1_tutorial_04e68f', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('03_save_vfunc_c1-0-cf1_tu_3f2fee', 'projDB.canflood2')) #vfuncs loaded
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_03_run(dialog, model,
@@ -314,6 +316,10 @@ def test_dial_model_03_run(dialog, model,
     #===========================================================================
     """done by fixture"""
     
+        #===========================================================================
+    # load vfuncs
+    #===========================================================================
+    """included in projDB"""    
     #===========================================================================
     # execute
     #===========================================================================

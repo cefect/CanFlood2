@@ -9,7 +9,7 @@ ui dialog class for model config window
 # imports-----------
 #==============================================================================
 #python
-import sys, os, datetime, time, configparser
+import sys, os, datetime, time, configparser, logging, sqlite3
 import pandas as pd
 
 
@@ -28,10 +28,10 @@ from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
 from .hp.plug import bind_QgsFieldComboBox
 
-from .assertions import assert_projDB_fp, assert_vfunc_fp
+from .assertions import assert_projDB_fp, assert_vfunc_fp, assert_projDB_conn
 
-from .parameters import consequence_category_d, home_dir
-from .hp.vfunc import  load_vfunc_to_df_d, vfunc_df_to_dict, vfunc_cdf_chk_d
+from .parameters import consequence_category_d, home_dir, project_db_schema_d
+from .hp.vfunc import  load_vfunc_to_df_d, vfunc_df_to_dict, vfunc_cdf_chk_d, vfunc_df_to_meta_and_ddf
 
 from .core import Model
 
@@ -139,17 +139,31 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         
  
         
-    def _vfunc_load_from_file(self, vfunc_fp, logger=None):
-        """load the vfunc, do some checks, and set some stats"""
+    def _vfunc_load_from_file(self, vfunc_fp, logger=None, projDB_fp=None):
+        """load the vfunc, do some checks, and set some stats
+        
+        builds 
+            06_vfunc_index
+            07_vfunc_data
+        
+        
+        User needs to manually import
+        
+        only the finv contains a model-specific reference to the vfuncs
+            in general, vfuncs are shared across the project
+        """
         #=======================================================================
         # defaults
         #=======================================================================
         if logger is None: logger=self.logger
         log=logger.getChild('_vfunc_load_from_file')
-        model = self.model
+        
+        if projDB_fp is None:
+            projDB_fp = self.parent.get_projDB_fp()
  
         assert_vfunc_fp(vfunc_fp)
         
+        log.info(f'loading vfunc from {vfunc_fp}')
         #=======================================================================
         # get stats
         #=======================================================================
@@ -158,74 +172,97 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #set count
         self.label_V_functionCount.setText(str(len(df_d)))
         
+        log.debug(f'loaded {len(df_d)} vfuncs from {vfunc_fp}')
         #=======================================================================
-        # build index
+        # build index and data table
         #=======================================================================
         #look through each and collect some info
         index_d = dict()
+        data_d = dict()
         for k, df in df_d.items():
-            cv_d = vfunc_df_to_dict(df)
-            assert k==cv_d['tag'], 'mismatch on tag on %s'%k 
-            index_d[k] = {k:v for k,v in cv_d.items() if k in vfunc_cdf_chk_d.keys()}
+            #cv_d = vfunc_df_to_dict(df)
+            meta_d, ddf = vfunc_df_to_meta_and_ddf(df)
+            assert k==meta_d['tag'], 'mismatch on tag on %s'%k
             
-        index_df = pd.DataFrame.from_dict(index_d, orient='index').reset_index(drop=True)
+            #filter indexers
+            """just keep everything
+            NO... might get some non-conforming new vfunc sets
+            better to just use those from the check dict
+            """ 
+            index_d[k] = {k:v for k,v in meta_d.items() if k in vfunc_cdf_chk_d.keys()}
+            #index_d[k] = meta_d
+            
+            #collect df-d table
+            data_d[k] = ddf
+            
+        vfunc_index_df = pd.DataFrame.from_dict(index_d, orient='index').reset_index(drop=True)
+        vfunc_data_dx = pd.concat(data_d, names=['tag', 'exposure']) 
+ 
+        
+        """
+        view(index_df)
+        """
         
         #create table names
+        """NO... using a single data table now
  
-        index_df['table_name'] =  'vfunc_' + index_df.index.astype(str).str.zfill(3) + '_' + index_df['tag'].str.replace('_', '')        
+        index_df['table_name'] =  'vfunc_' + index_df['tag'].str.replace('_', '')"""        
         
-        log.debug(f'built vfunc index w/ {len(index_df)} records')
+        log.debug(f'built vfunc index w/ {len(vfunc_index_df)} records')
         
+ 
         #=======================================================================
         # filter based on finv
         #=======================================================================
+        """ignoring this for now
         if 'table_finv' in model.get_table_names_all():
             raise NotImplementedError('remove vfuncs not in the finv')
+        """
+        
+        #=======================================================================
+        # update projDB
+        #=======================================================================
+        with sqlite3.connect(projDB_fp) as conn:
+            assert_projDB_conn(conn)
+            
+            set_df = lambda df, table_name: self.parent.projDB_set_tables({table_name:df}, logger=log, conn=conn)
+            #===================================================================
+            # # index
+            #===================================================================
+            table_name = '06_vfunc_index'
+            df_old = pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+            
+            if len(df_old)==0:
+                df = vfunc_index_df
+            else:
+                raise NotImplementedError(f'need to merge the new vfunc index with the old')
+            
+            set_df(df, table_name)
+ 
+            #===================================================================
+            # data
+            #===================================================================
+            
+            table_name='07_vfunc_data'
+            df_old = pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+            
+            if len(df_old)==0:
+                df = vfunc_data_dx.reset_index()
+            else:
+                raise NotImplementedError(f'need to merge the new vfunc data with the old')
+            
+            set_df(df, table_name)
     
-        #=======================================================================
-        # filter based on other indexes
-        #=======================================================================
-        """we only want to add new vfuncs"""
-        all_table_names = self.parent.projDB_get_table_names_all()
-        
-        #check for any vfunc index
-        sibling_vfunc_index_table_names = [n for n in all_table_names if 'table_vfunc_index' in n]
-        
-        if len(sibling_vfunc_index_table_names)>0:
-            log.debug(f'filtering based on {len(sibling_vfunc_index_table_names)} sibling vfunc index tables')
-            raise NotImplementedError('remove vfuncs not in the sibling vfunc indexs')
-        
-        
-        #=======================================================================
-        # remap onto new table names
-        #=======================================================================\
-        index_d = index_df.set_index('tag')['table_name'].to_dict()
-        df_d2 = {index_d[tag]:df for tag, df in df_d.items()}
  
+            #final consistency check
+            assert_projDB_conn(conn, check_consistency=True)
  
-        #=======================================================================
-        # load into project database
-        #=======================================================================
-        
-        #set the vfunc tables on to the project
-        """these are shared amongst models"""
-        self.parent.projDB_set_tables(df_d2, logger=log)
-        
-        #set the vfunc index for the model
-        self.model.set_tables({'table_vfunc_index':index_df}, logger=log)
         
         #=======================================================================
         # wrap
         #=======================================================================
-        #update the model index
-        """this is called by model.set_tables
-        self.model.set_parameter_value()
-        self.model.compute_status()
-        self.parent.update_model_index_dx(model, logger=log)"""
-        
-         
- 
-        df_d=None
+        log.info(f'finished loading vfuncs from {os.path.basename(vfunc_fp)}')
+
         
     def load_model(self, model, projDB_fp=None):
         """load the model worker into the dialog"""
@@ -322,8 +359,6 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
             assert k in params_df.index
             d[k] = getattr(model, k)
         
-        
-
  
         
         #=======================================================================
@@ -347,7 +382,10 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         log.push(f'saved {len(s)} parameters for model {model.name}')
         
     def _run_model(self):
-        """run the model"""
+        """run the model
+        
+    
+        """
         
         #=======================================================================
         # defaults

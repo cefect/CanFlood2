@@ -80,7 +80,8 @@ interactive = False
 @pytest.fixture
 def dialog(dialog_main, model,
            #turtorial data
-           finv_vlay, vfunc_fp, 
+           finv_vlay, 
+ 
            widget_modelConfig_data_d, 
            
            #control
@@ -91,13 +92,18 @@ def dialog(dialog_main, model,
     Instead of calling the normal modal exec_() (which blocks until closed),
     we monkeypatch exec_() to automatically simulate a click on the OK button
     (or otherwise close the dialog) and return Accepted.
+    
+    
+    not using modelstate stored in projDB here
+        tests are more focused on replicating user input
+        projDB model state is handled by teest_dialog_main
+        
+    using subsequent fixtures to handle more complex setups
     """
     # Retrieve the model from the main dialog and the button that launches the config dialog.
  
     
     dlg = dialog_main.Model_config_dialog
-    
-
 
 
     
@@ -134,16 +140,6 @@ def dialog(dialog_main, model,
             except Exception as e:
                 raise IOError(f'failed to set widget \'{k}\' to value \'{v}\' w/\n    {e}')
             
-    if vfunc_fp is not None:
-        assert_vfunc_fp(vfunc_fp)
-        
-        #patch the file dialog
-        """over-writes the monkeypatch from teh main dialog test?"""
-        monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (vfunc_fp, ''))
-        
-        click(dlg.pushButton_V_vfunc_load)
-        
-        
  
     """ 
     dlg.show()
@@ -158,6 +154,20 @@ def dialog(dialog_main, model,
 @pytest.fixture
 def model(dialog_main, consequence_category, modelid):
     return dialog_main.model_index_d[consequence_category][modelid]
+
+
+@pytest.fixture
+def vfunc(dialog, vfunc_fp, monkeypatch):
+    
+    assert_vfunc_fp(vfunc_fp)
+    
+    #patch the file dialog
+    """over-writes the monkeypatch from teh main dialog test?"""
+    monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (vfunc_fp, ''))
+    
+    click(dialog.pushButton_V_vfunc_load) #Model_config_dialog._vfunc_load_from_file()
+    
+    return vfunc_fp
 
 
 
@@ -183,17 +193,16 @@ def test_dial_model_01_launch_config(dialog,model, qtbot):
     qtbot.mouseClick(dialog.pushButton_close, Qt.LeftButton)
     
 
-
-@pytest.mark.dev
+ 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_02_save(dialog,
                             model, 
-                            widget_modelConfig_data_d, vfunc_fp,
+                            widget_modelConfig_data_d, 
                             test_name, qtbot):
-    """add some data to the dialog then click save/OK
+    """basic dialog prep then click save/OK
     """     
     #assert dialog.model==model
     #===========================================================================
@@ -230,16 +239,7 @@ def test_dial_model_02_save(dialog,
     for k,v in widget_modelConfig_data_d.items():
         assert v==param_d[k], f'for \'{k}\' got bad value \'{v}\''
         
-    #check vfunc status
-    if not vfunc_fp is None:
-        df_d = load_vfunc_to_df_d(vfunc_fp)
-        assert len(df_d)==int(dialog.label_V_functionCount.text()), f'vfunc count failed to set'
-        
-        #check the vfunc index 
-        vfunc_index_df = model.get_tables('table_vfunc_index')
-        
-        #check the keys match
-        assert set(df_d.keys())==set(vfunc_index_df['tag']), 'vfunc keys do not match the index'
+ 
 
         
     #===========================================================================
@@ -247,7 +247,57 @@ def test_dial_model_02_save(dialog,
     #===========================================================================
     write_projDB(dialog, test_name)
  
+
+
+
+@pytest.mark.dev
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
+])
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+def test_dial_model_02_save_vfunc(dialog, model,                                  
+                            vfunc,
+                            test_name, qtbot, monkeypatch):
+    """basic + vfunc loading
+    """     
+    #assert dialog.model==model
+    #===========================================================================
+    # load parameters
+    #===========================================================================
+    """done by dialog fixture"""
+    
+    #===========================================================================
+    # load vfuncs
+    #===========================================================================
+    """done by vfunc fixture"""
+
+    #===========================================================================
+    # resolve dialog
+    #===========================================================================
+    qtbot.mouseClick(dialog.pushButton_ok, Qt.LeftButton)
+    
+    #===========================================================================
+    # check---------
+    #===========================================================================
+    print(f'\n\nchecking dialog\n{"="*80}')
+    
  
+    vfunc_fp = vfunc
+    df_d = load_vfunc_to_df_d(vfunc_fp)
+    assert len(df_d)==int(dialog.label_V_functionCount.text()), f'vfunc count failed to set'
+    
+    #check the vfunc index 
+    vfunc_index_df = dialog.parent.projDB_get_tables('06_vfunc_index')
+ 
+    
+    #check the keys match
+    assert set(df_d.keys())==set(vfunc_index_df['tag']), 'vfunc keys do not match the index'
+
+        
+    #===========================================================================
+    # write------
+    #===========================================================================
+    write_projDB(dialog, test_name)
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
@@ -267,7 +317,7 @@ def test_dial_model_03_run(dialog, model,
     #===========================================================================
     # execute
     #===========================================================================
-    click(dialog.pushButton_run)
+    click(dialog.pushButton_run) #Model_config_dialog._run_model()
     
     
     #===========================================================================

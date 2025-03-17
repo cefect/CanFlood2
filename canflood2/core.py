@@ -32,7 +32,7 @@ class Model_run_methods(object):
                   projDB_fp=None,
                   ):
         """run the model"""
-        
+        raise NotImplementedError('DOME')
         #=======================================================================
         # defaults
         #=======================================================================
@@ -54,7 +54,7 @@ class Model_run_methods(object):
         #=======================================================================
         self.r01_build_table_finv(projDB_fp)
         
-    def r01_build_table_finv(self):
+    def r01_build_table_finv(self, projDB_fp=None,):
         """build the asset inventory table"""
         log = self.logger.getChild('r01_build_table_finv')
         

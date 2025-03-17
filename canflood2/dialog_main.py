@@ -1008,6 +1008,14 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             if not k==table_name:
                 assert isinstance(v, pd.DataFrame), k
                 df_d[k] = v.copy()
+                
+                
+        #=======================================================================
+        # remainers
+        #=======================================================================
+        for k, v in project_db_schema_d.items():
+            if not k in df_d.keys():
+                df_d[k] = v.copy()
         
         #=======================================================================
         # #build/write to the database
@@ -1222,45 +1230,53 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             return dfs[table_names[0]] if len(table_names) == 1 else tuple(dfs[name] for name in table_names)
 
     
-    def projDB_set_tables(self, df_d, projDB_fp=None, logger=None):
+
+    def projDB_set_tables(self, df_d, projDB_fp=None, conn=None, logger=None):
         """Convenience wrapper to set multiple tables from DataFrames.
     
         Parameters:
         df_d: dict
             Dictionary of DataFrames to set in the project database.
         projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+        conn: Optional; SQLite connection object. If None, a new connection will be created.
         """
-        if projDB_fp is None:
-            projDB_fp = self.get_projDB_fp()
-            
+        
         if logger is None: logger=self.logger
         log = logger.getChild('projDB_set_tables')
+        
+        if projDB_fp is None:
+            projDB_fp = self.get_projDB_fp()
+    
+
     
         assert_projDB_fp(projDB_fp)
     
-        with sqlite3.connect(projDB_fp) as conn:
+        # Check if conn is provided, if not, create a new connection
+        close_conn = False
+        if conn is None:
+            conn = sqlite3.connect(projDB_fp)
+            close_conn = True
+    
+        try:
             for k, df in df_d.items():
                 try:
                     #===============================================================
                     # data checks
                     #===============================================================
-                    if len(df)==0:
+                    if len(df) == 0:
                         log.warning(f'empty dataframe for {k}')
-                    
+    
                     if df.isin(['nan']).any().any():
                         raise AssertionError(f'found nan in {k}')
-                    
-                    
+    
                     #===============================================================
                     # schema checks
                     #===============================================================
                     if k in project_db_schema_d.keys():
-                        
-    
                         expected_columns = project_db_schema_d[k].columns
                         actual_columns = df.columns
-                        
-                        if not actual_columns.equals(expected_columns):
+    
+                        if not set(actual_columns)==set(expected_columns): #dont care bout column order
                             mismatched_columns = {
                                 'missing_in_actual': list(set(expected_columns) - set(actual_columns)),
                                 'extra_in_actual': list(set(actual_columns) - set(expected_columns))
@@ -1268,27 +1284,26 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
                             log.error(f"Column mismatch for table '{k}':")
                             log.error(f"Mismatched columns: \n{mismatched_columns}")
                             raise AssertionError(f"Columns mismatch on {k}")
-                        
-     
     
-    
-                    
                     elif k.startswith('model_'):
                         pass
-                    
+    
                     elif k.startswith('vfunc_'):
                         pass
-                        
+    
                     else:
                         raise KeyError(f'bad table name: {k}')
-                    
     
-     
                     df.to_sql(k, conn, if_exists='replace', index=False)
                 except Exception as e:
                     raise IOError(f'failed to set table \'{k}\' to project database:\n     {e}')
-                
+        finally:
+            assert_projDB_conn(conn)
+            if close_conn:
+                conn.close()
+    
         log.debug(f'updated {len(df_d)} tables in project database at\n    {df_d.keys()}')
+
                 
     def projDB_drop_tables(self, *table_names, projDB_fp=None, logger=None):
         """Convenience wrapper to drop multiple tables from the project database.

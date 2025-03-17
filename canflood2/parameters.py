@@ -210,7 +210,9 @@ consequence_category_d = {
 #===============================================================================
 # vulnerabiltiy functions---------
 #===============================================================================
-project_db_schema_d['06_vfunc_index'] = pd.DataFrame(columns=vfunc_cdf_chk_d)
+project_db_schema_d['06_vfunc_index'] = pd.DataFrame(columns={
+    k:v for k,v in vfunc_cdf_chk_d.items() if not k in ['exposure']
+    })
 
 project_db_schema_d['07_vfunc_data'] = pd.DataFrame(columns={
     'tag': str,'exposure': float, 'impact': float

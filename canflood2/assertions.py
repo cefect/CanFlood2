@@ -71,13 +71,14 @@ def assert_projDB_conn(conn,
         raise AssertionError(f"Missing tables in project database: {', '.join(missing_tables)}")
     
     if check_consistency:
+        get_df = lambda table_name: pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
         all_table_names = get_table_names(conn)
         #=======================================================================
         # #check the model_index matches the model tables
         #=======================================================================
         table_name = '03_model_suite_index'
         
-        dx = pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+        dx = get_df(table_name)
         dx['modelid'] = dx['modelid'].astype(str)
         dx = dx.set_index(['modelid', 'category_code'])
         
@@ -112,11 +113,22 @@ def assert_projDB_conn(conn,
             
             
         #=======================================================================
-        # check for orphonzed vfuncs
+        # vfuncs
         #=======================================================================
-        #collect all the vfunc indexes
+        #check the index matches the data
+        table_name = '06_vfunc_index'
+        index_df = get_df(table_name)
         
-        #see of all of these tables exist
+        if len(index_df)>0:
+            data_dx = get_df('07_vfunc_data').set_index(['tag', 'exposure'])
+            assert len(data_dx)>0, 'no data in vfunc_data'
+            
+            #check the index matches the data
+            assert set(index_df['tag']) == set(data_dx.index.unique('tag')), f'index mismatch'
+        else:
+            assert len(get_df('07_vfunc_data')) == 0, 'no index but data found'
+            
+ 
         
             
  

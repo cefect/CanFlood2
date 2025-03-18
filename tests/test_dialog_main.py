@@ -51,7 +51,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS---------
 #===============================================================================
-overwrite_testdata=True
+overwrite_testdata=False
 def write_sqlite(result, ofp, write=overwrite_testdata):
     if write:
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
@@ -190,7 +190,7 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
         dialog.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
         
         #load into the event metadata
-        click(dialog.pushButton_HZ_hrlay_load)
+        click(dialog.pushButton_HZ_hrlay_load) #load_selected_rasters_to_eventMeta_widget()
         
     #===========================================================================
     # event values in tableWidget_HZ_eventMeta
@@ -279,7 +279,7 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
     write_sqlite(result, oj_out(test_name, result))
      
  
-
+@pytest.mark.dev
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 @pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02']) 
 @pytest.mark.parametrize("widget_data_d", [

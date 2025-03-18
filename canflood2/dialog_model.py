@@ -64,6 +64,9 @@ class Model_compiler(object):
         
         """run compilation sequence"""
         _ = self._table_finv_to_db(**skwargs)
+        
+        if self.model.param_d['finv_elevType'] == 'ground':
+            _ = self._table_gels_to_db(**skwargs)
     
     
     
@@ -76,9 +79,7 @@ class Model_compiler(object):
         if model is None: model = self.model
         
         log = self.logger.getChild('_table_finv_to_db')
-        
-        
-        
+ 
         #=======================================================================
         # load the data
         #=======================================================================
@@ -126,6 +127,44 @@ class Model_compiler(object):
         
         log.debug(f'finished')
         return df
+    
+    def _table_gels_to_db(self, model=None, logger=None):
+        """build the ground eleveations table"""
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger = self.logger
+        if model is None: model = self.model
+        
+        log = self.logger.getChild('_table_gels_to_db')
+        
+        
+        #=======================================================================
+        # precheck
+        #=======================================================================
+        assert model.param_d['finv_elevType'] == 'ground', 'bad elevation type'
+        
+        
+        #=======================================================================
+        # load DEM
+        #=======================================================================
+        dem_rlay = self.parent.get_dem_vlay()
+        assert dem_rlay is not None, 'must select a DEM for finv_elevType=\'ground\''
+        log.degug(f'loaded dem {dem_rlay.name()}')
+        
+        #=======================================================================
+        # load hazard rasters
+        #=======================================================================
+        haz_rlay_d = self.parent.get_haz_rlay_d()
+        log.debug(f'loaded {len(haz_rlay_d)} hazard rasters')
+        
+        #=======================================================================
+        # sample
+        #=======================================================================
+        
+        
+        
+        
     
  
 

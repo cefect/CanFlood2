@@ -17,8 +17,8 @@ from qgis.core import (
 
 from pytest_qgis.utils import clean_qgis_layer
 
-from canflood2.assertions import assert_eventMeta_df
-
+ 
+from canflood2.assertions import assert_df_matches_projDB_schema
 from canflood2.parameters import src_dir, project_db_schema_d
 
 #===============================================================================
@@ -218,7 +218,8 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
     df['layer_id'] = df.iloc[:, 0].map(pd.Series({k: v.id() for k, v in haz_rlay_d.items()}))
     df['layer_fp'] = df.iloc[:, 0].map(pd.Series({k: v.source() for k, v in haz_rlay_d.items()}))
     
-    assert_eventMeta_df(df)
+    assert_df_matches_projDB_schema('05_haz_events', df)
+ 
     return df
 
 

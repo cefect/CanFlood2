@@ -3,7 +3,13 @@ Created on Mar 17, 2025
 
 @author: cef
 '''
+import os, logging
 import pandas as pd
+import pprint
+import processing
+from qgis.core import (
+    QgsProcessingContext, QgsProcessingFeedback, QgsFeatureRequest,QgsApplication
+    )
 
 
 
@@ -53,3 +59,223 @@ def vlay_to_df(layer):
     assert df.shape[1] == len(field_names)
     
     return df
+
+#===============================================================================
+# PROCESSING--------
+#===============================================================================
+class ProcessingEnvironment(object):
+    def __init__(self, logger=None, context=None, feedback=None):
+        """
+        Initialize the processing environment.
+        :param logger: a logging.Logger instance.
+        :param context: an optional QgsProcessingContext; if None, a new one is created.
+        :param feedback: an optional QgsProcessingFeedback; if None, a custom feedback instance is created.
+        """
+        if logger is None: logger = logging.getLogger(__name__)
+        
+        self.logger = logger
+        if context is None:
+            context = QgsProcessingContext()
+            context.setInvalidGeometryCheck(QgsFeatureRequest.GeometryAbortOnInvalid)
+        self.context = context 
+        
+        
+        self.feedback = feedback if feedback is not None else QgsProcessingFeedback_extended(logger=logger)
+        #self.results = []  # Collect results of each processing.run call.
+        
+        #log all the agos
+        #=======================================================================
+        # for alg in QgsApplication.processingRegistry().algorithms():
+        #     logger.debug("{}:{} --> {}".format(alg.provider().name(), alg.name(), alg.displayName()))
+        #=======================================================================
+        
+    
+#===============================================================================
+#     def xxx_init_algos(self,
+#                     context=None,
+#                     invalidGeometry=QgsFeatureRequest.GeometryAbortOnInvalid,
+#                         #GeometryNoCheck
+#                         #GeometryAbortOnInvalid
+#                         
+#                     ): #initiilize processing and add providers
+#         """
+#         crashing without raising an Exception
+#         """
+#     
+#     
+#         log = self.logger.getChild('_init_algos')
+#         
+#         if not isinstance(self.qap, QgsApplication):
+#             raise Error('qgis has not been properly initlized yet')
+#         
+#         #=======================================================================
+#         # build default co ntext
+#         #=======================================================================
+#         """TODO: use users native QGIS environment
+#             better consistency between standalone and plugin runs"""
+# #===============================================================================
+# #         if context is None:
+# # 
+# #             context=QgsProcessingContext()
+# #             context.setInvalidGeometryCheck(invalidGeometry)
+# #             
+# #         self.context=context
+# #===============================================================================
+#         
+#         #=======================================================================
+#         # init p[rocessing]
+#         #=======================================================================
+#         from processing.core.Processing import Processing
+#  
+#         Processing.initialize()  
+#     
+#         QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
+#         #QgsApplication.processingRegistry().addProvider(WbtProvider())
+#         
+#         #=======================================================================
+#         # #log all the agos
+#         # for alg in QgsApplication.processingRegistry().algorithms():
+#         #     log.debug("{}:{} --> {}".format(alg.provider().name(), alg.name(), alg.displayName()))
+#         #=======================================================================
+#         
+#         
+#         assert not self.feedback is None, 'instance needs a feedback method for algos to work'
+#         
+#         log.info('processing initilzied w/ feedback: \'%s\''%(type(self.feedback).__name__))
+#         
+# 
+#         return True
+#===============================================================================
+
+    def __enter__(self):
+        self.logger.info("Starting processing environment.")
+        return self
+
+    def run(self, algorithm, params, logger=None):
+        """
+        Execute a processing algorithm with the provided parameters.
+        :param algorithm: the processing algorithm id.
+        :param params: a dictionary of parameters for the algorithm.
+        :return: the result dictionary from processing.run.
+        """
+        #=======================================================================
+        # defautls
+        #=======================================================================
+
+        assert isinstance(algorithm, str), f"Expected algorithm to be a string, got {type(algorithm)}"
+        assert isinstance(params, dict), f"Expected params to be a dict, got {type(params)}"
+        
+        if logger is None: logger=self.logger
+        log=logger.getChild(algorithm)
+        
+        #=======================================================================
+        # run
+        #=======================================================================
+        log.debug(f"Running algorithm: {algorithm} with parameters: {params}")
+        result = processing.run(algorithm, params, 
+                                context=self.context, feedback=self.feedback)
+        
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        #self.results.append(result)
+        
+
+
+        log.info(f"Finished algorithm: {algorithm} w/\n{pprint.pformat(result)}")
+
+        return result
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            self.logger.error(f"Error in processing environment: {exc_val}")
+        self.logger.info("Closing processing environment.")
+        # Optionally add cleanup code here if necessary.
+        return False  # Propagate any exception.
+
+class QgsProcessingFeedback_extended(QgsProcessingFeedback):
+    """
+    wrapper for easier reporting and extended progress
+    
+ 
+    QgsProcessingFeedback inherits QgsFeedback
+    """
+    
+    def __init__(self,
+                 logger=None,
+                 ):
+        
+        if logger is None: logger = logging.getLogger(__name__)
+        self.logger=logger.getChild('FeedBack')
+        
+        super().__init__()
+                
+    def setProgressText(self, text):
+        self.logger.debug(text)
+
+    def pushInfo(self, info):
+        self.logger.info(info)
+
+    def pushCommandInfo(self, info):
+        self.logger.info(info)
+
+    def pushDebugInfo(self, info):
+        self.logger.info(info)
+
+    def pushConsoleInfo(self, info):
+        self.logger.info(info)
+
+    def reportError(self, error, fatalError=False):
+        self.logger.error(error)
+        
+    
+    def upd_prog(self, #advanced progress handling
+             prog_raw, #pass None to reset
+             method='raw', #whether to append value to the progress
+             ): 
+            
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        #get the current progress
+        progress = self.progress() 
+    
+        #===================================================================
+        # prechecks
+        #===================================================================
+        #make sure we have some slots connected
+        """not sure how to do this"""
+        
+        #=======================================================================
+        # reseting
+        #=======================================================================
+        if prog_raw is None:
+            """
+            would be nice to reset the progressBar.. .but that would be complicated
+            """
+            self.setProgress(0)
+            return
+        
+        #=======================================================================
+        # setting
+        #=======================================================================
+        if method=='append':
+            prog = min(progress + prog_raw, 100)
+        elif method=='raw':
+            prog = prog_raw
+        elif method == 'portion':
+            rem_prog = 100-progress
+            prog = progress + rem_prog*(prog_raw/100)
+            
+        assert prog<=100
+        
+        #===================================================================
+        # emit signaling
+        #===================================================================
+        self.setProgress(prog)
+            
+    def setProgress(self, prog):        
+        #call QgsFeedback.setProgress
+        #this emits 'progressChanged' signal, which would be connected to progressBar.setValue
+        # see hlpr.basic.ComWrkr.setup_feedback()
+        super().setProgress(float(prog)) 

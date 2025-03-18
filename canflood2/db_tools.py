@@ -7,6 +7,7 @@ basic functions for working with the project sqlite databases
 
 separated here for module dependence
 '''
+import warnings
 import pandas as pd
 from .parameters import project_db_schema_d
 from .hp.sql import pd_dtype_to_sqlite_type
@@ -53,6 +54,18 @@ def df_to_sql(df, table_name, conn, **kwargs):
     """cant use this in the main module because of module dependence
     assert_df_matches_projDB_schema(table_name, df)"""
     
+    #===========================================================================
+    # data checks
+    #===========================================================================
+    if len(df)==0:
+        warnings.warn(f'attempting to write empty dataframe to table \'{table_name}\'')
+        
+    if df.isin(['nan']).any().any():
+        raise AssertionError(f'found nan in {k}')
+    
+    #===========================================================================
+    # write
+    #===========================================================================
     dtype = get_sqlalchemy_dtypes_from_schema(table_name)
     
     result = df.to_sql(table_name, conn, dtype=dtype, **kwargs)

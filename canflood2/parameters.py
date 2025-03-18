@@ -104,7 +104,9 @@ for col, meta in eventMeta_control_d.items():
 #===============================================================================
 hazDB_meta_template_fp = os.path.join(plugin_dir, 'hazDB_meta_template.csv')
 hazDB_schema_d = {
-    '04_haz_meta': pd.read_csv(hazDB_meta_template_fp),
+    '04_haz_meta': pd.read_csv(hazDB_meta_template_fp,
+                               dtype = {'value': str}, #variable types
+                               ),
     '05_haz_events': pd.DataFrame(df_columns)
     }
 
@@ -128,23 +130,20 @@ project_db_schema_d['02_project_parameters'] = pd.concat(
 #===============================================================================
 # database schema
 #===============================================================================
-project_db_schema_d['03_model_suite_index'] =     pd.DataFrame(
-            columns={
-                #indexers
-                'modelid': int,
-                'category_code': str,
-                'name': str,
-                
-                #suite display parameters
-                #'status': str,
-                'asset_label': str,
-                'consq_label': str,                  
-                
-                #model results
-                'result_ead': float, #resulting integrated EAD                
-                
-            }
-        )
+ 
+
+project_db_schema_d['03_model_suite_index'] =     pd.DataFrame({
+                                                        'modelid': pd.Series(dtype='int'),
+                                                        'category_code': pd.Series(dtype='str'),
+                                                        'name': pd.Series(dtype='str'),
+                                                        'asset_label': pd.Series(dtype='str'),
+                                                        'consq_label': pd.Series(dtype='str'),
+                                                        'result_ead': pd.Series(dtype='float')
+                                                    })
+
+"""
+project_db_schema_d['03_model_suite_index'].dtypes
+"""
 
 #special table parameters
 
@@ -152,16 +151,15 @@ project_db_schema_d['03_model_suite_index'] =     pd.DataFrame(
 #these will be prefixed by the model name
 projDB_schema_modelTables_d = {
     'table_parameters': None,  # name of parameter table: simple key, value for the parameters in the model config UI
-    'table_finv': pd.DataFrame( #asset inventory
-        columns = {
-            'nestID': int,
-            'indexField': int,
-            'scale': float,
-            'elev': float,
-            'tag': str,
-            'cap': float
-            }
-        ),  
+    'table_finv': pd.DataFrame({
+        'nestID': pd.Series(dtype=int),
+        'indexField': pd.Series(dtype=int),
+        'scale': pd.Series(dtype=float),
+        'elev': pd.Series(dtype=float),
+        'tag': pd.Series(dtype=str),
+        'cap': pd.Series(dtype=float)
+    }),
+
     'tabel_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
     'table_gels': None,  # name of table for: ground elevation data (columns: dem name, rows: assets)
     'table_dmgs': None,  # name of table for: damage data (columns: hazard event names, rows: assets, values: exposure and curve intersect)
@@ -224,20 +222,20 @@ consequence_category_d = {
 #===============================================================================
 # vulnerabiltiy functions---------
 #===============================================================================
-project_db_schema_d['06_vfunc_index'] = pd.DataFrame(columns={
-    k:v for k,v in vfunc_cdf_chk_d.items() if not k in ['exposure']
-    })
 
-project_db_schema_d['07_vfunc_data'] = pd.DataFrame(columns={
-    'tag': str,'exposure': float, 'impact': float
-    })
+project_db_schema_d['06_vfunc_index'] = pd.DataFrame({
+    k: pd.Series(dtype=v) for k, v in vfunc_cdf_chk_d.items() if k != 'exposure'
+})
+
+project_db_schema_d['07_vfunc_data'] = pd.DataFrame({
+    'tag': pd.Series(dtype=str),
+    'exposure': pd.Series(dtype=float),
+    'impact': pd.Series(dtype=float)
+})
+
         
 
-
-#===============================================================================
-# HELPERS---------
-#===============================================================================
-
+ 
 
  
  

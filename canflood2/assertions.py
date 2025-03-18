@@ -43,7 +43,7 @@ def _assert_sqlite_table_exists(conn, table_name):
 #===============================================================================
 # BASIC-------------
 #===============================================================================
-def assert_df_template_match(df, schema_df):
+def assert_df_template_match(df, schema_df, check_dtypes=True):
     """check the df matches the schema"""
     assert isinstance(df, pd.DataFrame)
     assert isinstance(schema_df, pd.DataFrame)
@@ -53,9 +53,10 @@ def assert_df_template_match(df, schema_df):
         f"Column mismatch: {set(df.columns) - set(schema_df.columns)}")
     
     # Compare the string representation of dtypes for a more approximate check:
-    actual_dtypes = df.dtypes.astype(str).sort_index()
-    expected_dtypes = schema_df.dtypes.astype(str).sort_index()
-    assert_series_match(expected_dtypes, actual_dtypes)
+    if check_dtypes:
+        actual_dtypes = df.dtypes.astype(str).sort_index()
+        expected_dtypes = schema_df.dtypes.astype(str).sort_index()
+        assert_series_match(expected_dtypes, actual_dtypes)
     #assert_series_equal(actual_dtypes, expected_dtypes)
     #assert actual_dtypes.equals(expected_dtypes),f"Dtype mismatch: \nactuals:\n{actual_dtypes} vs expected\n{expected_dtypes}"
     
@@ -178,7 +179,7 @@ def assert_projDB_conn(conn,
  
         
             
-def assert_df_matches_projDB_schema(table_name, actual_df):
+def assert_df_matches_projDB_schema(table_name, actual_df, **kwargs):
     """compare the df to the schema"""
     assert isinstance(actual_df, pd.DataFrame)
     assert table_name in project_db_schema_d.keys(), f"bad table_name: {table_name}"
@@ -188,7 +189,7 @@ def assert_df_matches_projDB_schema(table_name, actual_df):
  
     if schema_df is not None:
         try:
-            assert_df_template_match(actual_df, schema_df)
+            assert_df_template_match(actual_df, schema_df, **kwargs)
         except Exception as e:
             raise AssertionError(f"table '{table_name}' schema mismatch:\n    {e}") from None
     
@@ -233,7 +234,8 @@ def assert_hazDB_conn(conn,expected_tables=list(hazDB_schema_d.keys())):
 #===============================================================================
 # hazard event metadata
 #===============================================================================
-def assert_eventMeta_df(df):
+def xxx_assert_eventMeta_df(df):
+    """use the generic assertion"""
     """check this is an eventMeta_df"""
     assert isinstance(df, pd.DataFrame)
     #check the column names and dtypes match that of the schema

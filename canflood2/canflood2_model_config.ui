@@ -386,6 +386,9 @@ QToolBox::tab {
                     <height>16777215</height>
                    </size>
                   </property>
+                  <property name="currentIndex">
+                   <number>-1</number>
+                  </property>
                   <item>
                    <property name="text">
                     <string>ground</string>
@@ -838,8 +841,8 @@ QToolBox::tab {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>626</height>
+        <width>639</width>
+        <height>207</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1033,8 +1036,8 @@ QToolBox::tab {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>626</height>
+        <width>621</width>
+        <height>256</height>
        </rect>
       </property>
       <attribute name="label">

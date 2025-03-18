@@ -66,12 +66,12 @@ from .parameters import (
     eventMeta_control_d)
 
 from .assertions import (
-    assert_projDB_fp, assert_projDB_conn, assert_hazDB_conn, assert_hazDB_fp, assert_eventMeta_df,
+    assert_projDB_fp, assert_projDB_conn, assert_hazDB_conn, assert_hazDB_fp, 
     assert_df_matches_projDB_schema
     )
 
 from .core import _get_proj_meta_d, Model
-from .db_tools import df_to_sql
+from .db_tools import df_to_sql, get_pd_dtypes_from_schema
 from .dialog_model import Model_config_dialog
 #===============================================================================
 # load UI and resources
@@ -161,7 +161,7 @@ class Main_dialog_haz(object):
             eventMeta_df['layer_fp'] = [layer.source() for layer in layers_d.values()]
             eventMeta_df['prob'] = 0.0 #probability]]    
             
-            assert_eventMeta_df(eventMeta_df)        
+            assert_df_matches_projDB_schema('05_haz_events', eventMeta_df)        
             
             #load this dataframe into the table widget
             self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)
@@ -170,8 +170,10 @@ class Main_dialog_haz(object):
         
         self.pushButton_HZ_hrlay_load.clicked.connect(load_selected_rasters_to_eventMeta_widget)
     
-    def _create_new_hazDB(self, fp, overwrite=True):
-        """create a new hazard database file"""
+    def xxx_create_new_hazDB(self, fp, overwrite=True):
+        """create a new hazard database file
+        
+        export?"""
         log = self.logger.getChild('_create_new_hazDB')
         
         #file check
@@ -212,8 +214,10 @@ class Main_dialog_haz(object):
         
         return
         
-    def _save_haz_ui_to_hazDB(self, *args, hazDB_fp=None, projDB_fp=None):
-        """save the current UI state to the hazard database"""\
+    def xxx_save_haz_ui_to_hazDB(self, *args, hazDB_fp=None, projDB_fp=None):
+        """save the current UI state to the hazard database
+        
+        export button?"""
         #=======================================================================
         # defaults
         #=======================================================================
@@ -242,7 +246,7 @@ class Main_dialog_haz(object):
             table_name='04_haz_meta'
             df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
             
-            d = self._set_ui_state_from_df_template(df_d[table_name])
+            d = self._get_ui_state_from_df_template(df_d[table_name])
             df_d[table_name]['value'] = pd.Series(d)
             
             #===================================================================
@@ -332,7 +336,7 @@ class Main_dialog_haz(object):
         
         
         #set UI parameter state
-        self._set_ui_state_from_df_template(haz_meta_df, logger=log)
+        self._get_ui_state_from_df_template(haz_meta_df, logger=log)
         
         #set the event metadata widget
         self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(haz_events_df)
@@ -358,6 +362,65 @@ class Main_dialog_haz(object):
     
         return dfs[0] if len(dfs) == 1 else dfs
     
+    
+    def get_haz_meta_df(self):
+        """build the meta_df from the ui state"""
+        
+        #load the template
+        df  = hazDB_schema_d['04_haz_meta'].copy()        
+ 
+        #use to retrieve ui values
+        d = self._get_ui_state_from_df_template(df)
+        df['value'] = pd.Series(d)
+        
+        """
+        view(df_template)
+        """
+        
+        return df
+    
+    def get_haz_events_df(self, logger=None):
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log = logger.getChild('get_haz_events_df')
+        
+        #=======================================================================
+        # #read the dataframe from the table widget
+        #=======================================================================
+        df_raw = self.tableWidget_HZ_eventMeta.get_df_from_QTableWidget()
+        
+        log.debug(f'raw event metadata dataframe\n{df_raw.shape}')
+        
+        #=======================================================================
+        # process
+        #=======================================================================
+        if len(df_raw)>0:
+            df = df_raw.rename(
+                columns={v['label']:k for k,v in eventMeta_control_d.items()})
+            
+        
+            #clean up the extraction
+            
+            df = df.replace('', pd.NA).astype(get_pd_dtypes_from_schema('05_haz_events'))
+            
+
+            for columnName, col in df.items():
+                if columnName in ['metadata']:continue
+                if col.isna().any():
+                    log.warning(f'empty values in column \'{columnName}\'')
+                
+        else:
+            log.warning(f'no hazard event data entered')
+            df=None
+            
+        return df
+    
+    def get_haz_rlay_d(self):
+        """get the selected hazard rasters"""
+        return self.listView_HZ_hrlay.get_selected_layers()
+
 
  
             
@@ -759,6 +822,9 @@ class Main_dialog_modelSuite(object):
     
     def set_model_index_dx(self, dx, **kwargs):
         self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, **kwargs)
+        """
+        dx.reset_index().dtypes
+        """
         
     def update_model_index_dx(self, model, **kwargs):
         """update the model index table with the model"""
@@ -1045,7 +1111,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         
         
 
-    def _set_ui_state_from_df_template(self, df, logger=None):
+    def _get_ui_state_from_df_template(self, df, logger=None):
         """take a dataframe with widget name columns and return a dictionary of widget values
         
         Parameters
@@ -1057,7 +1123,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         # defautls
         #=======================================================================
         if logger is None: logger=self.logger
-        log = logger.getChild('_set_ui_state_from_df_template')
+        log = logger.getChild('_get_ui_state_from_df_template')
         
         d = dict()
         for i, row in df.iterrows():
@@ -1117,9 +1183,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
 
         #=======================================================================
         # project database
-        #=======================================================================
-
-        
+        #=======================================================================        
         assert_projDB_fp(projDB_fp)
         log.debug(f'saving UI to project database at\n    {projDB_fp}')
         
@@ -1142,7 +1206,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             table_name='02_project_parameters'
             df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
             
-            d = self._set_ui_state_from_df_template(df_d[table_name]) 
+            d = self._get_ui_state_from_df_template(df_d[table_name]) 
             
                         
             df_d[table_name]['value'] = pd.Series(d)
@@ -1176,6 +1240,16 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             df_d[table_name] = result_df.reindex(columns=blank_df.columns).astype(blank_df.dtypes.to_dict())
             
  
+            #===================================================================
+            # hazard tables
+            #===================================================================
+            table_name= '04_haz_meta'
+            df_d[table_name] = self.get_haz_meta_df()
+            
+            table_name= '05_haz_events'
+            haz_events_df = self.get_haz_events_df(logger=log)
+            if not haz_events_df is None:
+                df_d[table_name] = haz_events_df
  
             
             #===================================================================
@@ -1191,6 +1265,14 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         log.push(f'UI state saved to project database')
             
         return
+    
+    def get_dem_vlay(self):
+        """get the DEM layer"""
+        rlay = self.comboBox_dem.currentLayer()
+        if not rlay is None:
+            assert isinstance(rlay, QgsRasterLayer)
+             
+        return rlay
     
     def get_projDB_fp(self):
         """get the project database file path and do some formatting and checks"""
@@ -1267,31 +1349,12 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         try:
             for k, df in df_d.items():
                 try:
-                    #===============================================================
-                    # data checks
-                    #===============================================================
-                    if len(df) == 0:
-                        log.warning(f'empty dataframe for {k}')
-    
-                    if df.isin(['nan']).any().any():
-                        raise AssertionError(f'found nan in {k}')
-    
-                    #===============================================================
-                    # schema checks
-                    #===============================================================
+ 
                     if k in project_db_schema_d.keys():
-                        expected_columns = project_db_schema_d[k].columns
-                        actual_columns = df.columns
-    
-                        if not set(actual_columns)==set(expected_columns): #dont care bout column order
-                            mismatched_columns = {
-                                'missing_in_actual': list(set(expected_columns) - set(actual_columns)),
-                                'extra_in_actual': list(set(actual_columns) - set(expected_columns))
-                            }
-                            log.error(f"Column mismatch for table '{k}':")
-                            log.error(f"Mismatched columns: \n{mismatched_columns}")
-                            raise AssertionError(f"Columns mismatch on {k}")
-    
+                        """this test happens before we re-cast the types"""
+                        
+                        assert_df_matches_projDB_schema(k, df, check_dtypes=False)
+   
                     elif k.startswith('model_'):
                         pass
     
@@ -1301,7 +1364,9 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
                     else:
                         raise KeyError(f'bad table name: {k}')
     
-                    df.to_sql(k, conn, if_exists='replace', index=False)
+                    df_to_sql(df, k, conn, if_exists='replace', index=False)
+                    log.debug(f'    wrote table \'{k}\' w/ {df.shape}')
+ 
                 except Exception as e:
                     raise IOError(f'failed to set table \'{k}\' to project database:\n     {e}')
         finally:

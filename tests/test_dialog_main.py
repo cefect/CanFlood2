@@ -27,11 +27,11 @@ from qgis.PyQt import QtWidgets
 
 import tests.conftest as conftest
 from tests.conftest import (
-    conftest_logger, assert_intersecting_values_match_verbose,
+    conftest_logger,
     result_write_filename_prep, click
     )
 
-from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp
+from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp, assert_series_match
 
 from canflood2.dialog_main import Main_dialog
 from canflood2.parameters import fileDialog_filter_str, eventMeta_control_d, consequence_category_d

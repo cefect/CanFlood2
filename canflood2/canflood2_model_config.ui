@@ -227,6 +227,9 @@ QToolBox::tab {
         </item>
         <item>
          <widget class="QComboBox" name="comboBox_expoLevel">
+          <property name="currentIndex">
+           <number>-1</number>
+          </property>
           <item>
            <property name="text">
             <string>binary (L1)</string>
@@ -253,7 +256,7 @@ QToolBox::tab {
       <enum>QFrame::Raised</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page">
       <property name="geometry">
@@ -554,14 +557,14 @@ QToolBox::tab {
                    <item row="1" column="0">
                     <widget class="QLabel" name="labelLabel">
                      <property name="text">
-                      <string>Label</string>
+                      <string>Asset Label</string>
                      </property>
                     </widget>
                    </item>
                    <item row="1" column="1">
-                    <widget class="QLineEdit" name="labelLineEdit_AI">
+                    <widget class="QLineEdit" name="labelLineEdit_AI_label">
                      <property name="placeholderText">
-                      <string>Short one-word description of this asset (e.g., 'houses')</string>
+                      <string>Short description of this asset (e.g., 'houses')</string>
                      </property>
                     </widget>
                    </item>
@@ -861,12 +864,18 @@ QToolBox::tab {
             <item row="0" column="0">
              <widget class="QLabel" name="consequenceLabel">
               <property name="text">
-               <string>Consequence</string>
+               <string>Consequence Label:</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
              <widget class="QLineEdit" name="consequenceLineEdit_V">
+              <property name="maximumSize">
+               <size>
+                <width>600</width>
+                <height>16777215</height>
+               </size>
+              </property>
               <property name="placeholderText">
                <string>Short description of the consequence calculated by this model (e.g., 'replacement cost')</string>
               </property>

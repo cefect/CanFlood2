@@ -29,12 +29,15 @@ test_data_dir = os.path.join(src_dir, 'tests', 'data')
 widget_settings_d = {
     #model config dialog widget data related to specific tutorials
     'cf1_tutorial_02': {
+        'comboBox_expoLevel':'depth-dependent (L2)',
         'comboBox_AI_elevType':'ground',
         'mFieldComboBox_cid':'xid',
         'mFieldComboBox_AI_01_scale':'f0_scale',
         'mFieldComboBox_AI_01_elev':'f0_elv',
         'mFieldComboBox_AI_01_tag':'f0_tag',
-        'mFieldComboBox_AI_01_cap':'f0_cap',    
+        'mFieldComboBox_AI_01_cap':'f0_cap',  
+        'labelLineEdit_AI_label':'my inventory',
+        'consequenceLineEdit_V':'some consequence',  
     },
     }
 

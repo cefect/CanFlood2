@@ -150,7 +150,8 @@ def click(widget):
     
     #check that the widget is enabled
     assert widget.isEnabled(), f'widget is not enabled: {widgetname}'
-    print(f"clicking: \'{widgetname}\'\n{'=' * 80}\n\n")
+    sys.stdout.flush()
+    print(f"\n\nclicking: \'{widgetname}\'\n{'=' * 80}\n\n")
     return QTest.mouseClick(widget, Qt.LeftButton)
  
 
@@ -168,15 +169,5 @@ def result_write_filename_prep(test_name, char_max=25, clear_str='test_dial_main
         return test_name1[:char_max]
 
 
-def assert_intersecting_values_match_verbose(expected_series, actual_series):
-    # Determine the intersecting indexes.
-    common_index = expected_series.index.intersection(actual_series.index)
-    assert len(common_index) > 0, 'no common indexes found'
-# Subset both series to only include intersecting keys.
-    filtered_expected_series = expected_series.loc[common_index]
-    filtered_actual_series = actual_series.loc[common_index]
-# Compare the filtered series using pandas' compare().
-    diff = filtered_expected_series.compare(filtered_actual_series, result_names=("expected", "actual"))
-    if not diff.empty:
-        raise AssertionError("Value mismatches found for common keys:\n" + diff.to_string())
+
  

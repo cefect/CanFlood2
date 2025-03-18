@@ -1,3 +1,6 @@
+
+
+
 '''
 Created on Mar 6, 2025
 
@@ -9,15 +12,18 @@ Created on Mar 6, 2025
 import os, warnings
 import sqlite3
 import pandas as pd
+from pandas.testing import assert_series_equal, assert_frame_equal
 
 
-from .hp.sql import get_table_names
+
+from .db_tools import get_pd_dtypes_from_schema, get_sqlalchemy_dtypes_from_schema, sql_to_df
 from .parameters import (
     project_db_schema_d, hazDB_schema_d, projDB_schema_modelTables_d,
  
-    
     )
 
+
+from .hp.sql import get_table_names
 from .hp.vfunc import load_vfunc_to_df_d, vfunc_df_to_dict, vfunc_cdf_chk_d
 from .hp.basic import view_web_df as view
 
@@ -31,6 +37,41 @@ def _assert_sqlite_table_exists(conn, table_name):
         raise AssertionError(f"Table '{table_name}' not found in database") # Check if DRF table exists
     
     
+
+ 
+
+#===============================================================================
+# BASIC-------------
+#===============================================================================
+def assert_df_template_match(df, schema_df):
+    """check the df matches the schema"""
+    assert isinstance(df, pd.DataFrame)
+    assert isinstance(schema_df, pd.DataFrame)
+    
+    # Compare columns (you can use assert_frame_equal if order matters)
+    assert set(df.columns) == set(schema_df.columns), (
+        f"Column mismatch: {set(df.columns) - set(schema_df.columns)}")
+    
+    # Compare the string representation of dtypes for a more approximate check:
+    actual_dtypes = df.dtypes.astype(str).sort_index()
+    expected_dtypes = schema_df.dtypes.astype(str).sort_index()
+    assert_series_match(expected_dtypes, actual_dtypes)
+    #assert_series_equal(actual_dtypes, expected_dtypes)
+    #assert actual_dtypes.equals(expected_dtypes),f"Dtype mismatch: \nactuals:\n{actual_dtypes} vs expected\n{expected_dtypes}"
+    
+
+def assert_series_match(expected_series, actual_series):
+    """an easier to read implementation of pd.testing.assert_series_equal"""
+    # Determine the intersecting indexes.
+    common_index = expected_series.index.intersection(actual_series.index)
+    assert len(common_index) > 0, 'no common indexes found'
+# Subset both series to only include intersecting keys.
+    filtered_expected_series = expected_series.loc[common_index]
+    filtered_actual_series = actual_series.loc[common_index]
+# Compare the filtered series using pandas' compare().
+    diff = filtered_expected_series.compare(filtered_actual_series, result_names=("expected", "actual"))
+    if not diff.empty:
+        raise AssertionError("Value mismatches found for common keys:\n" + diff.to_string())
     
     
 
@@ -60,18 +101,24 @@ def assert_projDB_conn(conn,
                    ):
  
     cursor = conn.cursor()
+    #get_df = lambda table_name: pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+    get_df = lambda table_name: sql_to_df(table_name, conn)
 
     missing_tables = []
     for table_name in expected_tables:
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
         if not cursor.fetchone():
             missing_tables.append(table_name)
+            
+ 
+        
+        assert_df_matches_projDB_schema(table_name, get_df(table_name))
 
     if missing_tables:
         raise AssertionError(f"Missing tables in project database: {', '.join(missing_tables)}")
     
     if check_consistency:
-        get_df = lambda table_name: pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+        
         all_table_names = get_table_names(conn)
         #=======================================================================
         # #check the model_index matches the model tables
@@ -131,10 +178,22 @@ def assert_projDB_conn(conn,
  
         
             
+def assert_df_matches_projDB_schema(table_name, actual_df):
+    """compare the df to the schema"""
+    assert isinstance(actual_df, pd.DataFrame)
+    assert table_name in project_db_schema_d.keys(), f"bad table_name: {table_name}"
+    
+    schema_df = project_db_schema_d[table_name]
+    
  
-        
+    if schema_df is not None:
+        try:
+            assert_df_template_match(actual_df, schema_df)
+        except Exception as e:
+            raise AssertionError(f"table '{table_name}' schema mismatch:\n    {e}") from None
     
     
+
     
 #===============================================================================
 # hazard datab ase------

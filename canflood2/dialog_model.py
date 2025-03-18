@@ -48,8 +48,89 @@ assert os.path.exists(ui_fp), 'failed to find the ui file: \n    %s'%ui_fp
 FORM_CLASS, _ = uic.loadUiType(ui_fp)
 
 
+class Model_compiler(object):
+    """organizer for model compilation functions
+    
+    
+    here we build projDB tables specific to the model    
+        computation against these tables happens in core
+        
+    consider making this a separate buttton?
+        equivalent to CanFloodv1's 'Build' routine
+    
+    """
+    
+    def compile_model(self, **skwargs):
+        
+        """run compilation sequence"""
+        _ = self._table_finv_to_db(**skwargs)
+    
+    
+    
+    def _table_finv_to_db(self, model=None, logger=None):
+        """write the finv table to the database"""
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger = self.logger
+        if model is None: model = self.model
+        
+        log = self.logger.getChild('_table_finv_to_db')
+        
+        
+        
+        #=======================================================================
+        # load the data
+        #=======================================================================
+        #load field names from parameters table
+ 
+        
+        """only one nest for now
+        using this names_d as a lazy conversion from the model_parameters to the finv table names"""
+        names_d = {
+            'indexField':'finv_indexField',
+            'scale':'f01_scale','elev':'f01_elev','tag':'f01_tag','cap':'f01_cap',
+            }
+        
+        field_value_d = {k:model.param_d[v] for k,v in names_d.items()}
+ 
+        
+        #get the vector layer
+        vlay = self._get_finv_vlay()
+        
+        #extract features as a datafram e
+        df_raw = vlay_to_df(vlay)
+        
+        log.debug(f'loaded {df_raw.shape} from {vlay.name()}')
+        #=======================================================================
+        # process 
+        #=======================================================================
+        #check that all the field names are in the columns
+        #redundant as these come from the FieldBox?
+        assert set(field_value_d.values()).issubset(df_raw.columns), 'field not found'
+        
+        #standaraize the column names
+        df = df_raw.rename(columns={v:k for k,v in field_value_d.items()}).loc[:, field_value_d.keys()]
+        
+        #add the nestID
+        df['nestID'] = 0
+        
+        #move nestID and indexField columns to front
+        df = df[['nestID', 'indexField'] + [c for c in df.columns if c not in ['nestID', 'indexField']]]
+        
+ 
+        #=======================================================================
+        # #write it to the database
+        #=======================================================================
+        model.set_tables({'table_finv':df}, logger=log)
+        
+        log.debug(f'finished')
+        return df
+    
+ 
 
-class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
+
+class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
     
     
     
@@ -269,7 +350,10 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         """load the model worker into the dialog"""
         log = self.logger.getChild('load_model')
         assert isinstance(model, Model), f'bad model type: {type(model)}'
+        
+        #set model references
         self.model = model
+        model.configDialog = self
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
             
@@ -319,8 +403,17 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         self.label_mod_modelid.setText('%2d'%model.modelid)
         self.label_mod_asset.setText(s['asset_label'])
         self.label_mod_consq.setText(s['consq_label'])
-        self.label_mod_status.setText(s['status'])        
+               
         self.label_category.setText(consequence_category_d[s['category_code']]['desc'])
+        
+        
+        #=======================================================================
+        # status
+        #=======================================================================
+        """handled by model
+        self.label_mod_status.setText(self.model.status)"""
+        model.compute_status()
+        
         
         log.debug(f'updated labels for model {model.name}')
         
@@ -354,15 +447,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
             widget = getattr(self, widgetName)
             d[i] = get_widget_value(widget)
             
-        #=======================================================================
-        # specials
-        #=======================================================================
-        """maybe not the most elegent to add this here... but this attribute is special"""
-        for k in ['status']:
-            assert k in params_df.index
-            d[k] = getattr(model, k)
-        
- 
+
         
         #=======================================================================
         # wrap
@@ -399,54 +484,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         return vlay
         
-    def _table_finv_to_db(self, model=None, logger=None):
-        """write the finv table to the database"""
-        #=======================================================================
-        # defaults
-        #=======================================================================
-        if logger is None: logger = self.logger
-        if model is None: model = self.model
-        
-        log = self.logger.getChild('_table_finv_to_db')
-        
-        
-        
-        #=======================================================================
-        # load the data
-        #=======================================================================
-        #load field names from parameters table
- 
-        
-        """only one nest for now"""
-        names_d = {
-            'indexField':'finv_indexField',
-            'scale':'f01_scale','elev':'f01_elev','tag':'f01_tag','cap':'f01_cap',
-            }
-        
-        field_value_d = {k:model.param_d[v] for k,v in names_d.items()}
- 
-        
-        #get the vector layer
-        vlay = self._get_finv_vlay()
-        
-        #extract features as a datafram e
-        df = vlay_to_df(vlay)
-        
-        log.debug(f'loaded {df.shape} from {vlay.name()}')
-        #=======================================================================
-        # process 
-        #=======================================================================
-        #check that all the field names are in the columns
-        assert set(field_value_d.keys()).issubset(df.columns), 'field not found'
-        
-        raise NotImplementedError('stopped here')
-        
-        
- 
-        #=======================================================================
-        # #write it to the database
-        #=======================================================================
-        model.set_tables({'table_finv':df}, logger=log)
+
  
         
         
@@ -474,11 +512,11 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         self._set_ui_to_table_parameters(**skwargs)
         
-        assert model.is_ready()
+
         #=======================================================================
-        # load finv
+        # compiling
         #=======================================================================
-        self._table_finv_to_db(**skwargs)
+        self.compile_model(**skwargs)
         
         #=======================================================================
         # run it
@@ -515,6 +553,7 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
     def _custom_cleanup(self):
         
         self.parent._update_model_widget_labels(model=self.model)
+        self.model.Model_config_dialog=None
         
         self.model=None
         

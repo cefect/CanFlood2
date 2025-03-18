@@ -22,9 +22,10 @@ from qgis.PyQt import QtWidgets
 from canflood2.hp.qt import set_widget_value, get_widget_value
 from canflood2.hp.vfunc import load_vfunc_to_df_d
 
-from canflood2.assertions import assert_vfunc_fp
+from canflood2.assertions import assert_vfunc_fp, assert_series_match
 
 from canflood2.dialog_model import Model_config_dialog
+from canflood2.core import ModelNotReadyError
 
 from .test_dialog_main import dialog as dialog_main
 from .test_dialog_main import oj as oj_main
@@ -33,7 +34,7 @@ from .test_dialog_main import widget_data_d
 
 import tests.conftest as conftest
 from .conftest import (
-    conftest_logger, assert_intersecting_values_match_verbose,
+    conftest_logger, 
     result_write_filename_prep, click
     )
 
@@ -82,7 +83,7 @@ def dialog(dialog_main, model,
            #turtorial data
            finv_vlay, 
  
-           widget_modelConfig_data_d, 
+           widget_modelConfig_data_d, #tests.data.tutorial_data_builder.widget_settings_d
            
            #control
  
@@ -99,6 +100,9 @@ def dialog(dialog_main, model,
         projDB model state is handled by teest_dialog_main
         
     using subsequent fixtures to handle more complex setups
+    
+    NOTE:
+        click tests seem to erase the pydev pyunit output capture
     """
     # Retrieve the model from the main dialog and the button that launches the config dialog.
  
@@ -193,7 +197,7 @@ def test_dial_model_01_launch_config(dialog,model, qtbot):
     qtbot.mouseClick(dialog.pushButton_close, Qt.LeftButton)
     
 
- 
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
 ])
@@ -212,6 +216,7 @@ def test_dial_model_02_save(dialog,
     #===========================================================================
     # resolve dialog
     #===========================================================================
+    #click(dialog.pushButton_ok)
     qtbot.mouseClick(dialog.pushButton_ok, Qt.LeftButton)
     
     #===========================================================================
@@ -259,6 +264,8 @@ def test_dial_model_03_save_vfunc(dialog, model,
                             vfunc,
                             test_name, qtbot):
     """basic + vfunc loading
+    
+    WARNING: pydev + pyunit capture is reset by the click tests
     """     
     #assert dialog.model==model
     #===========================================================================
@@ -270,11 +277,12 @@ def test_dial_model_03_save_vfunc(dialog, model,
     # load vfuncs
     #===========================================================================
     """done by vfunc fixture"""
-
+ 
     #===========================================================================
     # resolve dialog
     #===========================================================================
-    qtbot.mouseClick(dialog.pushButton_ok, Qt.LeftButton)
+    click(dialog.pushButton_ok)
+    #qtbot.mouseClick(dialog.pushButton_ok, Qt.LeftButton) #Model_config_dialog._save_and_close()
     
     #===========================================================================
     # check---------
@@ -303,7 +311,11 @@ def test_dial_model_03_save_vfunc(dialog, model,
 
 @pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('03_save_vfunc_c1-0-cf1_tu_3f2fee', 'projDB.canflood2')) #vfuncs loaded
+    pytest.param(
+        'cf1_tutorial_02',oj('03_save_vfunc_c1-0-cf1_tu_3f2fee', 'projDB.canflood2'),
+            #doesnt work with the qt dialog
+            #marks=pytest.mark.xfail(strict=True, raises=ModelNotReadyError, reason="missing ui entries")
+    )
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_03_run(dialog, model,

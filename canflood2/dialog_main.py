@@ -66,10 +66,12 @@ from .parameters import (
     eventMeta_control_d)
 
 from .assertions import (
-    assert_projDB_fp, assert_projDB_conn, assert_hazDB_conn, assert_hazDB_fp, assert_eventMeta_df
+    assert_projDB_fp, assert_projDB_conn, assert_hazDB_conn, assert_hazDB_fp, assert_eventMeta_df,
+    assert_df_matches_projDB_schema
     )
 
 from .core import _get_proj_meta_d, Model
+from .db_tools import df_to_sql
 from .dialog_model import Model_config_dialog
 #===============================================================================
 # load UI and resources
@@ -431,6 +433,8 @@ class Main_dialog_modelSuite(object):
         if projDB_fp is None: projDB_fp = self.get_projDB_fp()
             
         assert not projDB_fp is None, 'must set a project database file before adding models'
+        
+        
         #=======================================================================
         # get index values
         #=======================================================================
@@ -451,6 +455,8 @@ class Main_dialog_modelSuite(object):
         assert model.modelid==modelid, 'modelid mismatch'
         
         index_d = model.get_index_d()
+        
+        
         #=======================================================================
         # index consistency checks
         #=======================================================================
@@ -503,31 +509,12 @@ class Main_dialog_modelSuite(object):
         #===================================================================
         self.update_model_index_dx(model, projDB_fp=projDB_fp, logger=log)
  
- #==============================================================================
- #        df_d = dict()
- #        with sqlite3.connect(projDB_fp) as conn:
- #            table_name = '03_model_suite_index'
- #            model_index_dx = self.get_model_index_dx() #get the current index
- # 
- #            """needs the parameter table to be set"""
- #            s = model.get_model_index_ser() #extract values from models parameter trable
- #            
- #            
- #            model_index_dx.loc[(modelid, category_code), :] = s 
- # 
- #            
- #            df_d[table_name] = model_index_dx.reset_index()
- #            
- #            df_d[table_name].to_sql(table_name, conn, if_exists='replace', index=False)
- #==============================================================================
-            
- 
-            
-        #log.debug(f'added {table_name} to project database\n    {projDB_fp}')
             
         #check it
-        assert self.get_model_index_dx().loc[(modelid, category_code), 'status']=='initialized', \
-            'failed to add model to index'
+        #=======================================================================
+        # assert self.get_model_index_dx().loc[(modelid, category_code), 'status']=='initialized', \
+        #     'failed to add model to index'
+        #=======================================================================
         if check_projDB:
             assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly'
  
@@ -595,9 +582,18 @@ class Main_dialog_modelSuite(object):
         widget_d['label_mod_modelid']['widget'].setText('%2d' % model.modelid)
         widget_d['label_mod_asset']['widget'].setText(s['asset_label'])
         widget_d['label_mod_consq']['widget'].setText(s['consq_label'])
-        widget_d['label_mod_status']['widget'].setText(s['status'])
         
-        if s['status'] == 'complete':
+        
+        #=======================================================================
+        # status
+        #=======================================================================
+        """status updates handled bymodel now"""
+        #=======================================================================
+        # widget_d['label_mod_status']['widget'].setText(s['status'])
+        
+        status = model.compute_status()
+ 
+        if status == 'complete':
             widget_d['progressBar_mod']['widget'].setValue(100)
         else:
             widget_d['progressBar_mod']['widget'].setValue(0)
@@ -777,7 +773,7 @@ class Main_dialog_modelSuite(object):
         s = model.get_model_index_ser()
  
         
-        assert 'status' in s.index, 'missing status' #should always be present
+        #assert 'status' in s.index, 'missing status' #should always be present
         
         #update the dx (where teh column names match the param_s index
         dx.loc[(model.modelid, model.category_code), :] = s
@@ -970,7 +966,11 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         table_name='01_project_meta'
         d = _get_proj_meta_d(log)
         d.update(dict(function_name='_create_new_projDB', misc=''))
+        
+        
         df_d[table_name] = pd.DataFrame(d)
+        
+        assert_df_matches_projDB_schema(table_name, df_d[table_name])
         
         """
         table
@@ -986,7 +986,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         for widgetName in df_d[table_name]['widgetName']:
             assert hasattr(self, widgetName), f'widgetName not found: {widgetName}'
         
-        
+        assert_df_matches_projDB_schema(table_name, df_d[table_name])
         #=======================================================================
         # model suite template
         #=======================================================================
@@ -996,6 +996,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         table_name='03_model_suite_index'
         df_d[table_name] = project_db_schema_d[table_name].copy()
         
+        assert_df_matches_projDB_schema(table_name, df_d[table_name])
         #=======================================================================
         # hazard tables
         #=======================================================================
@@ -1003,11 +1004,15 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         table_name='04_haz_meta'
         df_d[table_name] = project_db_schema_d[table_name].copy()
         
+        assert_df_matches_projDB_schema(table_name, df_d[table_name])
+        
         #others
         for k, v in hazDB_schema_d.items():
             if not k==table_name:
                 assert isinstance(v, pd.DataFrame), k
                 df_d[k] = v.copy()
+                
+                assert_df_matches_projDB_schema(k, df_d[k])
                 
                 
         #=======================================================================
@@ -1016,17 +1021,19 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         for k, v in project_db_schema_d.items():
             if not k in df_d.keys():
                 df_d[k] = v.copy()
+                assert_df_matches_projDB_schema(k, df_d[k])
         
         #=======================================================================
         # #build/write to the database
         #=======================================================================
         log.debug(f'init project SQLite db at\n    {fp}')
         with sqlite3.connect(fp) as conn:
-            for k, df in df_d.items():
-                assert k in project_db_schema_d.keys(), k
-                df.to_sql(k, conn, if_exists='replace', index=False)
+            for k, df in df_d.items():                
+                df_to_sql(df, k, conn, if_exists='replace', index=False)
+ 
                 
-            assert_projDB_conn(conn)
+                
+        assert_projDB_fp(fp)
                 
         log.info(f'created new project database w/ {len(df_d)} tables at\n    {fp}')
         

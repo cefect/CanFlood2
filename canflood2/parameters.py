@@ -6,8 +6,10 @@ Created on Mar 4, 2025
 import os
 from datetime import datetime
 import pandas as pd
+import numpy as np  
 
 from .hp.vfunc import vfunc_cdf_chk_d
+from .hp.sql import pd_dtype_to_sqlite_type
 
 
 #===============================================================================
@@ -41,7 +43,9 @@ project_parameters_template_fp = os.path.join(plugin_dir, 'project_parameters_te
 
 project_db_schema_d = {
     '01_project_meta': None,
-    '02_project_parameters': pd.read_csv(project_parameters_template_fp),
+    '02_project_parameters': pd.read_csv(project_parameters_template_fp,
+                                         dtype = {'value': str}, #variable types
+                                         ),
 
     }
 
@@ -132,10 +136,9 @@ project_db_schema_d['03_model_suite_index'] =     pd.DataFrame(
                 'name': str,
                 
                 #suite display parameters
-                'status': str,
+                #'status': str,
                 'asset_label': str,
-                'consq_label': str,                
-                  
+                'consq_label': str,                  
                 
                 #model results
                 'result_ead': float, #resulting integrated EAD                
@@ -144,10 +147,21 @@ project_db_schema_d['03_model_suite_index'] =     pd.DataFrame(
         )
 
 #special table parameters
+
+
 #these will be prefixed by the model name
 projDB_schema_modelTables_d = {
     'table_parameters': None,  # name of parameter table: simple key, value for the parameters in the model config UI
-    'table_finv': None,  # name of table for: asset inventory (scale, elev, tag, cap)
+    'table_finv': pd.DataFrame( #asset inventory
+        columns = {
+            'nestID': int,
+            'indexField': int,
+            'scale': float,
+            'elev': float,
+            'tag': str,
+            'cap': float
+            }
+        ),  
     'tabel_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
     'table_gels': None,  # name of table for: ground elevation data (columns: dem name, rows: assets)
     'table_dmgs': None,  # name of table for: damage data (columns: hazard event names, rows: assets, values: exposure and curve intersect)
@@ -218,6 +232,11 @@ project_db_schema_d['07_vfunc_data'] = pd.DataFrame(columns={
     'tag': str,'exposure': float, 'impact': float
     })
         
+
+
+#===============================================================================
+# HELPERS---------
+#===============================================================================
 
 
  

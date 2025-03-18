@@ -64,7 +64,9 @@ class Model_compiler(object):
     """
     
     def compile_model(self, **skwargs):
+        """wrapper around compilation sequence"""
         
+        assert not self.model.param_d is None, 'failed to load model parameters'
         """run compilation sequence"""
         #asset inventory
         _ = self._table_finv_to_db(**skwargs)
@@ -75,6 +77,8 @@ class Model_compiler(object):
             
         #asset exposures
         _ = self._table_expos_to_db(**skwargs)
+        
+        
     
     
     
@@ -258,6 +262,8 @@ class Model_compiler(object):
         model.set_tables({'table_expos':expos_df}, logger=log)
         
         return expos_df
+    
+ 
         
         
             

@@ -321,7 +321,7 @@ def test_dial_model_03_save_vfunc(dialog, model,
     )
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_03_run(dialog, model,
+def test_dial_model_03_compile(dialog, model,
                            test_name, qtbot,
                            ):
     """Test running from the model config dialog"""
@@ -338,7 +338,12 @@ def test_dial_model_03_run(dialog, model,
     #===========================================================================
     # execute
     #===========================================================================
-    click(dialog.pushButton_run) #Model_config_dialog._run_model()
+    """this is part of the run call"""
+    skwargs = dict(logger=dialog.logger, model=model)
+    
+    dialog._set_ui_to_table_parameters(**skwargs)
+    dialog.compile_model(**skwargs)
+    #click(dialog.pushButton_run) #Model_config_dialog._run_model()
     
     
     #===========================================================================

@@ -14,7 +14,7 @@ import numpy as np
 #===============================================================================
 from .assertions import assert_projDB_fp, assert_hazDB_fp, assert_df_matches_projDB_schema
 from .parameters import (
-    projDB_schema_modelTables_d, project_db_schema_d,  
+    projDB_schema_modelTables_d, project_db_schema_d,  modelTable_params_d
     )
 from .hp.basic import view_web_df as view
 from .hp.sql import get_table_names, pd_dtype_to_sqlite_type
@@ -425,7 +425,8 @@ class Model(Model_run_methods):
             df_d = self.get_model_tables_all(result_as_dict=True)
             
             #check missing tables
-            miss_l = set(projDB_schema_modelTables_d.keys()) - set(df_d.keys())
+            compile_model_tables = [k for k,v in modelTable_params_d.items() if v['phase']=='compile']            
+            miss_l = set(compile_model_tables) - set(df_d.keys())
             
             if len(miss_l)>0:
                 status = 'incomplete'
@@ -433,7 +434,7 @@ class Model(Model_run_methods):
             else:
                 
                 #tables populated
-                for table_name in projDB_schema_modelTables_d.keys():
+                for table_name in compile_model_tables:
                     
                     if df_d[table_name].shape[0]==0:
                         status = 'incomplete'

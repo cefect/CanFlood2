@@ -155,37 +155,45 @@ project_db_schema_d['03_model_suite_index'].dtypes
 finv_index = pd.Index([], name='indexField', dtype=int)
 
 #these will be prefixed by the model name
-projDB_schema_modelTables_d = {
-    'table_parameters': None,  # name of parameter table: simple key, value for the parameters in the model config UI
-    'table_finv': pd.DataFrame({
-                            'nestID': pd.Series(dtype=int),
-                            'indexField': pd.Series(dtype=int),
-                            'scale': pd.Series(dtype=float),
-                            'elev': pd.Series(dtype=float),
-                            'tag': pd.Series(dtype=str),
-                            'cap': pd.Series(dtype=float)
-                        },
-                        #index=finv_index, #no.. this is a multindex
-                        ),
-
-    'table_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
-    'table_gels': pd.DataFrame(
-                {'dem_samples': pd.Series(dtype='float')},
-                index=finv_index
-                       ),
-    'table_dmgs': None,  # name of table for: damage data (columns: hazard event names, rows: assets, values: exposure and curve intersect)
+modelTable_params_d = {
+    'table_parameters': {
+        'df': pd.read_csv(
+            os.path.join(plugin_dir, 'model_parameters_template.csv'),
+            dtype={'value': str}
+        ).drop('note', axis=1),
+        'phase': 'compile'
+    },
+    'table_finv': {
+        'df': pd.DataFrame({
+            'nestID': pd.Series(dtype=int),
+            'indexField': pd.Series(dtype=int),
+            'scale': pd.Series(dtype=float),
+            'elev': pd.Series(dtype=float),
+            'tag': pd.Series(dtype=str),
+            'cap': pd.Series(dtype=float)
+        }),
+        'phase': 'compile'
+    },
+    'table_expos': {
+        'df': None,
+        'phase': 'compile'
+    },
+    'table_gels': {
+        'df': pd.DataFrame(
+            {'dem_samples': pd.Series(dtype='float')},
+            index=finv_index
+        ),
+        'phase': 'compile'
+    },
+    'table_dmgs': {
+        'df': None,
+        'phase': 'run'
+    }
 }
 
  
-
-#model_table_parameters
-model_parameters_template_fp = os.path.join(plugin_dir, 'model_parameters_template.csv')
-
-
-
-projDB_schema_modelTables_d['table_parameters'] = pd.read_csv(
-    model_parameters_template_fp, dtype={'value': str}).drop('note', axis=1)
-
+#get an extract of just the dataframes
+projDB_schema_modelTables_d = {k: v['df'] for k, v in modelTable_params_d.items()}
 #update the master schema
 for key in projDB_schema_modelTables_d.keys():
     project_db_schema_d['03_model_suite_index'][key] = ''

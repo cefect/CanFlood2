@@ -324,7 +324,7 @@ class Model(Model_run_methods):
         df_d_recast = dict(zip(table_names, df_d.values()))
         
         # Write the tables to the project database
-        result =  self.parent.projDB_set_tables(df_d_recast, **kwargs)
+        result =  self.parent.projDB_set_tables(df_d_recast, template_prefix=f'model_{self.name}_', **kwargs)
         
         #=======================================================================
         # #handle updates

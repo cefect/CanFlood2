@@ -51,7 +51,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS---------
 #===============================================================================
-overwrite_testdata=False
+overwrite_testdata=True
 def write_sqlite(result, ofp, write=overwrite_testdata):
     if write:
         os.makedirs(os.path.dirname(ofp), exist_ok=True)

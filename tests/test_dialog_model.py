@@ -87,7 +87,10 @@ def dialog(dialog_main, model,
            
            #control
  
-           qtbot, monkeypatch):
+           qtbot, monkeypatch,
+           #backend init
+           qgis_processing
+           ):
     """
     Fixture to launch the model configuration dialog in a non-blocking way.
     Instead of calling the normal modal exec_() (which blocks until closed),
@@ -197,7 +200,7 @@ def test_dial_model_01_launch_config(dialog,model, qtbot):
     qtbot.mouseClick(dialog.pushButton_close, Qt.LeftButton)
     
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
 ])

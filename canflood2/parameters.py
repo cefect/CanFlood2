@@ -3,7 +3,7 @@ Created on Mar 4, 2025
 
 @author: cef
 '''
-import os
+import os, tempfile
 from datetime import datetime
 import pandas as pd
 import numpy as np  
@@ -25,6 +25,8 @@ plugin_dir = os.path.dirname(__file__)
 home_dir = os.path.join(os.path.expanduser('~'), 'CanFlood2')
 os.makedirs(home_dir, exist_ok=True)
 
+temp_dir = os.path.join(tempfile.mkdtemp(), 'CanFlood2')
+os.makedirs(temp_dir, exist_ok=True)
  
 
 
@@ -132,14 +134,17 @@ project_db_schema_d['02_project_parameters'] = pd.concat(
 #===============================================================================
  
 
-project_db_schema_d['03_model_suite_index'] =     pd.DataFrame({
-                                                        'modelid': pd.Series(dtype='int'),
-                                                        'category_code': pd.Series(dtype='str'),
-                                                        'name': pd.Series(dtype='str'),
-                                                        'asset_label': pd.Series(dtype='str'),
-                                                        'consq_label': pd.Series(dtype='str'),
-                                                        'result_ead': pd.Series(dtype='float')
-                                                    })
+
+project_db_schema_d['03_model_suite_index'] = pd.DataFrame({
+                                'modelid': pd.Series(dtype='int'),
+                                'category_code': pd.Series(dtype='str'),
+                                'name': pd.Series(dtype='str'),
+                                'asset_label': pd.Series(dtype='str'),
+                                'consq_label': pd.Series(dtype='str'),
+                                'result_ead': pd.Series(dtype='float')
+                            })#.set_index(['modelid', 'category_code'] #doesnt seem like sqlite can handle multindex
+                                        
+
 
 """
 project_db_schema_d['03_model_suite_index'].dtypes
@@ -147,21 +152,27 @@ project_db_schema_d['03_model_suite_index'].dtypes
 
 #special table parameters
 
+finv_index = pd.Index([], name='indexField', dtype=int)
 
 #these will be prefixed by the model name
 projDB_schema_modelTables_d = {
     'table_parameters': None,  # name of parameter table: simple key, value for the parameters in the model config UI
     'table_finv': pd.DataFrame({
-        'nestID': pd.Series(dtype=int),
-        'indexField': pd.Series(dtype=int),
-        'scale': pd.Series(dtype=float),
-        'elev': pd.Series(dtype=float),
-        'tag': pd.Series(dtype=str),
-        'cap': pd.Series(dtype=float)
-    }),
+                            'nestID': pd.Series(dtype=int),
+                            'indexField': pd.Series(dtype=int),
+                            'scale': pd.Series(dtype=float),
+                            'elev': pd.Series(dtype=float),
+                            'tag': pd.Series(dtype=str),
+                            'cap': pd.Series(dtype=float)
+                        },
+                        #index=finv_index, #no.. this is a multindex
+                        ),
 
     'tabel_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
-    'table_gels': None,  # name of table for: ground elevation data (columns: dem name, rows: assets)
+    'table_gels': pd.DataFrame(
+                {'dem_samples': pd.Series(dtype='float')},
+                index=finv_index
+                       ),
     'table_dmgs': None,  # name of table for: damage data (columns: hazard event names, rows: assets, values: exposure and curve intersect)
 }
 

@@ -5,11 +5,14 @@ Created on Mar 17, 2025
 '''
 import os, logging
 import pandas as pd
-import pprint
+import pprint, tempfile
 import processing
 from qgis.core import (
     QgsProcessingContext, QgsProcessingFeedback, QgsFeatureRequest,QgsApplication
     )
+
+
+
 
 
 
@@ -64,7 +67,9 @@ def vlay_to_df(layer):
 # PROCESSING--------
 #===============================================================================
 class ProcessingEnvironment(object):
-    def __init__(self, logger=None, context=None, feedback=None):
+    def __init__(self, logger=None, context=None, feedback=None,
+                 temp_dir=None,
+                 ):
         """
         Initialize the processing environment.
         :param logger: a logging.Logger instance.
@@ -81,6 +86,15 @@ class ProcessingEnvironment(object):
         
         
         self.feedback = feedback if feedback is not None else QgsProcessingFeedback_extended(logger=logger)
+        
+ 
+
+        if temp_dir is None:
+            temp_dir = tempfile.mkdtemp()
+        os.makedirs(temp_dir, exist_ok=True)
+        self.temp_dir = temp_dir
+
+            
         #self.results = []  # Collect results of each processing.run call.
         
         #log all the agos

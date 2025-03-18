@@ -27,11 +27,13 @@ from qgis.core import (
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
 from .hp.plug import bind_QgsFieldComboBox
-from .hp.Q import vlay_to_df
+from .hp.Q import vlay_to_df, ProcessingEnvironment
 
 from .assertions import assert_projDB_fp, assert_vfunc_fp, assert_projDB_conn
 
-from .parameters import consequence_category_d, home_dir, project_db_schema_d
+from .parameters import (
+    consequence_category_d, home_dir, project_db_schema_d, finv_index,
+    )
 from .hp.vfunc import  load_vfunc_to_df_d, vfunc_df_to_dict, vfunc_cdf_chk_d, vfunc_df_to_meta_and_ddf
 
 from .core import Model
@@ -97,7 +99,7 @@ class Model_compiler(object):
  
         
         #get the vector layer
-        vlay = self._get_finv_vlay()
+        vlay = self.get_finv_vlay()
         
         #extract features as a datafram e
         df_raw = vlay_to_df(vlay)
@@ -150,19 +152,45 @@ class Model_compiler(object):
         #=======================================================================
         dem_rlay = self.parent.get_dem_vlay()
         assert dem_rlay is not None, 'must select a DEM for finv_elevType=\'ground\''
-        log.degug(f'loaded dem {dem_rlay.name()}')
+        log.debug(f'loaded dem {dem_rlay.name()}')
         
+        #=======================================================================
+        # load finv
+        #=======================================================================
+        finv_indexField = model.param_d['finv_indexField']
+        finv_vlay = self.get_finv_vlay()
+        
+        assert finv_indexField in finv_vlay.fields().names(), 'bad finv_indexField'
+        
+        #=======================================================================
+        # sample
+        #=======================================================================
+        with ProcessingEnvironment(logger=log) as pe: 
+            result = pe.run("qgis:rastersampling",
+                        { 'COLUMN_PREFIX' : 'dem_', 
+                        'INPUT' : finv_vlay, 
+                        'OUTPUT' : os.path.join(pe.temp_dir, 'rastersampling.gpkg'), 
+                        'RASTERCOPY' : dem_rlay }
+                                   )
+            
+            samples_fp = result['OUTPUT']
+            
+        #retrieve values
+        samples_s = vlay_to_df(QgsVectorLayer(samples_fp, 'samples')).set_index(finv_indexField)['dem_1'].rename('dem_samples')
+        samples_s.index.name = finv_index.name
+        #=======================================================================
+        # write resulting table
+        #=======================================================================
+        model.set_tables({'table_gels':samples_s.to_frame()}, logger=log)
+        
+        
+        
+    def _table_expos(self):
         #=======================================================================
         # load hazard rasters
         #=======================================================================
         haz_rlay_d = self.parent.get_haz_rlay_d()
         log.debug(f'loaded {len(haz_rlay_d)} hazard rasters')
-        
-        #=======================================================================
-        # sample
-        #=======================================================================
-        
-        
         
         
     
@@ -509,7 +537,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         log.push(f'saved {len(s)} parameters for model {model.name}')
         
         
-    def _get_finv_vlay(self):
+    def get_finv_vlay(self):
         """get the asset inventory vector layer"""
         vlay = self.comboBox_finv_vlay.currentLayer()
         assert not vlay is None, 'no vector layer selected'

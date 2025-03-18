@@ -71,7 +71,7 @@ from .assertions import (
     )
 
 from .core import _get_proj_meta_d, Model
-from .db_tools import df_to_sql, get_pd_dtypes_from_schema
+from .db_tools import df_to_sql, get_template_df
 from .dialog_model import Model_config_dialog
 #===============================================================================
 # load UI and resources
@@ -402,8 +402,9 @@ class Main_dialog_haz(object):
             
         
             #clean up the extraction
+            template_df = get_template_df('05_haz_events')
             
-            df = df.replace('', pd.NA).astype(get_pd_dtypes_from_schema('05_haz_events'))
+            df = df.replace('', pd.NA).astype(template_df.dtypes)
             
 
             for columnName, col in df.items():
@@ -1095,7 +1096,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
         log.debug(f'init project SQLite db at\n    {fp}')
         with sqlite3.connect(fp) as conn:
             for k, df in df_d.items():                
-                df_to_sql(df, k, conn, if_exists='replace', index=False)
+                df_to_sql(df, k, conn, if_exists='replace')
  
                 
                 
@@ -1320,7 +1321,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
 
     
 
-    def projDB_set_tables(self, df_d, projDB_fp=None, conn=None, logger=None):
+    def projDB_set_tables(self, df_d, projDB_fp=None, conn=None, logger=None, **kwargs):
         """Convenience wrapper to set multiple tables from DataFrames.
     
         Parameters:
@@ -1364,7 +1365,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
                     else:
                         raise KeyError(f'bad table name: {k}')
     
-                    df_to_sql(df, k, conn, if_exists='replace', index=False)
+                    df_to_sql(df, k, conn, if_exists='replace', **kwargs)
                     log.debug(f'    wrote table \'{k}\' w/ {df.shape}')
  
                 except Exception as e:
@@ -1374,7 +1375,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
             if close_conn:
                 conn.close()
     
-        log.debug(f'updated {len(df_d)} tables in project database at\n    {df_d.keys()}')
+        log.debug(f'updated {list(df_d.keys())} tables in project database at\n    {projDB_fp}')
 
                 
     def projDB_drop_tables(self, *table_names, projDB_fp=None, logger=None):

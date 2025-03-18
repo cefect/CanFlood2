@@ -16,7 +16,7 @@ from pandas.testing import assert_series_equal, assert_frame_equal
 
 
 
-from .db_tools import get_pd_dtypes_from_schema, get_sqlalchemy_dtypes_from_schema, sql_to_df
+from .db_tools import sql_to_df
 from .parameters import (
     project_db_schema_d, hazDB_schema_d, projDB_schema_modelTables_d,
  
@@ -126,8 +126,8 @@ def assert_projDB_conn(conn,
         #=======================================================================
         table_name = '03_model_suite_index'
         
-        dx = get_df(table_name)
-        dx['modelid'] = dx['modelid'].astype(str)
+        dx = get_df(table_name) 
+        #dx['modelid'] = dx['modelid'].astype(str)
         dx = dx.set_index(['modelid', 'category_code'])
         
         if len(dx)>0:

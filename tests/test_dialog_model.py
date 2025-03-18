@@ -322,7 +322,7 @@ def test_dial_model_03_save_vfunc(dialog, model,
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_03_compile(dialog, model,
-                           test_name, qtbot,
+                           test_name, 
                            ):
     """Test running from the model config dialog"""
     
@@ -350,6 +350,18 @@ def test_dial_model_03_compile(dialog, model,
     # check
     #===========================================================================
     print(f'\n\nchecking dialog\n{"="*80}')
+    
+    
+    for table_name in model.compile_model_tables:
+        df = model.get_tables(table_name)
+        assert len(df)>0, f'got empty table \'{table_name}\''
+        
+    
+    
+    #===========================================================================
+    # write------
+    #===========================================================================
+    write_projDB(dialog, test_name)
 
 
 

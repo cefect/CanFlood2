@@ -78,7 +78,7 @@ class Model_compiler(object):
         #asset exposures
         _ = self._table_expos_to_db(**skwargs)
         
-        
+        assert_projDB_fp(self.parent.get_projDB_fp())
     
     
     
@@ -631,7 +631,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
  
         
         
-    def _run_model(self):
+    def _run_model(self, *args, compile_model=True):
         """run the model
         
     
@@ -659,7 +659,8 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # compiling
         #=======================================================================
-        self.compile_model(**skwargs)
+        if compile_model:
+            self.compile_model(**skwargs)
         
         #=======================================================================
         # run it

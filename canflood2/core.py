@@ -150,6 +150,8 @@ class Model(Model_run_methods):
     
     result_ead=None
     param_d=None
+    
+    compile_model_tables = [k for k,v in modelTable_params_d.items() if v['phase']=='compile'] 
  
     
     def __init__(self,                  
@@ -165,6 +167,7 @@ class Model(Model_run_methods):
         self.modelid = int(modelid)
         self.name = f'{category_code}_{modelid}'
         self.logger = logger.getChild(self.name)
+ 
         
         self.logger.debug(f'initialized')
         
@@ -425,8 +428,8 @@ class Model(Model_run_methods):
             df_d = self.get_model_tables_all(result_as_dict=True)
             
             #check missing tables
-            compile_model_tables = [k for k,v in modelTable_params_d.items() if v['phase']=='compile']            
-            miss_l = set(compile_model_tables) - set(df_d.keys())
+                       
+            miss_l = set(self.compile_model_tables) - set(df_d.keys())
             
             if len(miss_l)>0:
                 status = 'incomplete'
@@ -434,7 +437,7 @@ class Model(Model_run_methods):
             else:
                 
                 #tables populated
-                for table_name in compile_model_tables:
+                for table_name in self.compile_model_tables:
                     
                     if df_d[table_name].shape[0]==0:
                         status = 'incomplete'

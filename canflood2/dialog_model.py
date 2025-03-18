@@ -12,6 +12,7 @@ ui dialog class for model config window
 import sys, os, datetime, time, configparser, logging, sqlite3
 import pandas as pd
 
+from pandas.testing import assert_index_equal
 
 from PyQt5 import uic, QtWidgets
 from PyQt5.QtWidgets import (
@@ -65,10 +66,15 @@ class Model_compiler(object):
     def compile_model(self, **skwargs):
         
         """run compilation sequence"""
+        #asset inventory
         _ = self._table_finv_to_db(**skwargs)
         
+        #ground elevations
         if self.model.param_d['finv_elevType'] == 'ground':
             _ = self._table_gels_to_db(**skwargs)
+            
+        #asset exposures
+        _ = self._table_expos_to_db(**skwargs)
     
     
     
@@ -169,7 +175,7 @@ class Model_compiler(object):
             result = pe.run("qgis:rastersampling",
                         { 'COLUMN_PREFIX' : 'dem_', 
                         'INPUT' : finv_vlay, 
-                        'OUTPUT' : os.path.join(pe.temp_dir, 'rastersampling.gpkg'), 
+                        'OUTPUT' : os.path.join(pe.temp_dir, 'rastersampling_table_gels_to_db.gpkg'), 
                         'RASTERCOPY' : dem_rlay }
                                    )
             
@@ -185,12 +191,76 @@ class Model_compiler(object):
         
         
         
-    def _table_expos(self):
+    def _table_expos_to_db(self, model=None, logger=None):
+        """build the exposure table"""
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger = self.logger
+        if model is None: model = self.model
+        log = logger.getChild('_table_expos_to_db')
         #=======================================================================
         # load hazard rasters
         #=======================================================================
         haz_rlay_d = self.parent.get_haz_rlay_d()
+        assert len(haz_rlay_d) > 1, 'must provide at least one hazard event'
         log.debug(f'loaded {len(haz_rlay_d)} hazard rasters')
+        
+        #check consistency against event metadata
+        haz_events_df = self.parent.projDB_get_tables('05_haz_events')        
+        assert set(haz_rlay_d.keys()) == set(haz_events_df['event_name']), 'mismatch on hazard events'
+        
+        #=======================================================================
+        # load the finv
+        #=======================================================================
+        finv_indexField = model.param_d['finv_indexField']
+        finv_vlay = self.get_finv_vlay()
+        
+        assert finv_indexField in finv_vlay.fields().names(), 'bad finv_indexField'
+        
+        #=======================================================================
+        # loop through and sample each
+        #=======================================================================
+        log.info(f'sampling {len(haz_rlay_d)} hazard rasters w/ {finv_vlay.name()}')
+        
+       
+        samples_d = dict()
+        with ProcessingEnvironment(logger=log) as pe: 
+            
+            for i, (event_name, haz_rlay) in enumerate(haz_rlay_d.items()):
+                log.info(f'sampling ({i}/{len(haz_rlay_d)}) on {event_name}')
+                result = pe.run("qgis:rastersampling",{
+                    'COLUMN_PREFIX' : 'samples_',
+                    'INPUT' : finv_vlay,
+                    'OUTPUT' : 'TEMPORARY_OUTPUT',
+                    'RASTERCOPY' : haz_rlay,
+                     })
+                
+                #retrieve values
+                samples_d[event_name] = vlay_to_df(result['OUTPUT']).set_index(finv_indexField)['samples_1']
+            
+ 
+        #collect
+        expos_df = pd.concat(samples_d, axis=1)
+            
+        log.info(f'finished sampling {expos_df.shape} hazard rasters')
+        
+        #=======================================================================
+        # check
+        #=======================================================================
+        assert expos_df.index.is_unique, 'non-unique index'
+        
+        assert_index_equal(expos_df.index,vlay_to_df(finv_vlay).set_index(finv_indexField).index)
+        
+        #=======================================================================
+        # write
+        #=======================================================================
+        model.set_tables({'table_expos':expos_df}, logger=log)
+        
+        return expos_df
+        
+        
+            
         
         
     

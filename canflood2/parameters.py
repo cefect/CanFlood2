@@ -124,7 +124,7 @@ for k,v in hazDB_schema_d.items():
 #add the hazard parameters to the project parameters
 #project parameters is the complete state. hazard is a subset
 project_db_schema_d['02_project_parameters'] = pd.concat(
-    [project_db_schema_d['02_project_parameters'], hazDB_schema_d['04_haz_meta']])
+    [project_db_schema_d['02_project_parameters'], hazDB_schema_d['04_haz_meta']]).reset_index(drop=True)
         
 #===============================================================================
 # MODEL SUITE===================----------
@@ -168,7 +168,7 @@ projDB_schema_modelTables_d = {
                         #index=finv_index, #no.. this is a multindex
                         ),
 
-    'tabel_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
+    'table_expos': None,  # name of table for: exposure data (columns; hazard event names, rows: assets, values: sampled raster)
     'table_gels': pd.DataFrame(
                 {'dem_samples': pd.Series(dtype='float')},
                 index=finv_index

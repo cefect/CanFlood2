@@ -2,9 +2,8 @@ varName,widgetName,value,required,model_index,note
 modelid,,,TRUE,TRUE,duplicated indexer for redundancy
 category_code,,,TRUE,TRUE,duplicated indexer for redundancy
 name,,,TRUE,TRUE,duplicated indexer for redundancy
-status,,initialized,TRUE,TRUE,UI updates. dynamic model attribute. 
 expo_level,comboBox_expoLevel,,TRUE,FALSE,
-finv_vlay,comboBox_finv_vlay,,TRUE,FALSE,
+finv_vlay,comboBox_finv_vlay,,TRUE,FALSE,not used. Finv can only be imported from the model config (for now)
 finv_elevType,comboBox_AI_elevType,,TRUE,FALSE,just the layer nam e
 finv_indexField,mFieldComboBox_cid,,TRUE,FALSE,
 f01_scale,mFieldComboBox_AI_01_scale,,TRUE,FALSE,netid 1 (basic)

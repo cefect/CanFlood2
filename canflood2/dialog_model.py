@@ -27,6 +27,7 @@ from qgis.core import (
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
 from .hp.plug import bind_QgsFieldComboBox
+from .hp.Q import vlay_to_df
 
 from .assertions import assert_projDB_fp, assert_vfunc_fp, assert_projDB_conn
 
@@ -329,11 +330,13 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         
 
-    def _set_ui_to_table_parameters(self, model, logger=None):
+    def _set_ui_to_table_parameters(self, model=None, logger=None):
         """write the model config window parameter state to the approriate table_parameters
         """
         if logger is None: logger = self.logger
         log = logger.getChild('_set_ui_to_table_parameters')
+        
+        if model is None: model = self.model
         
         #retrieve the parameter table
         params_df = model.get_tables('table_parameters').set_index('varName')
@@ -381,6 +384,72 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         
         log.push(f'saved {len(s)} parameters for model {model.name}')
         
+        
+    def _get_finv_vlay(self):
+        """get the asset inventory vector layer"""
+        vlay = self.comboBox_finv_vlay.currentLayer()
+        assert not vlay is None, 'no vector layer selected'
+        
+        assert isinstance(vlay, QgsVectorLayer), f'bad type: {type(vlay)}'
+        
+        #check that it is a point layer
+        if not vlay.geometryType() == QgsWkbTypes.PointGeometry:
+            raise NotImplementedError(f'geometry type not supported: {QgsWkbTypes.displayString(vlay.wkbType())}')
+         
+        
+        return vlay
+        
+    def _table_finv_to_db(self, model=None, logger=None):
+        """write the finv table to the database"""
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger = self.logger
+        if model is None: model = self.model
+        
+        log = self.logger.getChild('_table_finv_to_db')
+        
+        
+        
+        #=======================================================================
+        # load the data
+        #=======================================================================
+        #load field names from parameters table
+ 
+        
+        """only one nest for now"""
+        names_d = {
+            'indexField':'finv_indexField',
+            'scale':'f01_scale','elev':'f01_elev','tag':'f01_tag','cap':'f01_cap',
+            }
+        
+        field_value_d = {k:model.param_d[v] for k,v in names_d.items()}
+ 
+        
+        #get the vector layer
+        vlay = self._get_finv_vlay()
+        
+        #extract features as a datafram e
+        df = vlay_to_df(vlay)
+        
+        log.debug(f'loaded {df.shape} from {vlay.name()}')
+        #=======================================================================
+        # process 
+        #=======================================================================
+        #check that all the field names are in the columns
+        assert set(field_value_d.keys()).issubset(df.columns), 'field not found'
+        
+        raise NotImplementedError('stopped here')
+        
+        
+ 
+        #=======================================================================
+        # #write it to the database
+        #=======================================================================
+        model.set_tables({'table_finv':df}, logger=log)
+ 
+        
+        
     def _run_model(self):
         """run the model
         
@@ -394,6 +463,8 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         model = self.model        
         assert not model is None, 'no model loaded'
         
+        skwargs = dict(logger=log, model=model)
+        
  
         
         log.info(f'running model {model.name}')
@@ -401,7 +472,13 @@ class Model_config_dialog(QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # trigger save        
         #=======================================================================
-        self._set_ui_to_table_parameters(model, logger=log)
+        self._set_ui_to_table_parameters(**skwargs)
+        
+        assert model.is_ready()
+        #=======================================================================
+        # load finv
+        #=======================================================================
+        self._table_finv_to_db(**skwargs)
         
         #=======================================================================
         # run it

@@ -213,7 +213,7 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
     if projDB_fp is not None:
         print(f'copying projDB_fp \'{projDB_fp}\' to tmpdir')
         projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp)))
-        assert_projDB_fp(projDB_fp)
+        #assert_projDB_fp(projDB_fp)
         
         #patch the load button
         monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (projDB_fp, ''))

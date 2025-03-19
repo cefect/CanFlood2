@@ -302,7 +302,7 @@ def test_dial_model_03_save_vfunc(dialog, model,
  
     
     #check the keys match
-    assert set(df_d.keys())==set(vfunc_index_df['tag']), 'vfunc keys do not match the index'
+    assert set(df_d.keys())==set(vfunc_index_df.index), 'vfunc keys do not match the index'
 
         
     #===========================================================================
@@ -312,7 +312,7 @@ def test_dial_model_03_save_vfunc(dialog, model,
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     pytest.param(
         'cf1_tutorial_02',oj('03_save_vfunc_c1-0-cf1_tu_3f2fee', 'projDB.canflood2'),
@@ -364,7 +364,7 @@ def test_dial_model_04_compile(dialog, model,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     pytest.param(
         'cf1_tutorial_02',oj('04_compile_c1-0-cf1_tutor_de8ebb', 'projDB.canflood2'),

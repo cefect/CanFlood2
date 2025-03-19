@@ -239,12 +239,12 @@ consequence_category_d = {
 }
 
 #===============================================================================
-# vulnerabiltiy functions---------
+# VFUCN==================---------
 #===============================================================================
 
 project_db_schema_d['06_vfunc_index'] = pd.DataFrame({
-    k: pd.Series(dtype=v) for k, v in vfunc_cdf_chk_d.items() if k != 'exposure'
-})
+    k: pd.Series(dtype=v) for k, v in vfunc_cdf_chk_d.items() if not k in ['exposure', 'tag']
+        },index=pd.Index([], name='tag', dtype=int))
 
 project_db_schema_d['07_vfunc_data'] = pd.DataFrame({
     'tag': pd.Series(dtype=str),

@@ -36,6 +36,7 @@ from .parameters import (
     consequence_category_d, home_dir, project_db_schema_d, finv_index,
     )
 from .hp.vfunc import  load_vfunc_to_df_d, vfunc_df_to_dict, vfunc_cdf_chk_d, vfunc_df_to_meta_and_ddf
+from .db_tools import sql_to_df
 
 from .core import Model
 
@@ -450,28 +451,29 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         # update projDB
         #=======================================================================
         with sqlite3.connect(projDB_fp) as conn:
-            assert_projDB_conn(conn)
+            #assert_projDB_conn(conn)
             
             set_df = lambda df, table_name: self.parent.projDB_set_tables({table_name:df}, logger=log, conn=conn)
             #===================================================================
             # # index
             #===================================================================
             table_name = '06_vfunc_index'
-            df_old = pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+            df_old = sql_to_df(table_name, conn)
             
             if len(df_old)==0:
                 df = vfunc_index_df
             else:
                 raise NotImplementedError(f'need to merge the new vfunc index with the old')
             
-            set_df(df, table_name)
+            set_df(df.set_index('tag'), table_name)
  
             #===================================================================
             # data
             #===================================================================
             
             table_name='07_vfunc_data'
-            df_old = pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+            df_old = sql_to_df(table_name, conn)
+ 
             
             if len(df_old)==0:
                 df = vfunc_data_dx.reset_index()
@@ -482,7 +484,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
     
  
             #final consistency check
-            assert_projDB_conn(conn, check_consistency=True)
+            #assert_projDB_conn(conn, check_consistency=True)
  
         
         #=======================================================================

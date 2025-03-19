@@ -52,7 +52,7 @@ class Model_run_methods(object):
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
         
-        
+        assert_projDB_fp(projDB_fp, check_consistency=True)
         log.info(f'running model from {os.path.basename(projDB_fp)}')
         
         """too tricky to work witha  single connection
@@ -70,7 +70,7 @@ class Model_run_methods(object):
         #compute damages 
         self._table_dmgs_to_db(**skwargs)
         
-    def _table_dmgs_to_db(self, projDB_fp=None, logger=None):
+    def _table_dmgs_to_db(self, projDB_fp=None, logger=None, precision=3):
         """compute the damages and write to the database"""
         
         #=======================================================================
@@ -82,20 +82,91 @@ class Model_run_methods(object):
         #=======================================================================
         # load data
         #=======================================================================
+        #model exposure and inventory
         expos_df, finv_df = self.get_tables(['table_expos', 'table_finv'], projDB_fp=projDB_fp)
         
-        raise NotImplementedError('stopped here')
+        assert set(finv_df['indexField']) == set(expos_df.index), 'index mismatch'
+        
+        #DEM
+        if self.param_d['finv_elevType']=='ground':
+            dem_df = self.get_tables(['table_gels'], projDB_fp=projDB_fp)[0]
+            assert set(finv_df['indexField']) == set(dem_df.index), 'index mismatch'
+        else:
+            dem_df = None
+        
+        #dfuncs
+        if not 'L2' in self.param_d['expo_level']:
+            raise NotImplementedError(f'expo_level=\'{self.param_d["expo_level"]}\'')
+ 
+        vfunc_index_df, vfunc_data_df = self.parent.projDB_get_tables(['06_vfunc_index', '07_vfunc_data'], projDB_fp=projDB_fp)
+        
+        assert set(finv_df['tag']).issubset(vfunc_index_df.index), 'missing tags'
+        
+ 
         #=======================================================================
         # compute
         #=======================================================================
-        df['damages'] = df['dem_samples'] * 2.0
+        #loop on each tag (unique damage function)
+        g_vfunc = vfunc_data_df.round(precision).groupby('tag')
+        g = finv_df.groupby('tag')
+        log.info(f'computing damages for {len(g)} ftags')
+        for i, (tag, gdf) in enumerate(g):
+            log.debug(f'computing damages for {i+1}/{len(g)} tag=\'{tag}\' w/ {len(gdf)} assets')
+            
+            #===================================================================
+            # prep depths
+            #===================================================================
+            #get these depths
+            expoi_df = expos_df.loc[expos_df.index.isin(gdf['indexField']), :]
+ 
+            
+
+            
+            #adjust for DEM
+            if dem_df is None:
+                deps_df = expoi_df
+            else:
+                #get the DEM values
+                gels_s = dem_df.loc[dem_df.index.isin(gdf['indexField']), :].iloc[:, 0]                
+                
+                #subtract the DEM from the WSE
+                deps_df = expoi_df.subtract(gels_s, axis=0)
+                
+            #get the unique depths
+            deps_s = deps_df.round(precision).stack()
+            deps_ar = np.unique(deps_s.dropna().values) #not sorting
+            
+            assert min(deps_ar)>=0, 'negative depths'
+
+            raise NotImplementedError('need to compute damages')
+            #===================================================================
+            # prep dfunc
+            #===================================================================
+            dd_ar = g_vfunc.get_group(tag).sort_values('exposure').loc[:, ['exposure', 'impact']].astype(float).T.values
+            
+            #check monotonocity
+            assert np.all(np.diff(dd_ar[0])>0), 'exposure values must be increasing' #redundant with sort_values?
+            assert np.all(np.diff(dd_ar[1])>=0), 'impact values must be non-decreasing'
+            
+            #===================================================================
+            # compute damages
+            #===================================================================
+            get_dmg = lambda depth: np.interp(depth, #depth find damage on
+                                            dd_ar[0], #depths (xcoords)
+                                            dd_ar[1], #damages (ycoords)
+                                            left=0, #depth below range
+                                            right=max(dd_ar[1]), #depth above range
+                                            )
+            get_dmg(deps_ar)
+            e_impacts_d = {dep:get_dmg(dep) for dep in deps_ar}
+            
+            
+            
+ 
         
-        #=======================================================================
-        # write
-        #=======================================================================
-        df.to_sql('table_dmgs', conn, if_exists='replace', index=False)
         
-        log.info(f'wrote {df.shape} to \'table_dmgs\'')
+        
+ 
         
         return df
         
@@ -619,7 +690,8 @@ def _update_proj_meta(log, conn, meta_d=dict()):
     
     #push to database
     proj_meta_df = pd.DataFrame(d)
-    proj_meta_df.to_sql('project_meta', conn, if_exists='append', index=False)    
+    df_to_sql(proj_meta_df, 'project_meta', conn, if_exists='append')
+ 
     log.debug(f'updated \'project_meta\' w/ {proj_meta_df.shape}')
     return proj_meta_df
 

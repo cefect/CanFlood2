@@ -49,6 +49,7 @@ class Main_dialog_emulator(Main_dialog_projDB):
         
     def add_model(self, model):
         model.parent=self
+        
         index_d = model.get_index_d()
         
         #setup model index
@@ -57,6 +58,8 @@ class Main_dialog_emulator(Main_dialog_projDB):
             self.model_index_d[category_code] = dict()
         
         self.model_index_d[index_d['category_code']][index_d['modelid']] = model
+        
+        model.update_parameter_d()
         
     def get_projDB_fp(self):
         """should override the parent method"""
@@ -68,6 +71,7 @@ class Main_dialog_emulator(Main_dialog_projDB):
 @pytest.fixture
 def dialog(logger, projDB_fp):
     """emulate the Main_dialog"""
+    assert os.path.exists(projDB_fp)
     dialog = Main_dialog_emulator(logger=logger, projDB_fp=projDB_fp)
     return dialog
 
@@ -84,14 +88,15 @@ def model(dialog,
 #===============================================================================
 # tests---
 #===============================================================================
-
+@pytest.mark.dev
+@pytest.mark.parametrize("projDB_fp", [oj_dialog('04_compile_c1-0-cf1_tutor_de8ebb', 'projDB.canflood2')])
 def test_core_01_init(model):
     """simple init test"""
     assert isinstance(model.parent, Main_dialog_projDB) 
     print(model.get_index_d())
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_dialog('04_compile_c1-0-cf1_tutor_de8ebb', 'projDB.canflood2'))
 ])

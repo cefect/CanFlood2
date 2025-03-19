@@ -203,7 +203,8 @@ class Main_dialog_haz(object):
         with sqlite3.connect(fp) as conn:
             #create the tables
             for table_name, df in df_d.items():
-                df.to_sql(table_name, conn, if_exists='replace', index=False)
+                df_to_sql(df, table_name, conn, if_exists='replace')
+ 
                 
             #check the database
             assert_hazDB_conn(conn)
@@ -244,7 +245,8 @@ class Main_dialog_haz(object):
             # update hazard meta
             #===================================================================
             table_name='04_haz_meta'
-            df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
+            df_d[table_name] = sql_to_df(table_name, conn)
+ 
             
             d = self._get_ui_state_from_df_template(df_d[table_name])
             df_d[table_name]['value'] = pd.Series(d)
@@ -283,7 +285,8 @@ class Main_dialog_haz(object):
             #===================================================================
             for k, df in df_d.items():
                 assert k in hazDB_schema_d.keys(), k
-                df.to_sql(k, conn, if_exists='replace', index=False)
+                df_to_sql(df, k, conn, if_exists='replace')
+ 
                 log.debug(f'    updated hazDB table \'{k}\' w/ {df.shape}')
                 
             assert_hazDB_conn(conn)
@@ -304,7 +307,8 @@ class Main_dialog_haz(object):
             with sqlite3.connect(projDB_fp) as conn:
                 for k, df in df_d.items():
                     assert k in project_db_schema_d.keys(), k
-                    df.to_sql(k, conn, if_exists='replace', index=False)
+                    df_to_sql(df, k, conn, if_exists='replace')
+ 
                     log.debug(f'    updated projDB table \'{k}\' w/ {df.shape}')
                     
                 assert_projDB_conn(conn)
@@ -345,7 +349,7 @@ class Main_dialog_haz(object):
             
             
     
-    def _hazDB_get_tables(self, *table_names, hazDB_fp=None):
+    def _hazDB_get_tables(self, table_names, hazDB_fp=None):
         """Convenience wrapper to get multiple tables as DataFrames.
     
         Parameters:
@@ -354,13 +358,15 @@ class Main_dialog_haz(object):
         """
         if hazDB_fp is None:
             hazDB_fp = self.lineEdit_HZ_hazDB_fp.text()
+        assert isinstance(table_names, (list, tuple)), type(table_names)
         
         assert_hazDB_fp(hazDB_fp)
         
         with sqlite3.connect(hazDB_fp) as conn:
-            dfs = tuple(pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names)
+            dfs = tuple(sql_to_df(name, conn) for name in table_names)
+             
     
-        return dfs[0] if len(dfs) == 1 else dfs
+        return dfs
     
     
     def get_haz_meta_df(self):
@@ -881,9 +887,12 @@ class Main_dialog_projDB(object):
         assert isinstance(table_names, list)
         if projDB_fp is None:
             projDB_fp = self.get_projDB_fp()
+        
+        assert isinstance(projDB_fp, str)
+        assert os.path.exists(projDB_fp)
     
         with sqlite3.connect(projDB_fp) as conn:
-            assert_projDB_conn(conn)
+            #assert_projDB_conn(conn)
  
             dfs = {name: sql_to_df(name, conn, template_prefix=template_prefix) for name in table_names}
     
@@ -913,7 +922,7 @@ class Main_dialog_projDB(object):
     
 
     
-        assert_projDB_fp(projDB_fp)
+        #assert_projDB_fp(projDB_fp)
     
         # Check if conn is provided, if not, create a new connection
         close_conn = False
@@ -923,29 +932,36 @@ class Main_dialog_projDB(object):
     
         try:
             for k, df in df_d.items():
-                try:
- 
-                    if k in project_db_schema_d.keys():
-                        """this test happens before we re-cast the types"""
-                        
-                        assert_df_matches_projDB_schema(k, df, check_dtypes=False)
-   
-                    elif k.startswith('model_'):
-                        pass
-    
-                    elif k.startswith('vfunc_'):
-                        pass
-    
-                    else:
-                        raise KeyError(f'bad table name: {k}')
-    
-                    df_to_sql(df, k, conn, if_exists='replace', **kwargs)
-                    log.debug(f'    wrote table \'{k}\' w/ {df.shape}')
- 
-                except Exception as e:
-                    raise IOError(f'failed to set table \'{k}\' to project database:\n     {e}')
+                df_to_sql(df, k, conn,  **kwargs)
+                log.debug(f'    wrote table \'{k}\' w/ {df.shape}')
+ #==============================================================================
+ #                try:
+ #                    #handling schema checks in the df_to_sql function
+ # 
+ #   #============================================================================
+ #   #                  if k in project_db_schema_d.keys():
+ #   #                      """this test happens before we re-cast the types and indicies"""
+ #   #                      
+ #   #                      assert_df_matches_projDB_schema(k, df, check_dtypes=False)
+ #   # 
+ #   #                  elif k.startswith('model_'):
+ #   #                      pass
+ #   #  
+ #   #                  elif k.startswith('vfunc_'):
+ #   #                      pass
+ #   #  
+ #   #                  else:
+ #   #                      raise KeyError(f'bad table name: {k}')
+ #   #============================================================================
+ #    
+ #                    df_to_sql(df, k, conn, if_exists='replace', **kwargs)
+ #                    log.debug(f'    wrote table \'{k}\' w/ {df.shape}')
+ # 
+ #                except Exception as e:
+ #                    raise IOError(f'failed to set table \'{k}\' to project database:\n     {e}') from None
+ #==============================================================================
         finally:
-            assert_projDB_conn(conn)
+            #assert_projDB_conn(conn)
             if close_conn:
                 conn.close()
     
@@ -1426,7 +1442,8 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
             # #update the project parameters
             #===================================================================
             table_name='02_project_parameters'
-            df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
+            df_d[table_name] = sql_to_df(table_name, conn)
+            #df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
             
             d = self._get_ui_state_from_df_template(df_d[table_name]) 
             
@@ -1439,9 +1456,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
             # update the model suite index
             #===================================================================
             table_name='03_model_suite_index'
-            """no... always just start a new one
-            df_d[table_name] = pd.read_sql('SELECT * FROM [{}]'.format(table_name), conn)
-            """
+ 
             blank_df = project_db_schema_d[table_name].copy()
  
             d=dict()
@@ -1479,7 +1494,8 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
             #===================================================================
             for k, df in df_d.items():
                 assert k in project_db_schema_d.keys(), k
-                df.to_sql(k, conn, if_exists='replace', index=False)
+                df_to_sql(df, k, conn, if_exists='replace')
+ 
                 log.debug(f'updated table \'{k}\' w/ {df.shape}')
                 
         #close sqlite

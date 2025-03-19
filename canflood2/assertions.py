@@ -16,7 +16,10 @@ from pandas.testing import assert_series_equal, assert_frame_equal
 
 
 
-from .db_tools import sql_to_df, assert_sqlite_table_exists
+from .db_tools import (
+    sql_to_df, assert_sqlite_table_exists, assert_df_template_match,
+    assert_intersection, assert_series_match)
+    
 from .parameters import (
     project_db_schema_d, hazDB_schema_d, projDB_schema_modelTables_d,
  
@@ -36,39 +39,7 @@ from .hp.basic import view_web_df as view
 
  
 
-#===============================================================================
-# BASIC-------------
-#===============================================================================
-def assert_df_template_match(df, schema_df, check_dtypes=True):
-    """check the df matches the schema"""
-    assert isinstance(df, pd.DataFrame)
-    assert isinstance(schema_df, pd.DataFrame)
-    
-    # Compare columns (you can use assert_frame_equal if order matters)
-    assert set(df.columns) == set(schema_df.columns), (
-        f"Column mismatch: {set(df.columns) - set(schema_df.columns)}")
-    
-    # Compare the string representation of dtypes for a more approximate check:
-    if check_dtypes:
-        actual_dtypes = df.dtypes.astype(str).sort_index()
-        expected_dtypes = schema_df.dtypes.astype(str).sort_index()
-        assert_series_match(expected_dtypes, actual_dtypes)
-    #assert_series_equal(actual_dtypes, expected_dtypes)
-    #assert actual_dtypes.equals(expected_dtypes),f"Dtype mismatch: \nactuals:\n{actual_dtypes} vs expected\n{expected_dtypes}"
-    
 
-def assert_series_match(expected_series, actual_series):
-    """an easier to read implementation of pd.testing.assert_series_equal"""
-    # Determine the intersecting indexes.
-    common_index = expected_series.index.intersection(actual_series.index)
-    assert len(common_index) > 0, 'no common indexes found'
-# Subset both series to only include intersecting keys.
-    filtered_expected_series = expected_series.loc[common_index]
-    filtered_actual_series = actual_series.loc[common_index]
-# Compare the filtered series using pandas' compare().
-    diff = filtered_expected_series.compare(filtered_actual_series, result_names=("expected", "actual"))
-    if not diff.empty:
-        raise AssertionError("Value mismatches found for common keys:\n" + diff.to_string())
     
     
 
@@ -98,18 +69,19 @@ def assert_projDB_conn(conn,
                    ):
  
     cursor = conn.cursor()
-    #get_df = lambda table_name: pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
-    get_df = lambda table_name: sql_to_df(table_name, conn)
 
+ 
+
+    df_d = dict()
     missing_tables = []
     for table_name in expected_tables:
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
         if not cursor.fetchone():
             missing_tables.append(table_name)
             
- 
+        df_d[table_name] = sql_to_df(table_name, conn)
         
-        assert_df_matches_projDB_schema(table_name, get_df(table_name))
+        assert_df_matches_projDB_schema(table_name,df_d[table_name])
 
     if missing_tables:
         raise AssertionError(f"Missing tables in project database: {', '.join(missing_tables)}")
@@ -122,7 +94,7 @@ def assert_projDB_conn(conn,
         #=======================================================================
         table_name = '03_model_suite_index'
         
-        dx = get_df(table_name) 
+        dx = df_d[table_name].copy()
         #dx['modelid'] = dx['modelid'].astype(str)
         dx = dx.set_index(['modelid', 'category_code'])
         
@@ -161,16 +133,16 @@ def assert_projDB_conn(conn,
         #=======================================================================
         #check the index matches the data
         table_name = '06_vfunc_index'
-        index_df = get_df(table_name)
+        index_df = df_d[table_name].copy()
         
         if len(index_df)>0:
-            data_dx = get_df('07_vfunc_data').set_index(['tag', 'exposure'])
+            data_dx = df_d['07_vfunc_data'].copy().set_index(['tag', 'exposure'])
             assert len(data_dx)>0, 'no data in vfunc_data'
             
             #check the index matches the data
-            assert set(index_df['tag']) == set(data_dx.index.unique('tag')), f'index mismatch'
+            assert set(index_df.index) == set(data_dx.index.unique('tag')), f'index mismatch'
         else:
-            assert len(get_df('07_vfunc_data')) == 0, 'no index but data found'
+            assert len(df_d['07_vfunc_data']) == 0, 'no index but data found'
             
  
         
@@ -186,6 +158,9 @@ def assert_df_matches_projDB_schema(table_name, actual_df, **kwargs):
     if schema_df is not None:
         try:
             assert_df_template_match(actual_df, schema_df, **kwargs)
+            """
+            schema_df.index
+            """
         except Exception as e:
             raise AssertionError(f"table '{table_name}' schema mismatch:\n    {e}") from None
     

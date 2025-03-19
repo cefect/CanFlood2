@@ -246,6 +246,7 @@ class Model_compiler(object):
  
         #collect
         expos_df = pd.concat(samples_d, axis=1)
+        
             
         log.info(f'finished sampling {expos_df.shape} hazard rasters')
         
@@ -259,6 +260,7 @@ class Model_compiler(object):
         #=======================================================================
         # write
         #=======================================================================
+        expos_df.index.name='indexField'
         model.set_tables({'table_expos':expos_df}, logger=log)
         
         return expos_df

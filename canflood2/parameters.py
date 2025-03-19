@@ -175,7 +175,7 @@ modelTable_params_d = {
         'phase': 'compile'
     },
     'table_expos': {
-        'df': None,
+        'df': pd.DataFrame(index=finv_index),
         'phase': 'compile'
     },
     'table_gels': {

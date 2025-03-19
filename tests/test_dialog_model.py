@@ -298,7 +298,7 @@ def test_dial_model_03_save_vfunc(dialog, model,
     assert len(df_d)==int(dialog.label_V_functionCount.text()), f'vfunc count failed to set'
     
     #check the vfunc index 
-    vfunc_index_df = dialog.parent.projDB_get_tables('06_vfunc_index')
+    vfunc_index_df = dialog.parent.projDB_get_tables(['06_vfunc_index'])[0]
  
     
     #check the keys match
@@ -312,7 +312,7 @@ def test_dial_model_03_save_vfunc(dialog, model,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     pytest.param(
         'cf1_tutorial_02',oj('03_save_vfunc_c1-0-cf1_tu_3f2fee', 'projDB.canflood2'),
@@ -321,17 +321,17 @@ def test_dial_model_03_save_vfunc(dialog, model,
     )
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_03_compile(dialog, model,
+def test_dial_model_04_compile(dialog, model,
                            test_name, 
                            ):
-    """Test running from the model config dialog"""
+    """Test compile sequence"""
     
     #===========================================================================
     # load parameters
     #===========================================================================
     """done by fixture"""
     
-        #===========================================================================
+    #===========================================================================
     # load vfuncs
     #===========================================================================
     """included in projDB"""    
@@ -351,6 +351,59 @@ def test_dial_model_03_compile(dialog, model,
     #===========================================================================
     print(f'\n\nchecking dialog\n{"="*80}')
     
+    df_d = model.get_tables(model.compile_model_tables, result_as_dict=True)
+    for table_name, df in df_d.items(): 
+        assert len(df)>0, f'got empty table \'{table_name}\''
+        
+    
+    
+    #===========================================================================
+    # write------
+    #===========================================================================
+    write_projDB(dialog, test_name)
+
+
+
+@pytest.mark.dev
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    pytest.param(
+        'cf1_tutorial_02',oj('04_compile_c1-0-cf1_tutor_de8ebb', 'projDB.canflood2'),
+    )
+])
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+def test_dial_model_05_run(dialog, model,
+                           test_name, 
+                           ):
+    """Test run (post compile)"""
+    
+    #===========================================================================
+    # load parameters
+    #===========================================================================
+    """done by fixture"""
+    
+    #===========================================================================
+    # load vfuncs
+    #===========================================================================
+    """included in projDB""" 
+    
+    #===========================================================================
+    # compile model tables
+    #===========================================================================
+    """included in projDB"""
+    df_d = model.get_tables(model.compile_model_tables, result_as_dict=True)
+    for table_name, df in df_d.items(): 
+        assert len(df)>0, f'got empty table \'{table_name}\''
+    
+    #===========================================================================
+    # trigger run sequence
+    #===========================================================================
+    dialog._run_model(compile_model=False)
+    
+    #===========================================================================
+    # check
+    #===========================================================================
+    print(f'\n\nchecking dialog\n{"="*80}')
+    
     
     for table_name in model.compile_model_tables:
         df = model.get_tables(table_name)
@@ -362,7 +415,7 @@ def test_dial_model_03_compile(dialog, model,
     # write------
     #===========================================================================
     write_projDB(dialog, test_name)
-
+    
 
 
 

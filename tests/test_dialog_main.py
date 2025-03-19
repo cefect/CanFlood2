@@ -330,7 +330,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
     assert_projDB_fp(result, check_consistency=True)
     
     #load parmeters table
-    df = dialog.projDB_get_tables('02_project_parameters')
+    df = dialog.projDB_get_tables(['02_project_parameters'])[0]
     
     test_d = df.loc[:, ['widgetName', 'value']].set_index('widgetName').to_dict()['value']
     

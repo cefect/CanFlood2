@@ -71,7 +71,7 @@ from .assertions import (
     )
 
 from .core import _get_proj_meta_d, Model
-from .db_tools import df_to_sql, get_template_df
+from .db_tools import df_to_sql, get_template_df, sql_to_df
 from .dialog_model import Model_config_dialog
 #===============================================================================
 # load UI and resources
@@ -556,7 +556,7 @@ class Main_dialog_modelSuite(object):
             #===================================================================
             # #add the parameter table
             #===================================================================
-            table_name = model.get_table_names('table_parameters')
+            table_name = model.get_table_names(['table_parameters'])[0]
             df_d[table_name] = projDB_schema_modelTables_d['table_parameters'].copy()
             
             #add the indexers            
@@ -564,7 +564,9 @@ class Main_dialog_modelSuite(object):
                 df_d[table_name].loc[df_d[table_name]['varName']==k, 'value'] = str(v)
  
             
-            df_d[table_name].to_sql(table_name, conn, if_exists='replace', index=False)
+            df_to_sql(df_d[table_name], table_name, conn, if_exists='replace', 
+                      template_prefix=model.template_prefix_str)
+
             
         log.debug(f'created parameter table for model \'{modelName}\'')
  
@@ -816,7 +818,7 @@ class Main_dialog_modelSuite(object):
         log.info(f'cleared {cnt} models')
         
     def get_model_index_dx(self, **kwargs):
-        df = self.projDB_get_tables('03_model_suite_index', **kwargs)
+        df = self.projDB_get_tables(['03_model_suite_index'], **kwargs)[0]
 
         df['modelid'] = df['modelid'].astype(int)
         return df.set_index(['modelid', 'category_code'])
@@ -850,12 +852,231 @@ class Main_dialog_modelSuite(object):
 
             
             
+class Main_dialog_projDB(object):
+    """methods for dealing with the project database"""
+    def get_projDB_fp(self):
+        """get the project database file path and do some formatting and checks"""
+        fp = self.lineEdit_PS_projDB_fp.text()
+        if fp=='':
+            fp = None
         
+        if not fp is None:
+            assert isinstance(fp, str)
+            assert os.path.exists(fp), f'bad filepath for projDB: {fp}'
+            
+        return fp
+        
+
+    def projDB_get_tables(self, table_names, projDB_fp=None, result_as_dict=False, template_prefix=None):
+        """Convenience wrapper to get multiple tables as DataFrames.
+    
+        Parameters:
+        *table_names: Variable number of table names (str) to fetch.
+        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+        result_as_dict: Optional; if True, returns a dictionary {name: df} instead of a tuple.
+    
+        Returns:
+        If a single table name is passed, returns a DataFrame; otherwise, returns a tuple of DataFrames in the same order as table_names or a dictionary {name: df} if result_as_dict is True.
+        """
+        assert isinstance(table_names, list)
+        if projDB_fp is None:
+            projDB_fp = self.get_projDB_fp()
+    
+        with sqlite3.connect(projDB_fp) as conn:
+            assert_projDB_conn(conn)
+ 
+            dfs = {name: sql_to_df(name, conn, template_prefix=template_prefix) for name in table_names}
+    
+        if result_as_dict:
+            return dfs
+        else:
+            return list(dfs.values()) 
+             
+
+    
+
+    def projDB_set_tables(self, df_d, projDB_fp=None, conn=None, logger=None, **kwargs):
+        """Convenience wrapper to set multiple tables from DataFrames.
+    
+        Parameters:
+        df_d: dict
+            Dictionary of DataFrames to set in the project database.
+        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+        conn: Optional; SQLite connection object. If None, a new connection will be created.
+        """
+        
+        if logger is None: logger=self.logger
+        log = logger.getChild('projDB_set_tables')
+        
+        if projDB_fp is None:
+            projDB_fp = self.get_projDB_fp()
+    
+
+    
+        assert_projDB_fp(projDB_fp)
+    
+        # Check if conn is provided, if not, create a new connection
+        close_conn = False
+        if conn is None:
+            conn = sqlite3.connect(projDB_fp)
+            close_conn = True
+    
+        try:
+            for k, df in df_d.items():
+                try:
+ 
+                    if k in project_db_schema_d.keys():
+                        """this test happens before we re-cast the types"""
+                        
+                        assert_df_matches_projDB_schema(k, df, check_dtypes=False)
+   
+                    elif k.startswith('model_'):
+                        pass
+    
+                    elif k.startswith('vfunc_'):
+                        pass
+    
+                    else:
+                        raise KeyError(f'bad table name: {k}')
+    
+                    df_to_sql(df, k, conn, if_exists='replace', **kwargs)
+                    log.debug(f'    wrote table \'{k}\' w/ {df.shape}')
+ 
+                except Exception as e:
+                    raise IOError(f'failed to set table \'{k}\' to project database:\n     {e}')
+        finally:
+            assert_projDB_conn(conn)
+            if close_conn:
+                conn.close()
+    
+        log.debug(f'updated {list(df_d.keys())} tables in project database at\n    {projDB_fp}')
+
+                
+    def projDB_drop_tables(self, *table_names, projDB_fp=None, logger=None):
+        """Convenience wrapper to drop multiple tables from the project database.
+    
+        Parameters:
+        *table_names: Variable number of table names (str) to drop.
+        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+        """
+        if projDB_fp is None:
+            projDB_fp = self.get_projDB_fp()
+        if logger is None: logger=self.logger
+        log = logger.getChild('projDB_drop_tables')
+    
+        assert_projDB_fp(projDB_fp)
+    
+ 
+
+        with sqlite3.connect(projDB_fp) as conn:
+            for name in table_names:
+                assert name in get_table_names(conn), name
+                conn.execute(f'DROP TABLE IF EXISTS [{name}]')
+        
+                # Check if the table still exists
+                if name in get_table_names(conn):
+                    raise RuntimeError(f'Failed to drop table: {name}')
+        
+        log.debug(f'dropped {len(table_names)} tables from project database\n    {table_names}')
+        
+    def projDB_get_table_names_all(self, projDB_fp=None):
+        """Convenience wrapper to get all table names from the project database.
+    
+        Parameters:
+        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
+    
+        Returns:
+        List of table names in the project database.
+        """
+        if projDB_fp is None:
+            projDB_fp = self.get_projDB_fp()
+    
+        with sqlite3.connect(projDB_fp) as conn:
+ 
+            return get_table_names(conn)
+
+ 
+        
+    def _load_projDB(self):
+        """load an existing project database file"""
+        log = self.logger.getChild('_load_projDB')
+ 
+        fp =  self.get_projDB_fp()
+        assert not fp is None, 'no project database file path specified'
+        log.debug(f'loading project database from\n    {fp}')
+        
+        
+        assert_projDB_fp(fp, check_consistency=True)
+        
+ 
+            
+        #=======================================================================
+        # set the ui state from the project parameters
+        #=======================================================================
+        table_name='02_project_parameters'
+        df_raw = self.projDB_get_tables([table_name], projDB_fp=fp)[0]
+        s = df_raw.dropna(subset=['widgetName', 'value']).set_index('widgetName')['value']
+ 
+        if len(s)>0:
+            log.debug(f'loading {len(s)} project parameters')
+            for widgetName, value in s.items():
+     
+                #get the widget
+                try:
+                    widget = getattr(self, widgetName)                
+                    set_widget_value(widget, value)
+                except Exception as e:
+                    log.error(f'failed to set widget \'{widgetName}\' to \'{value}\': \n'+\
+                               f'    {e}\nprojDB may be out of sync')
+                
+        else:
+            log.warning(f'no project parameters found in projDB')
+        
+ 
+        
+        
+                
+        #=======================================================================
+        # set the model suite
+        #=======================================================================
+ 
+        #clear the model suite
+        self._clear_all_models(clear_projDB=False, logger=log)
+        
+        model_index_dx = self.get_model_index_dx(projDB_fp=fp)
+        
+        if len(model_index_dx)>0:
+            log.debug(f'loading {len(model_index_dx)} models')
+            cnt=0
+            for (modelid, category_code) , row in model_index_dx.iterrows():
+ 
+                #get the groupbox
+                params = consequence_category_d[category_code]
+                gb = getattr(self, params['boxName'])                
+                
+                self._add_model(gb.layout(), category_code, logger=log)
+                
+                #check the modelid was added
+                assert modelid in self.model_index_d[category_code], f'failed to add model {modelid}'
+                cnt+=1
+            
+            log.info(f'loaded {cnt} models from project database')
+                
+        else:
+            log.warning(f'no models found in projDB')
+ 
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.push(f'loaded project from {os.path.basename(fp)}')
+        
+        return  
  
         
  
     
-class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FORM_CLASS):
+class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, 
+                  QtWidgets.QDialog, FORM_CLASS):
     
 
     
@@ -1275,228 +1496,7 @@ class Main_dialog(Main_dialog_haz, Main_dialog_modelSuite, QtWidgets.QDialog, FO
              
         return rlay
     
-    def get_projDB_fp(self):
-        """get the project database file path and do some formatting and checks"""
-        fp = self.lineEdit_PS_projDB_fp.text()
-        if fp=='':
-            fp = None
-        
-        if not fp is None:
-            assert isinstance(fp, str)
-            assert os.path.exists(fp), f'bad filepath for projDB: {fp}'
-            
-        return fp
-        
 
-    def projDB_get_tables(self, *table_names, projDB_fp=None, result_as_dict=False):
-        """Convenience wrapper to get multiple tables as DataFrames.
-    
-        Parameters:
-        *table_names: Variable number of table names (str) to fetch.
-        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
-        result_as_dict: Optional; if True, returns a dictionary {name: df} instead of a tuple.
-    
-        Returns:
-        If a single table name is passed, returns a DataFrame; otherwise, returns a tuple of DataFrames in the same order as table_names or a dictionary {name: df} if result_as_dict is True.
-        """
-        if projDB_fp is None:
-            projDB_fp = self.get_projDB_fp()
-    
-        with sqlite3.connect(projDB_fp) as conn:
-            assert_projDB_conn(conn)
-            
-            #===================================================================
-            # #check that the tables exist
-            # table_names = get_table_names(conn)            
-            # for name in table_names:
-            #     assert name in table_names
-            #===================================================================
-                
-            dfs = {name: pd.read_sql(f'SELECT * FROM [{name}]', conn) for name in table_names}
-    
-        if result_as_dict:
-            return dfs
-        else:
-            return dfs[table_names[0]] if len(table_names) == 1 else tuple(dfs[name] for name in table_names)
-
-    
-
-    def projDB_set_tables(self, df_d, projDB_fp=None, conn=None, logger=None, **kwargs):
-        """Convenience wrapper to set multiple tables from DataFrames.
-    
-        Parameters:
-        df_d: dict
-            Dictionary of DataFrames to set in the project database.
-        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
-        conn: Optional; SQLite connection object. If None, a new connection will be created.
-        """
-        
-        if logger is None: logger=self.logger
-        log = logger.getChild('projDB_set_tables')
-        
-        if projDB_fp is None:
-            projDB_fp = self.get_projDB_fp()
-    
-
-    
-        assert_projDB_fp(projDB_fp)
-    
-        # Check if conn is provided, if not, create a new connection
-        close_conn = False
-        if conn is None:
-            conn = sqlite3.connect(projDB_fp)
-            close_conn = True
-    
-        try:
-            for k, df in df_d.items():
-                try:
- 
-                    if k in project_db_schema_d.keys():
-                        """this test happens before we re-cast the types"""
-                        
-                        assert_df_matches_projDB_schema(k, df, check_dtypes=False)
-   
-                    elif k.startswith('model_'):
-                        pass
-    
-                    elif k.startswith('vfunc_'):
-                        pass
-    
-                    else:
-                        raise KeyError(f'bad table name: {k}')
-    
-                    df_to_sql(df, k, conn, if_exists='replace', **kwargs)
-                    log.debug(f'    wrote table \'{k}\' w/ {df.shape}')
- 
-                except Exception as e:
-                    raise IOError(f'failed to set table \'{k}\' to project database:\n     {e}')
-        finally:
-            assert_projDB_conn(conn)
-            if close_conn:
-                conn.close()
-    
-        log.debug(f'updated {list(df_d.keys())} tables in project database at\n    {projDB_fp}')
-
-                
-    def projDB_drop_tables(self, *table_names, projDB_fp=None, logger=None):
-        """Convenience wrapper to drop multiple tables from the project database.
-    
-        Parameters:
-        *table_names: Variable number of table names (str) to drop.
-        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
-        """
-        if projDB_fp is None:
-            projDB_fp = self.get_projDB_fp()
-        if logger is None: logger=self.logger
-        log = logger.getChild('projDB_drop_tables')
-    
-        assert_projDB_fp(projDB_fp)
-    
- 
-
-        with sqlite3.connect(projDB_fp) as conn:
-            for name in table_names:
-                assert name in get_table_names(conn), name
-                conn.execute(f'DROP TABLE IF EXISTS [{name}]')
-        
-                # Check if the table still exists
-                if name in get_table_names(conn):
-                    raise RuntimeError(f'Failed to drop table: {name}')
-        
-        log.debug(f'dropped {len(table_names)} tables from project database\n    {table_names}')
-        
-    def projDB_get_table_names_all(self, projDB_fp=None):
-        """Convenience wrapper to get all table names from the project database.
-    
-        Parameters:
-        projDB_fp: Optional; path to the project database file. If None, it will use the value from self.lineEdit_PS_projDB_fp.text().
-    
-        Returns:
-        List of table names in the project database.
-        """
-        if projDB_fp is None:
-            projDB_fp = self.get_projDB_fp()
-    
-        with sqlite3.connect(projDB_fp) as conn:
- 
-            return get_table_names(conn)
-
- 
-        
-    def _load_projDB(self):
-        """load an existing project database file"""
-        log = self.logger.getChild('_load_projDB')
- 
-        fp =  self.get_projDB_fp()
-        assert not fp is None, 'no project database file path specified'
-        log.debug(f'loading project database from\n    {fp}')
-        
-        
-        assert_projDB_fp(fp, check_consistency=True)
-        
- 
-            
-        #=======================================================================
-        # set the ui state from the project parameters
-        #=======================================================================
-        table_name='02_project_parameters'
-        df_raw = self.projDB_get_tables(table_name, projDB_fp=fp)
-        s = df_raw.dropna(subset=['widgetName', 'value']).set_index('widgetName')['value']
- 
-        if len(s)>0:
-            log.debug(f'loading {len(s)} project parameters')
-            for widgetName, value in s.items():
-     
-                #get the widget
-                try:
-                    widget = getattr(self, widgetName)                
-                    set_widget_value(widget, value)
-                except Exception as e:
-                    log.error(f'failed to set widget \'{widgetName}\' to \'{value}\': \n'+\
-                               f'    {e}\nprojDB may be out of sync')
-                
-        else:
-            log.warning(f'no project parameters found in projDB')
-        
- 
-        
-        
-                
-        #=======================================================================
-        # set the model suite
-        #=======================================================================
- 
-        #clear the model suite
-        self._clear_all_models(clear_projDB=False, logger=log)
-        
-        model_index_dx = self.get_model_index_dx(projDB_fp=fp)
-        
-        if len(model_index_dx)>0:
-            log.debug(f'loading {len(model_index_dx)} models')
-            cnt=0
-            for (modelid, category_code) , row in model_index_dx.iterrows():
- 
-                #get the groupbox
-                params = consequence_category_d[category_code]
-                gb = getattr(self, params['boxName'])                
-                
-                self._add_model(gb.layout(), category_code, logger=log)
-                
-                #check the modelid was added
-                assert modelid in self.model_index_d[category_code], f'failed to add model {modelid}'
-                cnt+=1
-            
-            log.info(f'loaded {cnt} models from project database')
-                
-        else:
-            log.warning(f'no models found in projDB')
- 
-        #=======================================================================
-        # wrap
-        #=======================================================================
-        log.push(f'loaded project from {os.path.basename(fp)}')
-        
-        return
                 
 
             

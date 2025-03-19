@@ -211,7 +211,7 @@ class Model_compiler(object):
         log.debug(f'loaded {len(haz_rlay_d)} hazard rasters')
         
         #check consistency against event metadata
-        haz_events_df = self.parent.projDB_get_tables('05_haz_events')        
+        haz_events_df = self.parent.projDB_get_tables(['05_haz_events'])[0]        
         assert set(haz_rlay_d.keys()) == set(haz_events_df['event_name']), 'mismatch on hazard events'
         
         #=======================================================================
@@ -575,7 +575,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         if model is None: model = self.model
         
         #retrieve the parameter table
-        params_df = model.get_tables('table_parameters').set_index('varName')
+        params_df = model.get_tables(['table_parameters'])[0].set_index('varName')
         
         """
         view(params_df)
@@ -634,6 +634,11 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
     def _run_model(self, *args, compile_model=True):
         """run the model
         
+        Params
+        ------
+        compile_model: bool
+            flag to compile the model before running
+            for testing purposes
     
         """
         

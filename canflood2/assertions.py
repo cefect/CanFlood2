@@ -16,7 +16,7 @@ from pandas.testing import assert_series_equal, assert_frame_equal
 
 
 
-from .db_tools import sql_to_df
+from .db_tools import sql_to_df, assert_sqlite_table_exists
 from .parameters import (
     project_db_schema_d, hazDB_schema_d, projDB_schema_modelTables_d,
  
@@ -30,11 +30,7 @@ from .hp.basic import view_web_df as view
 #===============================================================================
 # helpers--------
 #===============================================================================
-def _assert_sqlite_table_exists(conn, table_name): 
-    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name, ))
-    result = cursor.fetchone()
-    if not result:
-        raise AssertionError(f"Table '{table_name}' not found in database") # Check if DRF table exists
+
     
     
 

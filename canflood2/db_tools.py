@@ -14,13 +14,14 @@ from .hp.sql import pd_dtype_to_sqlite_type
 
 """need some very simple functions here to workaround module dependence"""
 
-#===============================================================================
-# def get_pd_dtypes_from_template(template_df):
-#     dtype = None
-#     if template_df is not None:
-#         dtype = template_df.dtypes.to_dict()
-#     return dtype
-#===============================================================================
+ 
+
+def assert_sqlite_table_exists(conn, table_name): 
+    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name, ))
+    result = cursor.fetchone()
+    if not result:
+        raise AssertionError(f"Table '{table_name}' not found in database") # Check if DRF table exists
+    
 
 def get_sqlalchemy_dtypes_from_template(template_df):
  
@@ -28,8 +29,9 @@ def get_sqlalchemy_dtypes_from_template(template_df):
 
 
 
-def get_template_df(table_name, template_prefix=False):
-    if template_prefix:
+def get_template_df(table_name, template_prefix=None):
+    if not template_prefix is None:
+        assert isinstance(template_prefix, str)
         template_name = table_name.replace(template_prefix, '')
         assert template_name in projDB_schema_modelTables_d, f'failed to find template \'{template_name}\''
         return projDB_schema_modelTables_d[template_name]
@@ -40,7 +42,7 @@ def get_template_df(table_name, template_prefix=False):
  
 
 
-def sql_to_df(table_name, conn, template_prefix=False, **kwargs):
+def sql_to_df(table_name, conn, template_prefix=None, **kwargs):
     """wrapper for reading a panads dataframe from a sqlite table respecing the template types
     
     duplicated here for module dependence reasons
@@ -63,7 +65,7 @@ def sql_to_df(table_name, conn, template_prefix=False, **kwargs):
     #===========================================================================
     # read
     #===========================================================================
-
+    assert_sqlite_table_exists(conn, table_name)
     try:
         df = pd.read_sql(f'SELECT * FROM [{table_name}]', conn, dtype=dtype, index_col=index_col,  **kwargs)
     except Exception as e:
@@ -72,7 +74,7 @@ def sql_to_df(table_name, conn, template_prefix=False, **kwargs):
     return df
 
 
-def df_to_sql(df, table_name, conn, template_prefix=False, **kwargs):
+def df_to_sql(df, table_name, conn, template_prefix=None, **kwargs):
     """wrapper for writing a panads dataframe to a sqlite table respecing the template types"""
  
     

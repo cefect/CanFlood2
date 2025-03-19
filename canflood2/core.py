@@ -12,7 +12,9 @@ import numpy as np
 #===============================================================================
 # IMPORTS-----
 #===============================================================================
-from .assertions import assert_projDB_fp, assert_hazDB_fp, assert_df_matches_projDB_schema
+from .assertions import (
+    assert_projDB_fp, assert_hazDB_fp, assert_df_matches_projDB_schema, assert_projDB_conn
+    )
 from .parameters import (
     projDB_schema_modelTables_d, project_db_schema_d,  modelTable_params_d
     )
@@ -51,76 +53,53 @@ class Model_run_methods(object):
             projDB_fp = self.parent.get_projDB_fp()
         
         
-        log.info(f'running model from {os.path.basename(projDB_fp)}') 
+        log.info(f'running model from {os.path.basename(projDB_fp)}')
         
-        assert_projDB_fp(projDB_fp, check_consistency=True)
+        """too tricky to work witha  single connection
+        most things are setup to work of the filepath
+        with sqlite3.connect(projDB_fp) as conn: 
         
- 
-    
+            assert_projDB_conn(conn, check_consistency=True)
+        """
+            
         #=======================================================================
-        # smaple rasters
+        # run sequence
         #=======================================================================
-        self.r01_build_table_finv(projDB_fp)
+        skwargs = dict(projDB_fp=projDB_fp, logger=log)
         
-    def r01_build_table_finv(self, projDB_fp=None,):
-        """build the asset inventory table"""
-        log = self.logger.getChild('r01_build_table_finv')
+        #compute damages 
+        self._table_dmgs_to_db(**skwargs)
+        
+    def _table_dmgs_to_db(self, projDB_fp=None, logger=None):
+        """compute the damages and write to the database"""
         
         #=======================================================================
         # defaults
         #=======================================================================
+        if logger is None: logger = self.logger
+        log = logger.getChild('_table_dmgs_to_db')
+        
+        #=======================================================================
+        # load data
+        #=======================================================================
+        expos_df, finv_df = self.get_tables(['table_expos', 'table_finv'], projDB_fp=projDB_fp)
+        
+        raise NotImplementedError('stopped here')
+        #=======================================================================
+        # compute
+        #=======================================================================
+        df['damages'] = df['dem_samples'] * 2.0
+        
+        #=======================================================================
+        # write
+        #=======================================================================
+        df.to_sql('table_dmgs', conn, if_exists='replace', index=False)
+        
+        log.info(f'wrote {df.shape} to \'table_dmgs\'')
+        
+        return df
+        
  
-            
-        model = self.model
-        assert not model is None, 'no model loaded'
-        
-        log.info(f'building asset inventory table for model {model.name}')
-        
-        #=======================================================================
-        # #get the asset inventory layer
-        #=======================================================================
-        vlay = self.comboBox_finv_vlay.currentLayer()
-        assert not vlay is None, 'no asset inventory layer selected'
-        
-        #=======================================================================
-        # #get the field names
-        #=======================================================================
-        d = dict()
-        for comboBox, fn_str in {
-            self.mFieldComboBox_cid:'xid',
-            self.mFieldComboBox_AI_01_scale:'f0_scale',
-            self.mFieldComboBox_AI_01_tag:'f0_tag',
-            self.mFieldComboBox_AI_01_elev:'f0_elev',
-            self.mFieldComboBox_AI_01_cap:'f0_cap',
-            }.items():
-            
-            d[fn_str] = comboBox.currentField()
-            
-        #=======================================================================
-        # #build the table
-        #=======================================================================
-        model.build_table_finv(vlay, d, projDB_fp=projDB_fp)
-        
-        log.info(f'finished building asset inventory table for model {model.name}')
-        
-        #=======================================================================
-        # #update the labels
-        #=======================================================================
-        self._update_model_labels(model=model)
-        
-        #=======================================================================
-        # #update the model widget labels
-        #=======================================================================
-        self.parent._update_model_widget_labels(model=model)
-        
-        #=======================================================================
-        # #update the model index
-        #=======================================================================
-        self.parent.update_model_index_dx(model, logger=log)
-        
-        log.info(f'finished building asset inventory table for model {model.name}')
-        
-        return True
     
     
 class Model(Model_run_methods):
@@ -167,6 +146,7 @@ class Model(Model_run_methods):
         self.modelid = int(modelid)
         self.name = f'{category_code}_{modelid}'
         self.logger = logger.getChild(self.name)
+        self.template_prefix_str = f'model_{self.name}_'
  
         
         self.logger.debug(f'initialized')
@@ -235,16 +215,21 @@ class Model(Model_run_methods):
 
  
 
-    def get_table_names(self, *table_names, result_as_dict=False):
+    def get_table_names(self, table_names, result_as_dict=False):
         """Return the matching table names for this model."""
-        if result_as_dict:
-            raise NotImplementedError()
+        assert isinstance(table_names, list)
         template_names = projDB_schema_modelTables_d.keys()
         for tn in table_names:
             assert tn in template_names, f'bad table name: {tn}'
     
-        result = tuple(f'model_{self.name}_{k}' for k in table_names)
-        return result[0] if len(result) == 1 else result
+        result = list(f'model_{self.name}_{k}' for k in table_names)
+        
+        if result_as_dict:
+            return dict(zip(table_names, result))
+        else:
+            return result
+        
+ 
 
  
  
@@ -264,12 +249,27 @@ class Model(Model_run_methods):
             return match_l
 
     
-    def get_tables(self,*table_names, **kwargs):
-        """load model specific tables from generic table names"""        
-        return self.parent.projDB_get_tables(self.get_table_names(*table_names), **kwargs)
+    def get_tables(self,table_names_l, result_as_dict=False, **kwargs):
+        """load model specific tables from generic table names"""
+        assert isinstance(table_names_l, list), type(table_names_l)
+        names_d = self.get_table_names(table_names_l, result_as_dict=True)
+        
+        full_names = list(names_d.values())
+        
+ 
+             
+        
+                
+        tables =  self.parent.projDB_get_tables(full_names,template_prefix=self.template_prefix_str, **kwargs)
+        
+        if result_as_dict:
+            return dict(zip(table_names_l, tables))
+        else:
+            return tables
+        
     
     def get_table_parameters(self, **kwargs):
-        df_raw = self.get_tables('table_parameters', **kwargs)
+        df_raw = self.get_tables(['table_parameters'], **kwargs)[0]
         
         return format_table_parameters(df_raw)
     
@@ -283,8 +283,11 @@ class Model(Model_run_methods):
         #=======================================================================
         if len(table_names_d)>0:
         
-            tables_l = self.parent.projDB_get_tables(*table_names_d.values(), 
-                                                     projDB_fp=projDB_fp, result_as_dict=False)
+            tables_l = self.parent.projDB_get_tables(list(table_names_d.values()), 
+                                                     projDB_fp=projDB_fp, 
+                                                     result_as_dict=False,
+                                                     template_prefix=self.template_prefix_str,
+                                                     )
             
             if len(table_names_d)==1:
                 tables_l = [tables_l]
@@ -317,17 +320,15 @@ class Model(Model_run_methods):
         #recase the names
 
         # Get the table names
-        table_names = self.get_table_names(*df_d.keys())
+        table_names = self.get_table_names(list(df_d.keys()))
         
-        # Ensure table_names is a list
-        if isinstance(table_names, str):
-            table_names = [table_names]
+ 
         
         # Recast the DataFrame dictionary with the correct table names
         df_d_recast = dict(zip(table_names, df_d.values()))
         
         # Write the tables to the project database
-        result =  self.parent.projDB_set_tables(df_d_recast, template_prefix=f'model_{self.name}_', **kwargs)
+        result =  self.parent.projDB_set_tables(df_d_recast, template_prefix=self.template_prefix_str, **kwargs)
         
         #=======================================================================
         # #handle updates

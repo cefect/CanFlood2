@@ -213,7 +213,9 @@ modelTable_params_d = {
         },
     
     'table_ead': {
-        'df': pd.DataFrame(
+        'df': pd.DataFrame({
+            'ead': pd.Series(dtype=float),
+            },
             index=finv_index,
             ),
         'phase': 'run',
@@ -282,5 +284,9 @@ project_db_schema_d['07_vfunc_data'] = pd.DataFrame({
 
         
 
+#===============================================================================
+# RISK===============
+#===============================================================================
+impact_max = 1e12
  
  

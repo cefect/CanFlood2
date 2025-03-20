@@ -5,7 +5,7 @@ Created on Mar 6, 2025
 '''
 
 
-import pytest, os, shutil
+import pytest, os, shutil, copy
  
 from PyQt5.QtWidgets import QWidget
 from canflood2.core import Model, Model_table_assertions
@@ -19,7 +19,9 @@ from .conftest import (
     result_write_filename_prep, click
     )
 
+from canflood2.parameters import modelTable_params_d
 
+modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed']) 
 #===============================================================================
 # DATA--------
 #===============================================================================
@@ -149,10 +151,18 @@ def test_core_03_table_impacts_prob_to_db(model,
     write_projDB(model, test_name)
     
 
+
+
+
+
+
+
+
 @pytest.mark.dev 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('03_table_impacts_prob_to__4b2c5a', 'projDB.canflood2'))
-])
+]
+)
 def test_core_04_table_ead_to_db(model,
                      tutorial_name, #dont really need this
                      test_name,
@@ -164,5 +174,36 @@ def test_core_04_table_ead_to_db(model,
     write_projDB(model, test_name)
     
     
+
+
+
+
+
+
+
+
+
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02', oj('03_table_impacts_prob_to__4b2c5a', 'projDB.canflood2'))
+])
+@pytest.mark.parametrize("ead_lowPtail, ead_highPtail", [
+    ('none', 'none'),
+    ('extrapolate', 'none'),
+    ('user', 'user'),
+    #('flat', 'none'), #not implemented
+ 
+    #===========================================================================
+    # *( (val, 'none') for val in modelTable_params_allowed_d['ead_lowPtail'] ),
+    # *( ('none', val) for val in modelTable_params_allowed_d['ead_highPtail'] )
+    #===========================================================================
+]) 
+def test_core_05_set_ead_total(model,
+                     tutorial_name, #dont really need this
+                     test_name,
+                     ead_lowPtail, ead_highPtail
+                     ):
+    """call the _table_ead_to_db"""
+     
+    model._set_ead_total()
     
-    
+    write_projDB(model, test_name)

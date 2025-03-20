@@ -33,6 +33,21 @@ from .parameters import (
     projDB_schema_modelTables_d, project_db_schema_d,  modelTable_params_d
     )
 
+import canflood2.parameters as parameters
+
+
+import scipy.integrate as integrate
+
+# Select the appropriate integration function based on the user's SciPy version.
+if hasattr(integrate, 'trapezoid'):
+    integration_func = integrate.trapezoid
+else:
+    integration_func = integrate.trapz
+
+#===============================================================================
+# PARAMS--------
+#===============================================================================
+
 
 modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed']) 
 #===============================================================================
@@ -400,10 +415,13 @@ class Model_run_methods(object):
         
         
     
-    def _table_ead_to_db(self, projDB_fp=None, logger=None):
-        """compute the EAD from the damages and write to the database
+    def _table_ead_to_db(self, projDB_fp=None, logger=None,
+
+                         
+                         ):
+        """compute the row-wise EAD from the damages and write to the database
         
-        see CanFloodv1: riskcom.RiskModel.calc_ead
+        see CanFloodv1: riskcom.RiskModel.calc_ead()
         """
         
         #=======================================================================
@@ -421,28 +439,12 @@ class Model_run_methods(object):
         #=======================================================================
         # damages
         #=======================================================================
-        impacts_df = self.get_tables(['table_impacts_prob'], projDB_fp=projDB_fp)[0]
-        impacts_df.columns = impacts_df.columns.astype(float).rename('AEP')
+        impacts_df_raw = self.get_tables(['table_impacts_prob'], projDB_fp=projDB_fp)[0]
+        impacts_df_raw.columns = impacts_df_raw.columns.astype(float).rename('AEP')
 
-        self.assert_impacts_prob_df(impacts_df)
+        self.assert_impacts_prob_df(impacts_df_raw)
         
-        #=======================================================================
-        # risk params
-        #=======================================================================
-        #get the params
-        param_s = self.get_table_parameters(projDB_fp=projDB_fp).set_index('varName')['value']
-        ead_lowPtail, ead_highPtail = param_s['ead_highPtail'], param_s['ead_lowPtail']
-        
-        #check
-        assert ead_lowPtail in modelTable_params_allowed_d['ead_lowPtail'], f'bad ead_lowPtail: {ead_lowPtail}'
-        assert ead_highPtail in modelTable_params_allowed_d['ead_highPtail'], f'bad ead_highPtail: {ead_highPtail}'
-        
-        if 'user' in ead_lowPtail:
-            lowPtail_value = float(param_s['ead_lowPtail_user'])
-        if 'user' in ead_highPtail:
-            highPtail_value = float(param_s['ead_highPtail_user'])
-            
-        log.debug(f'loaded risk params ead_lowPtail=\'{ead_lowPtail}\' ead_highPtail=\'{ead_highPtail}\'')
+
         #=======================================================================
         # compute-------
         #=======================================================================
@@ -452,53 +454,117 @@ class Model_run_methods(object):
         view(dmgs_dx)
         """
         #=======================================================================
-        # add left tail
+        # add synthetic events/tails
+        #=======================================================================
+        """for asset-wise, we use a simple left/lowP = flat syntethic event
+            other parmaters dont really  make sense per-asset
+        
+        fancyier tails are applied in model-wise _set_ead_total()
+        """
+        impacts_df = impacts_df_raw.copy()
+        impacts_df[0.0] = impacts_df.iloc[:, 0]
+        impacts_df = impacts_df.sort_index(ascending=True, axis=1)
+        
+        self.assert_impacts_prob_df(impacts_df)
+        
+        log.debug(f'added synthetic event for 0.0 AEP')
+        #=======================================================================
+        # calc areas
+        #=======================================================================
+        log.debug(f'computing areas for {impacts_df.shape}')
+        ead_df = impacts_df.apply(get_area_from_ser, axis=1).rename('ead').to_frame()
+
+        #=======================================================================
+        # calc EAD
+        #=======================================================================
+        """
+        see CanFloodv1: riskcom.RiskModel._get_ev()
+        """
+            
+        
+        #=======================================================================
+        # write to projDB
+        #=======================================================================
+ 
+        self.set_tables({'table_ead':ead_df}, projDB_fp=projDB_fp)
+        
+        return ead_df
+    
+    def _set_ead_total(self,
+                                          ead_lowPtail=None, ead_highPtail=None,
+                         lowPtail_value=None, highPtail_value=None,
+                         ):
+        """compute the model-wide EAD with fancy tails"""
+        
+        #=======================================================================
+        # risk params
+        #=======================================================================
+        #get the params
+        param_s = self.get_table_parameters(projDB_fp=projDB_fp).set_index('varName')['value']
+        
+        if ead_lowPtail is None:
+            ead_lowPtail = param_s['ead_lowPtail']
+        if ead_highPtail is None:
+            ead_highPtail = param_s['ead_highPtail']
+ 
+        
+        #check
+        assert ead_lowPtail in modelTable_params_allowed_d['ead_lowPtail'], f'bad ead_lowPtail: {ead_lowPtail}'
+        assert ead_highPtail in modelTable_params_allowed_d['ead_highPtail'], f'bad ead_highPtail: {ead_highPtail}'
+        
+        if 'user' in ead_lowPtail:
+            if lowPtail_value is None:
+                lowPtail_value = float(param_s['ead_lowPtail_user'])
+ 
+        if 'user' in ead_highPtail:
+            if highPtail_value is None:
+                highPtail_value = float(param_s['ead_highPtail_user'])
+            
+        log.debug(f'loaded risk params ead_lowPtail=\'{ead_lowPtail}\' ead_highPtail=\'{ead_highPtail}\'')
+        
+        
+        #=======================================================================
+        # add low probability tail (leftward)
         #=======================================================================
         if ead_lowPtail=='none':
-            impacts_df2 = impacts_df.copy()
+            pass
         elif ead_lowPtail=='flat':
             raise NotImplementedError('no support for flat yet')
         elif ead_lowPtail=='extrapolate':
  
  
-            # Select the two smallest ARI values
+            # Select the two smallest AEP values
             x0, x1 = impacts_df.columns.values[0:2]
             
-            extrapolated_values = impacts_prob_df[x0] + (0 - x0) * (impacts_prob_df[x1] - impacts_prob_df[x0]) / (x1 - x0)
+            # Vectorized linear extrapolation: compute y(0) for every row.
+            aep0 = impacts_df[x0] + (0 - x0) * (impacts_df[x1] - impacts_df[x0]) / (x1 - x0)
             
-            impacts_prob_df[0.0] =  extrapolated_values.max(0)
-            
- 
-            #===================================================================
-            # f = lambda row: interpolate.interp1d(row.values, 
-            #                                           impacts_prob_df.columns.values,
-            #                                           impacts_prob_df,
-            #                                           fill_value='extrapolate')
-            # 
-            # 
-            # f(impacts_prob_df.iloc[0, :])
-            # 
-            # impacts_prob_df.apply(f, axis=1)
-            #===================================================================
+            impacts_df[0.0] =  np.minimum(aep0, parameters.impact_max) 
             
  
-            
-            
-            raise NotImplementedError('no support for extrapolate yet')
         elif 'user' in ead_lowPtail:
             raise NotImplementedError('no support for user yet')
         else:
             raise KeyError(f'unreecognized ead_lowPtail: {ead_lowPtail}')
         
  
+        impacts_df = impacts_df.sort_index(ascending=True, axis=1)
+        
+        #check it
+        self.assert_impacts_prob_df(impacts_df)
         
         #=======================================================================
-        # write to projDB
+        # high probability (rightward)
         #=======================================================================
-        self.result_ead = ead_s.sum()
-        self.set_tables({'table_ead':ead_s.reset_index().rename(columns={'impact_capped':'ead'})}, projDB_fp=projDB_fp)
         
-        return ead_s
+        if ead_highPtail=='none':
+            pass
+        elif ead_highPtail=='extrapolate':
+            raise NotImplementedError('this is a variable AEP... so would need to switch to row-wise')
+        elif 'user' in ead_highPtail:
+            raise NotImplementedError('no support for user yet')
+        else:
+            raise KeyError(f'unreecognized ead_highPtail: {ead_highPtail}')
         
 class Model_table_assertions(object):
     """organizer for the model table assertions"""
@@ -1071,7 +1137,28 @@ class Model(Model_run_methods, Model_table_assertions):
 
 
 
- 
+def get_area_from_ser(ser, dx=0.1):
+    """
+    Compute the area under the curve defined by a pandas Series,
+    where the x-values are taken from the Series index (assumed numeric)
+    and the y-values are the Series' values.
+    
+    Uses the appropriate integration function from SciPy as determined at import.
+    
+    Parameters:
+        ser (pd.Series): Series with numeric index (x-values) and values (y-values).
+        dx (float): Optional spacing parameter (ignored if x is provided).
+    
+    Returns:
+        float: Computed area under the curve.
+    """
+    try:
+        x = ser.index.astype(float)
+    except ValueError as e:
+        raise ValueError("Series index could not be converted to float. Ensure your column names are numeric.") from e
+
+    y = ser.values
+    return integration_func(y, x=x, dx=dx)
     
 
 def format_table_parameters(df_raw):

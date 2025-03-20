@@ -98,13 +98,20 @@ class Model_run_methods(object):
         #compute damages 
         self._table_impacts_to_db(**skwargs)
         
-        #compute EAD
-        self._set_ead(**skwargs)
+        #simplify and add EAD to clumns
+        self._table_impacts_prob_to_db(**skwargs)
         
+        #row-wise EAD
+        self._table_ead_to_db(**skwargs)
         
-        log.info(f'finished running model  in {datetime.now()-start_time}')
+        #model-wide EAD
+        result = self._set_ead_total(**skwargs)
         
-        return projDB_fp
+ 
+        
+        log.info(f'finished running model  in {datetime.now()-start_time} w/ EAD={result}')
+        
+        return result
         
     def _table_impacts_to_db(self, projDB_fp=None, logger=None, precision=3):
         """compute the damages and write to the database"""
@@ -428,7 +435,7 @@ class Model_run_methods(object):
         # defaults
         #=======================================================================
         if logger is None: logger = self.logger
-        log = logger.getChild('_set_ead')
+        log = logger.getChild('_table_ead_to_db')
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
         
@@ -490,12 +497,33 @@ class Model_run_methods(object):
         
         return ead_df
     
-    def _set_ead_total(self,
-                                          ead_lowPtail=None, ead_highPtail=None,
-                         lowPtail_value=None, highPtail_value=None,
+    def _set_ead_total(self, projDB_fp=None, logger=None,
+                       ead_lowPtail=None, ead_highPtail=None,
+                         ead_lowPtail_user=None, ead_highPtail_user=None,
                          ):
-        """compute the model-wide EAD with fancy tails"""
+        """compute the model-wide EAD with fancy tails
         
+        NOTE: we don't use the row-wise EAD as we want to fancier tails
+        """
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger = self.logger
+        log = logger.getChild('_set_ead_total')
+        if projDB_fp is None:
+            projDB_fp = self.parent.get_projDB_fp()
+            
+            
+        #=======================================================================
+        # damages
+        #=======================================================================
+        impacts_df = self.get_tables(['table_impacts_prob'], projDB_fp=projDB_fp)[0]
+        impacts_df.columns = impacts_df.columns.astype(float).rename('AEP')
+
+        self.assert_impacts_prob_df(impacts_df)
+        
+        log.debug(f'loaded impacts w/ {impacts_df.shape}')
         #=======================================================================
         # risk params
         #=======================================================================
@@ -513,45 +541,56 @@ class Model_run_methods(object):
         assert ead_highPtail in modelTable_params_allowed_d['ead_highPtail'], f'bad ead_highPtail: {ead_highPtail}'
         
         if 'user' in ead_lowPtail:
-            if lowPtail_value is None:
-                lowPtail_value = float(param_s['ead_lowPtail_user'])
+            if ead_lowPtail_user is None:
+                ead_lowPtail_user = float(param_s['ead_lowPtail_user'])
  
         if 'user' in ead_highPtail:
-            if highPtail_value is None:
-                highPtail_value = float(param_s['ead_highPtail_user'])
+            if ead_highPtail_user is None:
+                ead_highPtail_user = float(param_s['ead_highPtail_user'])
             
         log.debug(f'loaded risk params ead_lowPtail=\'{ead_lowPtail}\' ead_highPtail=\'{ead_highPtail}\'')
         
         
+        #=======================================================================
+        # get totals--------
+        #=======================================================================
+        impacts_s = impacts_df.sum(axis=0).rename('impacts')
+        
+        #check conformance (but not index)
+        check_impacts = lambda x: self.assert_impacts_prob_df(
+            x.to_frame().T.reset_index(drop=True).rename_axis(index='indexField'),
+            check_finv=False)
+        #=======================================================================
+        # add tails--------
+        #=======================================================================
+ 
         #=======================================================================
         # add low probability tail (leftward)
         #=======================================================================
         if ead_lowPtail=='none':
             pass
         elif ead_lowPtail=='flat':
-            raise NotImplementedError('no support for flat yet')
+            impacts_s[0.0] = impacts_s.iloc[0]
+ 
         elif ead_lowPtail=='extrapolate':
- 
- 
+            #leftward extrapolation to get y value at x=0 
             # Select the two smallest AEP values
-            x0, x1 = impacts_df.columns.values[0:2]
+            x0, x1 = impacts_s.index.values[0:2]
             
-            # Vectorized linear extrapolation: compute y(0) for every row.
-            aep0 = impacts_df[x0] + (0 - x0) * (impacts_df[x1] - impacts_df[x0]) / (x1 - x0)
-            
-            impacts_df[0.0] =  np.minimum(aep0, parameters.impact_max) 
-            
+            # Vectorized linear extrapolation: compute y(0) for every row. 
+            impacts_s[0.0] =  impacts_s[x0] + (0 - x0) * (impacts_s[x1] - impacts_s[x0]) / (x1 - x0)            
  
         elif 'user' in ead_lowPtail:
-            raise NotImplementedError('no support for user yet')
+            assert ead_lowPtail_user>impacts_s.max(), f'specifeid lowPtail must be greater than the maximum impact value {impacts_s.max()}'
+            impacts_s[0.0] = ead_lowPtail_user
         else:
             raise KeyError(f'unreecognized ead_lowPtail: {ead_lowPtail}')
         
  
-        impacts_df = impacts_df.sort_index(ascending=True, axis=1)
+        impacts_s = impacts_s.sort_index(ascending=True)
         
         #check it
-        self.assert_impacts_prob_df(impacts_df)
+        check_impacts(impacts_s)
         
         #=======================================================================
         # high probability (rightward)
@@ -560,11 +599,40 @@ class Model_run_methods(object):
         if ead_highPtail=='none':
             pass
         elif ead_highPtail=='extrapolate':
-            raise NotImplementedError('this is a variable AEP... so would need to switch to row-wise')
+            #rightward extrapolation to get x value at y=0            
+            x0, x1 = impacts_s.index.values[-2:]
+            
+            p_for_ead0 = x0 - (impacts_s[x0] * (x1 - x0)) / (impacts_s[x1] - impacts_s[x0])
+            
+            impacts_s[p_for_ead0] = 0.0
+ 
         elif 'user' in ead_highPtail:
-            raise NotImplementedError('no support for user yet')
+            assert ead_highPtail_user>np.max(impacts_s.index), (
+                f'specifeid highPtail must be greater than the maximum AEP value {impacts_s.index.max()}')
+            impacts_s[ead_highPtail_user] = 0.0
         else:
             raise KeyError(f'unreecognized ead_highPtail: {ead_highPtail}')
+        
+        
+        impacts_s = impacts_s.sort_index(ascending=True)
+        
+        #check it
+        check_impacts(impacts_s)
+        """
+        import matplotlib.pyplot as plt
+        plt.show()
+        impacts_s.plot(marker='o', markersize=5, markerfacecolor='b')
+        """
+        
+        log.debug(f'added tails to impacts \n{impacts_s}')
+        #=======================================================================
+        # integrate-----
+        #=======================================================================
+        self.result_ead = get_area_from_ser(impacts_s)
+        
+        log.info(f'finished computing EAD w/ {self.result_ead}')
+        
+        return self.result_ead
         
 class Model_table_assertions(object):
     """organizer for the model table assertions"""
@@ -612,13 +680,16 @@ class Model_table_assertions(object):
         
         return
     
-    def assert_impacts_prob_df(self, impacts_prob_df=None, projDB_fp=None):
+    def assert_impacts_prob_df(self, impacts_prob_df=None, projDB_fp=None, check_finv=True):
         """check the impacts simple table conform to expectations
         
         using risk-curve convention for column order:
             leftward = low prob; rightward=higher prob
             
         CanFlood v1 had the opposite?
+        
+        
+        
         """
         if impacts_prob_df is None:
             impacts_prob_df = self.get_tables(['table_impacts_prob'], projDB_fp=projDB_fp)[0]
@@ -634,7 +705,8 @@ class Model_table_assertions(object):
         #=======================================================================
         # index check
         #=======================================================================
-        self.assert_finv_index_match(impacts_prob_df.index, projDB_fp=projDB_fp)
+        if check_finv:
+            self.assert_finv_index_match(impacts_prob_df.index, projDB_fp=projDB_fp)
         
 
         #=======================================================================
@@ -1194,7 +1266,7 @@ def _get_proj_meta_d(log,
  
     return d
 
-def _update_proj_meta(log, conn, meta_d=dict()):
+def xxx_update_proj_meta(log, conn, meta_d=dict()):
     
     #retrieve data
     d = _get_proj_meta_d(log)

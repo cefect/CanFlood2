@@ -245,7 +245,7 @@ def test_dial_model_02_save(dialog,
     
     #loop and check each
     for k,v in widget_modelConfig_data_d.items():
-        assert v==param_d[k], f'for \'{k}\' got bad value \'{v}\''
+        assert str(v)==param_d[k], f'for \'{k}\' got bad value \'{v}\''
         
  
 

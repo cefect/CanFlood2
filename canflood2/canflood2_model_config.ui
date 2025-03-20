@@ -1623,7 +1623,7 @@ QToolBox::tab {
                   </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>user value:</string>
+                  <string>user impact value:</string>
                  </property>
                 </widget>
                </item>
@@ -1637,6 +1637,12 @@ QToolBox::tab {
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
+                 </property>
+                 <property name="decimals">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <double>9999999999.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -1711,7 +1717,7 @@ QToolBox::tab {
                   </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>user value:</string>
+                  <string>user AEP value:</string>
                  </property>
                 </widget>
                </item>
@@ -1725,6 +1731,15 @@ QToolBox::tab {
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
+                 </property>
+                 <property name="decimals">
+                  <number>3</number>
+                 </property>
+                 <property name="maximum">
+                  <double>1.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.010000000000000</double>
                  </property>
                 </widget>
                </item>

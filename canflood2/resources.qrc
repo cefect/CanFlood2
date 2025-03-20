@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="canflood2">
     <file>img/logo_20210510_22x22.png</file>
+    <file>img/riskCurveTailDiagram_20250319.png</file>
   </qresource>
 </RCC>

@@ -37,7 +37,9 @@ widget_settings_d = {
         'mFieldComboBox_AI_01_tag':'f0_tag',
         'mFieldComboBox_AI_01_cap':'f0_cap',  
         'labelLineEdit_AI_label':'my inventory',
-        'consequenceLineEdit_V':'some consequence',  
+        'consequenceLineEdit_V':'some consequence',
+        'comboBox_R_rtail': 'none',
+        'comboBox_R_ltail': 'none',         
     },
     }
 

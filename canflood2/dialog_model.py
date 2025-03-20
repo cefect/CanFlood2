@@ -49,7 +49,7 @@ from .core import Model
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 ui_fp = os.path.join(os.path.dirname(__file__), 'canflood2_model_config.ui')
 assert os.path.exists(ui_fp), 'failed to find the ui file: \n    %s'%ui_fp
-FORM_CLASS, _ = uic.loadUiType(ui_fp)
+FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='')
 
 
 class Model_compiler(object):

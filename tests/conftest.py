@@ -31,7 +31,7 @@ from canflood2.parameters import src_dir, hazDB_schema_d
 #===============================================================================
 test_data_dir = os.path.join(src_dir, 'tests', 'data')
 
-from .data.tutorial_data_builder import *
+from tests.data.tutorial_fixtures import *
  
 
 

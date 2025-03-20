@@ -49,7 +49,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 
 
-overwrite_testdata=True
+overwrite_testdata=False
 def write_projDB(dialog, test_name):
  
     projDB_fp = dialog.parent.get_projDB_fp()
@@ -83,7 +83,7 @@ def dialog(dialog_main, model,
            #turtorial data
            finv_vlay, 
  
-           widget_modelConfig_data_d, #tests.data.tutorial_data_builder.widget_settings_d
+           widget_modelConfig_data_d, #tests.data.tutorial_fixtures.widget_settings_d
            
            #control
  

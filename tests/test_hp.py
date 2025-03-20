@@ -24,7 +24,7 @@ from canflood2.hp.Q import ProcessingEnvironment
 # data
 #===============================================================================
 """simple borrow of filepaths from the tutorial data"""
-from .data.tutorial_data_builder import tutorial_data_lib
+from tests.data.tutorial_fixtures import tutorial_data_lib
 tutorial_name = 'cf1_tutorial_02'
 dem_fp = tutorial_data_lib[tutorial_name]['dem']
 finv_fp = tutorial_data_lib[tutorial_name]['finv']

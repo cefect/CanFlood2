@@ -355,7 +355,7 @@ class Model_run_methods(object):
         #=======================================================================
         # write
         #=======================================================================
-        self.set_tables({'table_impacts_simple':df.reset_index()}, projDB_fp=projDB_fp)
+        self.set_tables({'table_impacts_simple':df}, projDB_fp=projDB_fp)
         
  
         

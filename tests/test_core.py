@@ -122,12 +122,34 @@ def test_core_01_init(model):
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_dModel('04_compile_c1-0-cf1_tutor_de8ebb', 'projDB.canflood2'))
 ])
-def test_core_02_run(model,
+def test_core_02_table_impacts_to_db(model,
                      tutorial_name, #dont really need this
                      test_name,
                      ):
-    """call the core run method"""
+    """call the _table_impacts_to_db"""
      
-    model.run_model()
+    model._table_impacts_to_db()
     
     write_projDB(model, test_name)
+    
+    
+    
+
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_645f61', 'projDB.canflood2'))
+])
+def test_core_02_table_impacts_simple_to_db(model,
+                     tutorial_name, #dont really need this
+                     test_name,
+                     ):
+    """call the _table_impacts_to_db"""
+     
+    model._table_impacts_simple_to_db()
+    
+    write_projDB(model, test_name)
+    
+    
+    
+    
+    
+    

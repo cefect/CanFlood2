@@ -101,7 +101,7 @@ for col, meta in eventMeta_control_d.items():
  
 
 #===============================================================================
-# hazards: database------
+# HAZARDS===========------
 #===============================================================================
 hazDB_meta_template_fp = os.path.join(plugin_dir, 'hazDB_meta_template.csv')
 hazDB_schema_d = {
@@ -152,6 +152,7 @@ project_db_schema_d['03_model_suite_index'].dtypes
 #special table parameters
 
 finv_index = pd.Index([], name='indexField', dtype=int)
+finv_multiIndex = pd.MultiIndex.from_tuples([], names=['indexField','nestID'])
 
 #these will be prefixed by the model name
 modelTable_params_d = {
@@ -168,14 +169,16 @@ modelTable_params_d = {
     },
     'table_finv': {
         'df': pd.DataFrame({
-            'nestID': pd.Series(dtype=int),
-            'indexField': pd.Series(dtype=int),
+            #'nestID': pd.Series(dtype=int),
+            #'indexField': pd.Series(dtype=int),
             'scale': pd.Series(dtype=float),
             'elev': pd.Series(dtype=float),
             'tag': pd.Series(dtype=str),
             'cap': pd.Series(dtype=float)
-        }),
-        'phase': 'compile'
+        },
+            index=finv_multiIndex),
+        'phase': 'compile',
+ 
     },
     'table_expos': {
         'df': pd.DataFrame(index=finv_index),
@@ -188,7 +191,7 @@ modelTable_params_d = {
         ),
         'phase': 'compile'
     },
-    'table_dmgs': {
+    'table_impacts': {
         'df': pd.DataFrame({
             'exposure': pd.Series(dtype=float),
             'impact': pd.Series(dtype=float),
@@ -199,7 +202,11 @@ modelTable_params_d = {
             'indexField': pd.Series(dtype=int) #index
         }),
         'phase': 'run'
-    }
+    },
+    'table_impacts_simple': {
+        'df':None,
+        'phase': 'run',
+        }
 }
 
  

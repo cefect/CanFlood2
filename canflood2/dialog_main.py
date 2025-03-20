@@ -427,8 +427,7 @@ class Main_dialog_haz(object):
     def get_haz_rlay_d(self):
         """get the selected hazard rasters"""
         return self.listView_HZ_hrlay.get_selected_layers()
-
-
+    
  
             
             

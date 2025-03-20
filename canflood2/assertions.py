@@ -15,10 +15,11 @@ import pandas as pd
 from pandas.testing import assert_series_equal, assert_frame_equal
 
 
+from .hp.assertions import assert_intersection, assert_series_match, assert_sqlite_table_exists
 
 from .db_tools import (
-    sql_to_df, assert_sqlite_table_exists, assert_df_template_match,
-    assert_intersection, assert_series_match)
+    sql_to_df, assert_df_template_match,
+    )
     
 from .parameters import (
     project_db_schema_d, hazDB_schema_d, projDB_schema_modelTables_d,

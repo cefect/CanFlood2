@@ -13,15 +13,22 @@ np.set_printoptions(suppress=True)
 #===============================================================================
 # IMPORTS-----
 #===============================================================================
+
+from .hp.basic import view_web_df as view
+from .hp.assertions import assert_index_match
+from .hp.sql import get_table_names, pd_dtype_to_sqlite_type
+from . import __version__
+
+
+
 from .assertions import (
-    assert_projDB_fp, assert_hazDB_fp, assert_df_matches_projDB_schema, assert_projDB_conn
+    assert_projDB_fp, assert_hazDB_fp, assert_df_matches_projDB_schema, assert_projDB_conn,
+    assert_series_match
     )
 from .parameters import (
     projDB_schema_modelTables_d, project_db_schema_d,  modelTable_params_d
     )
-from .hp.basic import view_web_df as view
-from .hp.sql import get_table_names, pd_dtype_to_sqlite_type
-from . import __version__
+
 
 modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed']) 
 #===============================================================================
@@ -70,7 +77,7 @@ class Model_run_methods(object):
         skwargs = dict(projDB_fp=projDB_fp, logger=log)
         
         #compute damages 
-        self._table_dmgs_to_db(**skwargs)
+        self._table_impacts_to_db(**skwargs)
         
         #compute EAD
         self._set_ead(**skwargs)
@@ -80,14 +87,14 @@ class Model_run_methods(object):
         
         return projDB_fp
         
-    def _table_dmgs_to_db(self, projDB_fp=None, logger=None, precision=3):
+    def _table_impacts_to_db(self, projDB_fp=None, logger=None, precision=3):
         """compute the damages and write to the database"""
         
         #=======================================================================
         # defaults
         #=======================================================================
         if logger is None: logger = self.logger
-        log = logger.getChild('_table_dmgs_to_db')
+        log = logger.getChild('_table_impacts_to_db')
         
         #=======================================================================
         # load data-------
@@ -95,13 +102,16 @@ class Model_run_methods(object):
         #=======================================================================
         # #model exposure and inventory
         #=======================================================================
-        expos_df, finv_df = self.get_tables(['table_expos', 'table_finv'], projDB_fp=projDB_fp)
+ 
+        expos_df, finv_dx = self.get_tables(['table_expos', 'table_finv'], projDB_fp=projDB_fp)
         
         #clean up indexers
-        finv_dx = finv_df.set_index(['indexField', 'nestID'])
         expos_df.columns.name = 'event_names'
         
-        assert set(finv_dx.index.unique('indexField')) == set(expos_df.index), 'index mismatch'
+        assert_finv_match = lambda x: self.assert_finv_index_match(x, finv_index=finv_dx.index)
+        
+        assert_finv_match(expos_df.index)
+        #assert set(finv_dx.index.unique('indexField')) == set(expos_df.index), 'index mismatch'
         
         
                 
@@ -110,7 +120,8 @@ class Model_run_methods(object):
         #=======================================================================
         if self.param_d['finv_elevType']=='ground':
             dem_df = self.get_tables(['table_gels'], projDB_fp=projDB_fp)[0]
-            assert set(finv_dx.index.unique('indexField')) == set(dem_df.index), 'index mismatch'
+            assert_finv_match(dem_df.index)
+ 
         else:
             dem_df = None
         
@@ -238,6 +249,8 @@ class Model_run_methods(object):
             #===================================================================
             # #add any missing entries that were all null
             #===================================================================
+            if result_dx.isna().any().any():
+                raise NotImplementedError('no support for missing entries yet')
  
             
             # Create a new MultiIndex from the product of the existing index and the new level values
@@ -277,7 +290,7 @@ class Model_run_methods(object):
         assert mresult_dx.index.droplevel('tag').nunique() == mresult_dx.index.nunique(), "The 'tag' level is not redundant"
  
         # Drop the 'tag' level from the index
-        mresult_dx = mresult_dx.droplevel('tag')
+        mresult_dx = mresult_dx.droplevel('tag').reorder_levels(['indexField', 'nestID', 'event_names']).sort_index()
  
         #=======================================================================
         # #check
@@ -285,21 +298,63 @@ class Model_run_methods(object):
 
         
         #check the index matches the finv_dx
+        
         mresult_dx_index_check = mresult_dx.index.droplevel('event_names').drop_duplicates().sort_values()
-        assert mresult_dx_index_check.equals(finv_dx.index.sort_values()), 'Index mismatch'
+        assert_finv_match(mresult_dx_index_check)
+        #assert mresult_dx_index_check.equals(finv_dx.index.sort_values()), 'Index mismatch'
 
         log.info(f'finished computing damages w/ {mresult_dx.shape}')
         
         #=======================================================================
         # write to projDB
         #=======================================================================
-        self.set_tables({'table_dmgs':mresult_dx.reset_index()}, projDB_fp=projDB_fp)
+        self.set_tables({'table_impacts':mresult_dx.reset_index()}, projDB_fp=projDB_fp)
  
         
         return mresult_dx
     """
     mresult_dx.dtypes
     """
+    
+    def _table_impacts_simple_to_db(self, projDB_fp=None, logger=None):
+        """compute and set the simple impacts table
+        
+        this is a condensed and imputed version of the impacts table
+        decided to make this separate as users will expect something like this
+            but we want to maintain the compelte table for easier backend calcs
+        """
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger = self.logger
+        log = logger.getChild('_table_impacts_simple_to_db')
+        if projDB_fp is None:
+            projDB_fp = self.parent.get_projDB_fp()
+            
+        log.debug(f'computing and writing simple impacts from \n    {projDB_fp}')
+        
+        #=======================================================================
+        # load data
+        #=======================================================================
+        impacts_dx = self.get_tables(['table_impacts'], projDB_fp=projDB_fp)[0].set_index(['indexField', 'nestID', 'event_names'])
+        
+        log.debug(f'loaded impacts w/ {impacts_dx.shape}')
+        
+        #=======================================================================
+        # simplifyt
+        #=======================================================================
+        
+        #sum on nestID and retrieve impacts
+        df = impacts_dx['impact_capped'].dropna().groupby(['indexField', 'event_names']).sum().unstack('event_names').fillna(0.0)
+        
+        #=======================================================================
+        # check
+        #=======================================================================
+        self.assert_finv_index_match(df.index, projDB_fp=projDB_fp, logger=log)
+        
+        log.debug(f'loaded {dmgs_df.shape} damages')
+        
+        
     
     def _set_ead(self, projDB_fp=None, logger=None):
         """compute the EAD from the damages and write to the database
@@ -317,11 +372,34 @@ class Model_run_methods(object):
         
         log.debug(f'computing EAD from \n    {projDB_fp}')
         #=======================================================================
-        # load data and params-------
+        # load and prep data and params-------
+        #=======================================================================
+        #=======================================================================
+        # damages
         #=======================================================================
         dmgs_dx = self.get_tables(['table_dmgs'], projDB_fp=projDB_fp)[0].set_index(['indexField', 'nestID', 'event_names'])
         
+
+        #=======================================================================
+        # events
+        #=======================================================================
+        haz_events_df = self.parent.projDB_get_tables(['05_haz_events'], projDB_fp=projDB_fp)[0]
         
+        haz_events_s = haz_events_df.set_index('event_name')['prob']
+        
+        #get probability type
+    
+        haz_meta_s = self.parent.projDB_get_tables(['04_haz_meta'], projDB_fp=projDB_fp)[0].set_index('varName')['value']
+        
+        probability_type = 'ARI' if bool(haz_meta_s['probability_type']) else 'AEP'
+
+        log.debug(f'retrieved {len(haz_events_s)} events w/ probability_type=\'{probability_type}\'')
+        
+        if probability_type=='AEP':
+            raise NotImplementedError('no support for AEP yet')
+        #=======================================================================
+        # risk params
+        #=======================================================================
         #get the params
         param_s = self.get_table_parameters(projDB_fp=projDB_fp).set_index('varName')['value']
         ead_ltail, ead_rtail = param_s['ead_rtail'], param_s['ead_ltail']
@@ -334,9 +412,20 @@ class Model_run_methods(object):
             ltail_value = float(param_s['ead_ltail_user'])
         if 'user' in ead_rtail:
             rtail_value = float(param_s['ead_rtail_user'])
+            
+        log.debug(f'loaded risk params ead_ltail=\'{ead_ltail}\' ead_rtail=\'{ead_rtail}\'')
         #=======================================================================
         # compute-------
         #=======================================================================
+        """
+        view(dmgs_dx)
+        """
+        #=======================================================================
+        # add tails
+        #=======================================================================
+        
+        dmgs_df
+        
         #group by the indexers and sum the damages
         ead_s = dmgs_df.groupby(dmgs_df.index.names).sum()['impact_capped']
         
@@ -521,6 +610,47 @@ class Model(Model_run_methods):
         df_raw = self.get_tables(['table_parameters'], **kwargs)[0]
         
         return format_table_parameters(df_raw)
+    
+ 
+    
+    def assert_finv_index_match(self, index_test, finv_index = None, projDB_fp=None):
+        """check that the finv index matches the project database
+        
+        flexible to check index w/ or w/o nestID
+        """
+        #=======================================================================
+        # defaults
+        #=======================================================================
+ 
+ 
+ 
+        #=======================================================================
+        # load data
+        #=======================================================================
+        if finv_index is None:
+            finv_index = self.get_tables(['table_finv'], projDB_fp=projDB_fp)[0].index
+ 
+        assert isinstance(finv_index, pd.MultiIndex), type(finv_index)
+        
+        #=======================================================================
+        # check
+        #=======================================================================
+        if isinstance(index_test, pd.MultiIndex):
+            if not index_test.names == ['indexField', 'nestID']:
+                raise AssertionError(f'bad index_test names: {index_test.names}')
+            assert_index_match(index_test, finv_index)
+            
+        elif isinstance(index_test, pd.Index):
+            assert index_test.name == 'indexField'
+            assert_index_match(index_test, finv_index.get_level_values('indexField'))
+            
+        else:
+            raise IOError(f'bad index_test type: {type(index_test)}')
+        
+        
+ 
+        
+        return
     
     
     def get_model_tables_all(self, projDB_fp=None, result_as_dict=True):

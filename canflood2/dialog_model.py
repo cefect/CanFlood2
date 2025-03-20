@@ -136,7 +136,7 @@ class Model_compiler(object):
         #=======================================================================
         # #write it to the database
         #=======================================================================
-        model.set_tables({'table_finv':df}, logger=log)
+        model.set_tables({'table_finv':df.set_index(['indexField', 'nestID'])}, logger=log)
         
         log.debug(f'finished')
         return df

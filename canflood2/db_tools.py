@@ -11,6 +11,7 @@ import warnings
 import pandas as pd
 from .parameters import project_db_schema_d, projDB_schema_modelTables_d
 from .hp.sql import pd_dtype_to_sqlite_type
+from .hp.assertions import assert_intersection, assert_series_match, assert_sqlite_table_exists
 
 """need some very simple functions here to workaround module dependence"""
 
@@ -19,55 +20,7 @@ from .hp.sql import pd_dtype_to_sqlite_type
 # ASSERTIONS-------------
 #===============================================================================
 
-def assert_intersection(test, expected):
-    """
-    Assert that the intersection of 'test' and 'expected' is as expected.
 
-    Parameters:
-    test (iterable): The test iterable.
-    expected (iterable): The expected iterable.
-
-    Raises:
-    AssertionError: If the intersection does not match the expected values.
-    """
- 
-    test_set = set(test)
-    expected_set = set(expected)
-    
-    if test_set != expected_set:
-        missing = expected_set - test_set
-        extra = test_set - expected_set
-        error_message = ""
-        if missing:
-            error_message += f"    Missing in test: {missing}\n"
-        if extra:
-            error_message += f"    Unexpected in test: {extra}\n"
-        raise AssertionError(error_message) from None
-
-        
-    assert test_set == expected_set, f"Expected {expected_set}, got {test_set}"
-
-
-
-
-def assert_series_match(expected_series, actual_series):
-    """an easier to read implementation of pd.testing.assert_series_equal"""
-    # Determine the intersecting indexes.
-    common_index = expected_series.index.intersection(actual_series.index)
-    assert len(common_index) > 0, 'no common indexes found'
-# Subset both series to only include intersecting keys.
-    filtered_expected_series = expected_series.loc[common_index]
-    filtered_actual_series = actual_series.loc[common_index]
-# Compare the filtered series using pandas' compare().
-    diff = filtered_expected_series.compare(filtered_actual_series, result_names=("expected", "actual"))
-    if not diff.empty:
-        raise AssertionError("Value mismatches found for common keys:\n" + diff.to_string()) from None
-
-def assert_sqlite_table_exists(conn, table_name): 
-    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name, ))
-    result = cursor.fetchone()
-    if not result:
-        raise AssertionError(f"Table '{table_name}' not found in database") # Check if DRF table exists
     
 
 def assert_df_template_match(df, schema_df, check_dtypes=True):
@@ -76,7 +29,13 @@ def assert_df_template_match(df, schema_df, check_dtypes=True):
     assert isinstance(schema_df, pd.DataFrame)
     
     #compare index names
-    if not df.index.name == schema_df.index.name:
+    if isinstance(df.index, pd.MultiIndex):
+        if not df.index.names == schema_df.index.names:
+            raise AssertionError(
+            f"Index name mismatch: test \'{df.index.names}\' vs scema \'{schema_df.index.names}\'"
+            ) from None
+    
+    elif not df.index.name == schema_df.index.name:
         raise AssertionError(
         f"Index name mismatch: test \'{df.index.name}\' vs scema \'{schema_df.index.name}\'"
         ) from None
@@ -133,10 +92,18 @@ def sql_to_df(table_name, conn, template_prefix=None, **kwargs):
     template_df = get_template_df(table_name, template_prefix=template_prefix)
     
     if not template_df is None:        
+        """
+        template_df.index
+        """
  
         dtype=template_df.dtypes.to_dict()
- 
-        index_col = template_df.index.name
+        
+        if isinstance(template_df.index, pd.MultiIndex):
+            index_col = template_df.index.names
+        elif template_df.index.name is None:
+            index_col = None
+        else:
+            index_col = template_df.index.name
  
 
     
@@ -184,9 +151,14 @@ def df_to_sql(df, table_name, conn, template_prefix=None,if_exists='replace', **
     template_df = get_template_df(table_name, template_prefix=template_prefix)
     
     if not template_df is None:
+        """what about index typessetting"""
         dtype = get_sqlalchemy_dtypes_from_template(template_df)
         
-        if template_df.index.name is None:
+        if isinstance(template_df.index, pd.MultiIndex):
+            write_index=True
+            assert_df_template_match(df, template_df, check_dtypes=False)
+        
+        elif template_df.index.name is None:
             write_index=False
             
             assert_df_template_match(df.reset_index(drop=True), template_df, check_dtypes=False)

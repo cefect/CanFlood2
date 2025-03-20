@@ -361,7 +361,7 @@ class Model_run_methods(object):
         
         
     
-    def _set_ead(self, projDB_fp=None, logger=None):
+    def _table_ead_to_db(self, projDB_fp=None, logger=None):
         """compute the EAD from the damages and write to the database
         
         see CanFloodv1: riskcom.RiskModel.calc_ead

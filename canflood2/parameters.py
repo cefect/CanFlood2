@@ -208,9 +208,15 @@ modelTable_params_d = {
             index=finv_index,
             ),
         'phase': 'run',
-        }
-}
-
+        },
+    
+    'table_ead': {
+        'df': pd.DataFrame(
+            index=finv_index,
+            ),
+        'phase': 'run',
+        },
+    }
  
 #get an extract of just the dataframes
 projDB_schema_modelTables_d = {k: v['df'] for k, v in modelTable_params_d.items()}

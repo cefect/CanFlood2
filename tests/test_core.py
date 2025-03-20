@@ -8,8 +8,8 @@ Created on Mar 6, 2025
 import pytest, os, shutil
  
 from PyQt5.QtWidgets import QWidget
-from canflood2.core import Model
-from canflood2.dialog_main import Main_dialog_projDB
+from canflood2.core import Model, Model_table_assertions
+from canflood2.dialog_main import Main_dialog_projDB 
 
 from .test_dialog_model import oj as oj_dModel
 
@@ -53,7 +53,7 @@ def oj(*args):
 def oj_out(test_name, result):
     return oj(result_write_filename_prep(test_name, clear_str='test_core_'), os.path.basename(result))
 
-class Main_dialog_emulator(Main_dialog_projDB):
+class Main_dialog_emulator(Main_dialog_projDB, Model_table_assertions):
     """emulating the main_dialopg without the qt ovcerhead"""
     def __init__(self, logger=None, projDB_fp=None):
         self.logger = logger
@@ -134,7 +134,7 @@ def test_core_02_table_impacts_to_db(model,
     
     
     
-@pytest.mark.dev 
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_645f61', 'projDB.canflood2'))
 ])
@@ -149,8 +149,9 @@ def test_core_03_table_impacts_prob_to_db(model,
     write_projDB(model, test_name)
     
 
+@pytest.mark.dev 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('03_table_impacts_prob_t_43a657', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('03_table_impacts_prob_to__4b2c5a', 'projDB.canflood2'))
 ])
 def test_core_04_table_ead_to_db(model,
                      tutorial_name, #dont really need this

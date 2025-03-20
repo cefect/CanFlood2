@@ -381,7 +381,8 @@ class Model_run_methods(object):
         #=======================================================================
         # remap
         #=======================================================================
-        impacts_prob_df = df.rename(columns=haz_events_s).sort_index(ascending=False, axis=1)
+        #by convention, the x-axis is AEP (leftward = rare; rightward=common)
+        impacts_prob_df = df.rename(columns=haz_events_s).sort_index(ascending=True, axis=1)
         impacts_prob_df.columns.name = haz_events_s.name
         
         #=======================================================================
@@ -421,27 +422,27 @@ class Model_run_methods(object):
         # damages
         #=======================================================================
         impacts_df = self.get_tables(['table_impacts_prob'], projDB_fp=projDB_fp)[0]
- 
+        impacts_df.columns = impacts_df.columns.astype(float).rename('AEP')
 
-        
+        self.assert_impacts_prob_df(impacts_df)
         
         #=======================================================================
         # risk params
         #=======================================================================
         #get the params
         param_s = self.get_table_parameters(projDB_fp=projDB_fp).set_index('varName')['value']
-        ead_ltail, ead_rtail = param_s['ead_rtail'], param_s['ead_ltail']
+        ead_lowPtail, ead_highPtail = param_s['ead_highPtail'], param_s['ead_lowPtail']
         
         #check
-        assert ead_ltail in modelTable_params_allowed_d['ead_ltail'], f'bad ead_ltail: {ead_ltail}'
-        assert ead_rtail in modelTable_params_allowed_d['ead_rtail'], f'bad ead_rtail: {ead_rtail}'
+        assert ead_lowPtail in modelTable_params_allowed_d['ead_lowPtail'], f'bad ead_lowPtail: {ead_lowPtail}'
+        assert ead_highPtail in modelTable_params_allowed_d['ead_highPtail'], f'bad ead_highPtail: {ead_highPtail}'
         
-        if 'user' in ead_ltail:
-            ltail_value = float(param_s['ead_ltail_user'])
-        if 'user' in ead_rtail:
-            rtail_value = float(param_s['ead_rtail_user'])
+        if 'user' in ead_lowPtail:
+            lowPtail_value = float(param_s['ead_lowPtail_user'])
+        if 'user' in ead_highPtail:
+            highPtail_value = float(param_s['ead_highPtail_user'])
             
-        log.debug(f'loaded risk params ead_ltail=\'{ead_ltail}\' ead_rtail=\'{ead_rtail}\'')
+        log.debug(f'loaded risk params ead_lowPtail=\'{ead_lowPtail}\' ead_highPtail=\'{ead_highPtail}\'')
         #=======================================================================
         # compute-------
         #=======================================================================
@@ -453,15 +454,15 @@ class Model_run_methods(object):
         #=======================================================================
         # add left tail
         #=======================================================================
-        if ead_ltail=='none':
+        if ead_lowPtail=='none':
             impacts_df2 = impacts_df.copy()
-        elif ead_ltail=='flat':
+        elif ead_lowPtail=='flat':
             raise NotImplementedError('no support for flat yet')
-        elif ead_ltail=='extrapolate':
-            
-            sorted_cols = sorted(impacts_prob_df.columns.astype(float))
+        elif ead_lowPtail=='extrapolate':
+ 
+ 
             # Select the two smallest ARI values
-            x0, x1 = sorted_cols[0], sorted_cols[1]
+            x0, x1 = impacts_df.columns.values[0:2]
             
             extrapolated_values = impacts_prob_df[x0] + (0 - x0) * (impacts_prob_df[x1] - impacts_prob_df[x0]) / (x1 - x0)
             
@@ -484,10 +485,10 @@ class Model_run_methods(object):
             
             
             raise NotImplementedError('no support for extrapolate yet')
-        elif 'user' in ead_ltail:
+        elif 'user' in ead_lowPtail:
             raise NotImplementedError('no support for user yet')
         else:
-            raise KeyError(f'unreecognized ead_ltail: {ead_ltail}')
+            raise KeyError(f'unreecognized ead_lowPtail: {ead_lowPtail}')
         
  
         
@@ -546,7 +547,13 @@ class Model_table_assertions(object):
         return
     
     def assert_impacts_prob_df(self, impacts_prob_df=None, projDB_fp=None):
-        """check the impacts simple table conform to expectations"""
+        """check the impacts simple table conform to expectations
+        
+        using risk-curve convention for column order:
+            leftward = low prob; rightward=higher prob
+            
+        CanFlood v1 had the opposite?
+        """
         if impacts_prob_df is None:
             impacts_prob_df = self.get_tables(['table_impacts_prob'], projDB_fp=projDB_fp)[0]
         
@@ -567,8 +574,9 @@ class Model_table_assertions(object):
         #=======================================================================
         # check order
         #=======================================================================
-        if not np.all(np.diff(impacts_prob_df.columns) <= 0):
-            raise AssertionError('passed headers are not descending')
+        #v1 had a different convention?
+        if not np.all(np.diff(impacts_prob_df.columns) >= 0):
+            raise AssertionError('passed headers are not ascending')
         
         #=======================================================================
         # check everything is positive
@@ -580,9 +588,9 @@ class Model_table_assertions(object):
         #=======================================================================
         # check for damage monotonicity
         #=======================================================================
-        cboolidx = np.invert(impacts_prob_df.apply(lambda x: x.is_monotonic_increasing, axis=1))
-        if cboolidx.any():
-            raise AssertionError('Non-monotonic-increasing damages in table_impacts_prob')
+        if not np.all(impacts_prob_df.diff(axis=1).dropna(axis=1)<=0):
+            raise AssertionError('damage values are not monotonically decreasing')
+ 
 
  
     

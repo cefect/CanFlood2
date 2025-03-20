@@ -256,7 +256,7 @@ QToolBox::tab {
       <enum>QFrame::Raised</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="page">
       <property name="geometry">
@@ -1559,11 +1559,11 @@ QToolBox::tab {
             <item>
              <widget class="QGroupBox" name="groupBox_9">
               <property name="title">
-               <string>Left Tail</string>
+               <string>Low-P Tail</string>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_7">
                <item>
-                <widget class="QComboBox" name="comboBox_R_ltail">
+                <widget class="QComboBox" name="comboBox_R_lowPtail">
                  <property name="minimumSize">
                   <size>
                    <width>125</width>
@@ -1628,7 +1628,7 @@ QToolBox::tab {
                 </widget>
                </item>
                <item>
-                <widget class="QDoubleSpinBox" name="doubleSpinBox_R_ltail">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_R_lowPtail">
                  <property name="enabled">
                   <bool>false</bool>
                  </property>
@@ -1646,11 +1646,11 @@ QToolBox::tab {
             <item>
              <widget class="QGroupBox" name="groupBox_7">
               <property name="title">
-               <string>Right Tail</string>
+               <string>High-P Tail</string>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_8">
                <item>
-                <widget class="QComboBox" name="comboBox_R_rtail">
+                <widget class="QComboBox" name="comboBox_R_highPtail">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                    <horstretch>0</horstretch>
@@ -1716,7 +1716,7 @@ QToolBox::tab {
                 </widget>
                </item>
                <item>
-                <widget class="QDoubleSpinBox" name="doubleSpinBox_R_rtail">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_R_highPtail">
                  <property name="enabled">
                   <bool>false</bool>
                  </property>
@@ -1742,7 +1742,7 @@ QToolBox::tab {
               <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>250</height>
+                <height>300</height>
                </size>
               </property>
               <property name="horizontalScrollBarPolicy">
@@ -1756,12 +1756,12 @@ QToolBox::tab {
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:14px; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;To complete the area-under-the-curve calculation (necessary for EAD), CanFlood facilitates the addition of synthetic events for the &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;left&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; (zero probability) and &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;right&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; (zero impacts) tails of the risk curve as shown on the figure to the right. Refer to the documentation for more details. The following parameters are provided to configure this behavior:&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;To complete the area-under-the-curve calculation (necessary for EAD), CanFlood facilitates the addition of synthetic events for the &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;low-p&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; (zero probability) and &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;high-p&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; (zero impacts) tails of the risk curve as shown on the figure to the right. Refer to the documentation for more details. The following parameters are provided to configure this behavior:&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(a) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;extrapolate&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; [left and right]: use the scipy.interpolate.interp1d function to calculate the synthetic event via extrapolation.&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(b) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;flat&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; [left]:  use the impact value from the maximum event.&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(c) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;user-defined&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; [left and right]: user specified value.&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(d) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;none&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; [left and right]: do not include synthetic events (not recommended for the left tail). &lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(a) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;extrapolate&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;: using the nearest two events, linearly extrapolate onto the zero point.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(b) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;flat&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; [left only]:  use the impact value from the maximum event.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(c) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;user&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;: user specified value.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(d) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;none&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;: do not include synthetic events (not recommended for low-P tail). &lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
              </widget>

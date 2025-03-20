@@ -14,7 +14,7 @@ finv_dataSource,dataSourceLineEdit_AI,,FALSE,FALSE,
 asset_label,labelLineEdit_AI_label,,TRUE,TRUE,used for UI updates
 finv_date,dateLineEdit_AI,,FALSE,FALSE,
 consq_label,consequenceLineEdit_V,,TRUE,TRUE,used for UI updates (not to be confused with category_desc)
-ead_rtail,comboBox_R_rtail,,TRUE,FALSE,extrapolate. Float. None. User
-ead_ltail,comboBox_R_ltail,,TRUE,FALSE,flat. Extrapolate. Float.none. User
-ead_rtail_user,doubleSpinBox_R_rtail,,FALSE,FALSE,value to used for rtail=user
-ead_ltail_user,doubleSpinBox_R_ltail,,FALSE,FALSE,value to used for ltail=user
+ead_highPtail,comboBox_R_highPtail,,TRUE,FALSE,extrapolate. Float. None. User
+ead_lowPtail,comboBox_R_lowPtail,,TRUE,FALSE,flat. Extrapolate. Float.none. User
+ead_highPtail_user,doubleSpinBox_R_highPtail,,FALSE,FALSE,value for 'user'
+ead_lowPtail_user,doubleSpinBox_R_lowPtail,,FALSE,FALSE,value for 'user'

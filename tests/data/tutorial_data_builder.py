@@ -38,8 +38,8 @@ widget_settings_d = {
         'mFieldComboBox_AI_01_cap':'f0_cap',  
         'labelLineEdit_AI_label':'my inventory',
         'consequenceLineEdit_V':'some consequence',
-        'comboBox_R_rtail': 'extrapolate',
-        'comboBox_R_ltail': 'extrapolate',         
+        'comboBox_R_highPtail': 'extrapolate',
+        'comboBox_R_lowPtail': 'extrapolate',         
     },
     }
 

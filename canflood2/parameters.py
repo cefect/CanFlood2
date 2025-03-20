@@ -163,8 +163,8 @@ modelTable_params_d = {
         ).drop('note', axis=1),
         'phase': 'compile',
         'allowed': {
-                    'ead_rtail':['extrapolate', 'none', 'user'],
-                    'ead_ltail':['flat', 'extrapolate', 'none', 'user'],    
+                    'ead_highPtail':['extrapolate', 'none', 'user'],
+                    'ead_lowPtail':['flat', 'extrapolate', 'none', 'user'],    
                     },
     },
     'table_finv': {

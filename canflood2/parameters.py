@@ -35,8 +35,7 @@ os.makedirs(temp_dir, exist_ok=True)
 #===============================================================================
 today_str = datetime.now().strftime("%Y%m%d")
 
-
-
+ 
 
 #===============================================================================
 # ProjDB==================================-------
@@ -161,7 +160,11 @@ modelTable_params_d = {
             os.path.join(plugin_dir, 'model_parameters_template.csv'),
             dtype={'value': str}
         ).drop('note', axis=1),
-        'phase': 'compile'
+        'phase': 'compile',
+        'allowed': {
+                    'ead_rtail':['extrapolate', 'none', 'user'],
+                    'ead_ltail':['flat', 'extrapolate', 'none', 'user'],    
+                    },
     },
     'table_finv': {
         'df': pd.DataFrame({
@@ -261,8 +264,6 @@ project_db_schema_d['07_vfunc_data'] = pd.DataFrame({
 })
 
         
-
- 
 
  
  

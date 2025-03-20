@@ -3,7 +3,7 @@ Created on Mar 6, 2025
 
 @author: cef
 '''
-import os, sys, platform, sqlite3
+import os, sys, platform, sqlite3, copy
 import pandas as pd
 from datetime import datetime
 
@@ -23,7 +23,7 @@ from .hp.basic import view_web_df as view
 from .hp.sql import get_table_names, pd_dtype_to_sqlite_type
 from . import __version__
 
-
+modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed']) 
 #===============================================================================
 # CLASSES--------
 #===============================================================================
@@ -302,20 +302,38 @@ class Model_run_methods(object):
     """
     
     def _set_ead(self, projDB_fp=None, logger=None):
-        """compute the EAD from the damages and write to the database"""
+        """compute the EAD from the damages and write to the database
+        
+        see CanFloodv1: riskcom.RiskModel.calc_ead
+        """
         
         #=======================================================================
         # defaults
         #=======================================================================
         if logger is None: logger = self.logger
         log = logger.getChild('_set_ead')
+        if projDB_fp is None:
+            projDB_fp = self.parent.get_projDB_fp()
         
         log.debug(f'computing EAD from \n    {projDB_fp}')
         #=======================================================================
-        # load data-------
+        # load data and params-------
         #=======================================================================
         dmgs_dx = self.get_tables(['table_dmgs'], projDB_fp=projDB_fp)[0].set_index(['indexField', 'nestID', 'event_names'])
         
+        
+        #get the params
+        param_s = self.get_table_parameters(projDB_fp=projDB_fp).set_index('varName')['value']
+        ead_ltail, ead_rtail = param_s['ead_rtail'], param_s['ead_ltail']
+        
+        #check
+        assert ead_ltail in modelTable_params_allowed_d['ead_ltail'], f'bad ead_ltail: {ead_ltail}'
+        assert ead_rtail in modelTable_params_allowed_d['ead_rtail'], f'bad ead_rtail: {ead_rtail}'
+        
+        if 'user' in ead_ltail:
+            ltail_value = float(param_s['ead_ltail_user'])
+        if 'user' in ead_rtail:
+            rtail_value = float(param_s['ead_rtail_user'])
         #=======================================================================
         # compute-------
         #=======================================================================

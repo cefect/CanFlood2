@@ -256,7 +256,7 @@ QToolBox::tab {
       <enum>QFrame::Raised</enum>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page">
       <property name="geometry">
@@ -1577,16 +1577,16 @@ QToolBox::tab {
                   </size>
                  </property>
                  <property name="currentIndex">
-                  <number>-1</number>
+                  <number>0</number>
                  </property>
                  <item>
                   <property name="text">
-                   <string>flat</string>
+                   <string>extrapolate</string>
                   </property>
                  </item>
                  <item>
                   <property name="text">
-                   <string>extrapolate</string>
+                   <string>flat</string>
                   </property>
                  </item>
                  <item>
@@ -1623,7 +1623,7 @@ QToolBox::tab {
                   </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>fixed value:</string>
+                  <string>user value:</string>
                  </property>
                 </widget>
                </item>
@@ -1670,7 +1670,7 @@ QToolBox::tab {
                   </size>
                  </property>
                  <property name="currentIndex">
-                  <number>-1</number>
+                  <number>0</number>
                  </property>
                  <item>
                   <property name="text">
@@ -1684,7 +1684,7 @@ QToolBox::tab {
                  </item>
                  <item>
                   <property name="text">
-                   <string>fixed</string>
+                   <string>user</string>
                   </property>
                  </item>
                 </widget>
@@ -1711,7 +1711,7 @@ QToolBox::tab {
                   </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>fixed value:</string>
+                  <string>user value:</string>
                  </property>
                 </widget>
                </item>
@@ -1732,20 +1732,39 @@ QToolBox::tab {
              </widget>
             </item>
             <item>
-             <widget class="QTextBrowser" name="textBrowser"/>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_9">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
+             <widget class="QTextBrowser" name="textBrowser">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
               </property>
-              <property name="sizeHint" stdset="0">
+              <property name="minimumSize">
                <size>
-                <width>20</width>
-                <height>40</height>
+                <width>0</width>
+                <height>250</height>
                </size>
               </property>
-             </spacer>
+              <property name="horizontalScrollBarPolicy">
+               <enum>Qt::ScrollBarAlwaysOff</enum>
+              </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QAbstractScrollArea::AdjustIgnored</enum>
+              </property>
+              <property name="html">
+               <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:14px; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;To complete the area-under-the-curve calculation (necessary for EAD), CanFlood facilitates the addition of synthetic events for the &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;left&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; (zero probability) and &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;right&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; (zero impacts) tails of the risk curve as shown on the figure to the right. Refer to the documentation for more details. The following parameters are provided to configure this behavior:&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(a) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;extrapolate&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; [left and right]: use the scipy.interpolate.interp1d function to calculate the synthetic event via extrapolation.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(b) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;flat&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; [left]:  use the impact value from the maximum event.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(c) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;user-defined&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; [left and right]: user specified value.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:14px;&quot;&gt;(d) &lt;/span&gt;&lt;span style=&quot; font-size:14px; font-weight:600;&quot;&gt;none&lt;/span&gt;&lt;span style=&quot; font-size:14px;&quot;&gt; [left and right]: do not include synthetic events (not recommended for the left tail). &lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>

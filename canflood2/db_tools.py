@@ -71,10 +71,18 @@ def get_template_df(table_name, template_prefix=None):
         assert isinstance(template_prefix, str)
         template_name = table_name.replace(template_prefix, '')
         assert template_name in projDB_schema_modelTables_d, f'failed to find template \'{template_name}\''
-        return projDB_schema_modelTables_d[template_name]
+        result =  projDB_schema_modelTables_d[template_name]
     else:
         assert table_name in project_db_schema_d, f'failed to find template \'{table_name}\''
-        return project_db_schema_d[table_name]
+        result =  project_db_schema_d[table_name]
+        
+    #check consistency (index names are not in the column names)
+    if isinstance(result.index, pd.MultiIndex):
+        assert not result.index.names in result.columns, f'found index names in columns for \'{table_name}\''
+    else:
+        assert not result.index.name in result.columns, f'found index name in columns for \'{table_name}\''
+        
+    return result
     
  
 

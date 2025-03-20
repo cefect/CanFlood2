@@ -197,10 +197,12 @@ modelTable_params_d = {
             'impact': pd.Series(dtype=float),
             'impact_scaled': pd.Series(dtype=float),
             'impact_capped': pd.Series(dtype=float),
-            'event_names': pd.Series(dtype=str), #index
-            'nestID': pd.Series(dtype=int), #index
-            'indexField': pd.Series(dtype=int) #index
-        }),
+            #'event_names': pd.Series(dtype=str), #index
+            #'nestID': pd.Series(dtype=int), #index
+            #'indexField': pd.Series(dtype=int) #index
+        },
+        index=pd.MultiIndex.from_tuples([], names=['indexField','nestID', 'event_names']),
+        ),
         'phase': 'run'
     },
     'table_impacts_simple': {

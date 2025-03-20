@@ -308,7 +308,7 @@ class Model_run_methods(object):
         #=======================================================================
         # write to projDB
         #=======================================================================
-        self.set_tables({'table_impacts':mresult_dx.reset_index()}, projDB_fp=projDB_fp)
+        self.set_tables({'table_impacts':mresult_dx}, projDB_fp=projDB_fp)
  
         
         return mresult_dx
@@ -336,7 +336,7 @@ class Model_run_methods(object):
         #=======================================================================
         # load data
         #=======================================================================
-        impacts_dx = self.get_tables(['table_impacts'], projDB_fp=projDB_fp)[0].set_index(['indexField', 'nestID', 'event_names'])
+        impacts_dx = self.get_tables(['table_impacts'], projDB_fp=projDB_fp)[0]
         
         log.debug(f'loaded impacts w/ {impacts_dx.shape}')
         
@@ -382,6 +382,7 @@ class Model_run_methods(object):
         #=======================================================================
         # damages
         #=======================================================================
+        impacts_df = self.get_tables(['table_impacts'], projDB_fp=projDB_fp)[0]
         dmgs_dx = self.get_tables(['table_dmgs'], projDB_fp=projDB_fp)[0].set_index(['indexField', 'nestID', 'event_names'])
         
 
@@ -635,7 +636,8 @@ class Model(Model_run_methods):
         if finv_index is None:
             finv_index = self.get_tables(['table_finv'], projDB_fp=projDB_fp)[0].index
  
-        assert isinstance(finv_index, pd.MultiIndex), type(finv_index)
+        if not isinstance(finv_index, pd.MultiIndex):
+            raise AssertionError(f'bad type on the finv_index:{type(finv_index)}')
         
         #=======================================================================
         # check

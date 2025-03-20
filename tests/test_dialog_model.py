@@ -406,7 +406,7 @@ def test_dial_model_05_run(dialog, model,
     
     
     for table_name in model.compile_model_tables:
-        df = model.get_tables(table_name)
+        df = model.get_tables([table_name])[0]
         assert len(df)>0, f'got empty table \'{table_name}\''
         
     

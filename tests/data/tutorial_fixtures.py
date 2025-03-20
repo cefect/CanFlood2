@@ -20,7 +20,7 @@ from pytest_qgis.utils import clean_qgis_layer
  
 from canflood2.assertions import assert_df_matches_projDB_schema
 from canflood2.parameters import src_dir, project_db_schema_d
-from canflood2.tutorials.tutorial_data_builder import tutorial_data_lib, widget_settings_d
+from canflood2.tutorials.tutorial_data_builder import tutorial_data_lib, widget_values_lib
 
 
 #===============================================================================
@@ -143,8 +143,12 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
 def widget_modelConfig_data_d(tutorial_name):
     if tutorial_name is None:
         return None
-    return widget_settings_d[tutorial_name]
+    return widget_values_lib[tutorial_name]['Model_config_dialog']
 
+@pytest.fixture
+def widget_Main_dialog_data_d(tutorial_name):
+ 
+    return widget_values_lib[tutorial_name]['Main_dialog']
 
 
 

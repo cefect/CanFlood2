@@ -73,6 +73,11 @@ from .assertions import (
 from .core import _get_proj_meta_d, Model
 from .db_tools import df_to_sql, get_template_df, sql_to_df
 from .dialog_model import Model_config_dialog
+
+
+#tutorial dev loaders
+from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d
+
 #===============================================================================
 # load UI and resources
 #===============================================================================
@@ -1073,7 +1078,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         log.debug('connecting slots')
         
         #=======================================================================
-        # general----------------
+        # GEN=======================----------------
         #=======================================================================
         
         
@@ -1095,9 +1100,24 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         
         from canflood2 import __version__
         self.label_version.setText(f'v{__version__}')
+        #=======================================================================
+        # WELCOME======================--------------
+        #=======================================================================
+        #=======================================================================
+        # tutorial data
+        #=======================================================================
+        
+        
+        #populate the comboBox
+        self.comboBox_tut_names.addItems(
+            [tutorial_fancy_names_d[k] for k in tutorial_data_lib.keys()]
+            )
+        
+        #connect the runner button
+        self.pushButton_tut_load.clicked.connect(self._load_tutorial_to_ui)
         
         #=======================================================================
-        # Project Setup tab-----------
+        # Project Setup tab========================-----------
         #=======================================================================
         
         #=======================================================================
@@ -1176,7 +1196,27 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         log.debug('slots connected')
         
 
+    def _load_tutorial_to_ui(self):
+        """load the tutorial data into the UI"""
+        log = self.logger.getChild('_load_tutorial_to_ui')
         
+        #retrieve the fancy tutorial name from teh combo box
+        tut_name_fancy = self.comboBox_tut_names.currentText()
+        
+        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]
+        
+        log.debug(f'loading tutorial \'{tutorial_name}\'')
+        
+        
+        #=======================================================================
+        # set widget data
+        #=======================================================================
+        widget_data_d = tutorial_data_lib[tutorial_name]
+        
+        for widget_name, v in widget_data_d.items():
+            widget = getattr(self, widget_name, None)
+            if widget is not None:
+                set_widget_value(widget, v)
         
 
     

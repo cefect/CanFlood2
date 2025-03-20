@@ -8,7 +8,7 @@ Created on Mar 5, 2025
 #===============================================================================
 # IMPORTS----------
 #===============================================================================
-import pytest, time, sys, inspect, os, shutil, hashlib
+import pytest, time, sys, inspect, os, shutil, hashlib, copy
 from contextlib import contextmanager
 from pytest_qgis.utils import clean_qgis_layer
 import pandas as pd
@@ -43,7 +43,7 @@ from canflood2.hp.qt import set_widget_value
 #===============================================================================
 # DATA--------
 #===============================================================================
-test_data_dir = os.path.join(conftest.test_data_dir, 'test_dialog_main')
+test_data_dir = os.path.join(conftest.test_data_dir, 'dialog_main')
 os.makedirs(test_data_dir, exist_ok=True)
 
  
@@ -51,19 +51,21 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS---------
 #===============================================================================
-overwrite_testdata=False
-def write_sqlite(result, ofp, write=overwrite_testdata):
-    if write:
+overwrite_testdata=True
+def write_projDB(dialog, test_name):
+ 
+    projDB_fp = dialog.get_projDB_fp()
+    ofp = oj_out(test_name, projDB_fp)
+ 
+    if overwrite_testdata:
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
         
         #copy over the .sqlite file
-        shutil.copyfile(result, ofp) 
+        shutil.copyfile(projDB_fp, ofp) 
  
         conftest_logger.info(f'wrote result to \n    {ofp}')
         
 
-        
- 
 
 def oj(*args):
     return os.path.join(test_data_dir, *args)
@@ -75,11 +77,6 @@ def oj_out(test_name, result):
  
 
 
-def write_projDB(dialog, test_name):
- 
-#projDB
-    projDB_fp = dialog.get_projDB_fp()
-    write_sqlite(projDB_fp, oj_out(test_name, projDB_fp))
 
 
 def dialog_create_new_projDB(monkeypatch, dialog, tmpdir):
@@ -134,11 +131,12 @@ use fixtures to parameterize in blocks
     load the dialog, assign some variables
     only need to call the fixture (and the dialog) in the test (don't need to use)
 """
+ 
     
 @pytest.fixture(scope='function') 
 def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
            projDB_fp,
-           widget_data_d,
+           #widget_data_d,
            aoi_vlay, dem_rlay, haz_rlay_d, eventMeta_df, #tutorial parameters           
            ):
     """dialog fixture.
@@ -164,13 +162,15 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
     #===========================================================================
     # # Add some default text to specific line edits.
     #===========================================================================
-    print(f"post DIALOG fixture setup\n{'=' * 80}\n\n")
-    if widget_data_d is not None:
-        print('setting widget data')
-        for widget_name, v in widget_data_d.items():
-            widget = getattr(dialog, widget_name, None)
-            if widget is not None:
-                set_widget_value(widget, v)
+    #===========================================================================
+    # print(f"post DIALOG fixture setup\n{'=' * 80}\n\n")
+    # if widget_data_d is not None:
+    #     print('setting widget data')
+    #     for widget_name, v in widget_data_d.items():
+    #         widget = getattr(dialog, widget_name, None)
+    #         if widget is not None:
+    #             set_widget_value(widget, v)
+    #===========================================================================
                 
     
     #===========================================================================
@@ -232,9 +232,23 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
  
 
 
+#===============================================================================
+# @pytest.fixture
+# def widget_data_d(request):
+#     return getattr(request, "param", None)
+#===============================================================================
+
 @pytest.fixture
-def widget_data_d(request):
-    return getattr(request, "param", None)
+def widget_data_d(dialog, widget_Main_dialog_data_d):
+    """calling this fixture attaches it to the dialog"""
+ 
+    print('setting widget data')
+    for widget_name, v in widget_Main_dialog_data_d.items():
+        widget = getattr(dialog, widget_name, None)
+        if widget is not None:
+            set_widget_value(widget, v)
+            
+    return  copy.deepcopy(widget_Main_dialog_data_d)
 
 
     
@@ -276,20 +290,13 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
     result = dialog.get_projDB_fp()
     assert_projDB_fp(result, check_consistency=True)
     
-    write_sqlite(result, oj_out(test_name, result))
+    write_projDB(dialog, test_name)
      
  
 @pytest.mark.dev
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
-@pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02']) 
-@pytest.mark.parametrize("widget_data_d", [
-    {
-        'studyAreaLineEdit': 'test_study_area',
-        'userLineEdit': 'test_user',
-        'scenarioNameLineEdit': 'some scenario', 
-        'climateStateLineEdit': 'some climate', 
-        'hazardTypeLineEdit': 'some hazard',
-          }])
+@pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
+
 def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monkeypatch, 
                                                   widget_data_d):
     """
@@ -348,7 +355,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
 ])
 def test_dial_main_03_load_projDB(dialog,
                                              ):
@@ -377,7 +384,7 @@ def test_dial_main_03_load_projDB(dialog,
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_151acb', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
 ])
 def test_dial_main_04_MS_createTemplates(dialog, test_name):
     """test creation and clearing of the model suite"""
@@ -420,9 +427,13 @@ def test_dial_main_04_MS_createTemplates(dialog, test_name):
     write_projDB(dialog, test_name)
     
     
+
+@pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02'])
+def test_dial_main_06_W_load_tutorial_data(dialog, test_name):
+    """test loading tutorial data"""
     
-    
- 
+    click(dialog.pushButton_tut_load)
+
  
 
 

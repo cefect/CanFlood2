@@ -41,7 +41,7 @@ from .conftest import (
 #===============================================================================
 # DATA--------
 #===============================================================================
-test_data_dir = os.path.join(conftest.test_data_dir, 'test_dialog_model')
+test_data_dir = os.path.join(conftest.test_data_dir, 'dialog_model')
 os.makedirs(test_data_dir, exist_ok=True)
 
 #===============================================================================
@@ -49,7 +49,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 
 
-overwrite_testdata=False
+overwrite_testdata=True
 def write_projDB(dialog, test_name):
  
     projDB_fp = dialog.parent.get_projDB_fp()
@@ -68,7 +68,7 @@ def oj(*args):
     return os.path.join(test_data_dir, *args)
 
 def oj_out(test_name, result):
-    return oj(result_write_filename_prep(test_name, clear_str='test_dial_model_'), os.path.basename(result))
+    return oj(result_write_filename_prep(test_name, clear_str='dial_model_'), os.path.basename(result))
  
 #===============================================================================
 # FIXTURES------
@@ -83,7 +83,7 @@ def dialog(dialog_main, model,
            #turtorial data
            finv_vlay, 
  
-           widget_modelConfig_data_d, #tests.data.tutorial_fixtures.widget_settings_d
+           widget_modelConfig_data_d, #tests.data.tutorial_fixtures.widget_values_lib
            
            #control
  
@@ -185,7 +185,7 @@ def vfunc(dialog, vfunc_fp, monkeypatch):
 
 
 
-@pytest.mark.parametrize("projDB_fp", [oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2')])
+@pytest.mark.parametrize("projDB_fp", [oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_01_launch_config(dialog,model, qtbot):
     """simple launching and closing of the model configuration dialog
@@ -202,7 +202,7 @@ def test_dial_model_01_launch_config(dialog,model, qtbot):
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_02_save(dialog,
@@ -260,7 +260,7 @@ def test_dial_model_02_save(dialog,
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_0ade0c', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_03_save_vfunc(dialog, model,                                  
@@ -315,7 +315,7 @@ def test_dial_model_03_save_vfunc(dialog, model,
 @pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     pytest.param(
-        'cf1_tutorial_02',oj('03_save_vfunc_c1-0-cf1_tu_3f2fee', 'projDB.canflood2'),
+        'cf1_tutorial_02',oj('test_03_save_vfunc_c1-0-c_bcb0b2', 'projDB.canflood2'),
             #doesnt work with the qt dialog
             #marks=pytest.mark.xfail(strict=True, raises=ModelNotReadyError, reason="missing ui entries")
     )
@@ -367,7 +367,7 @@ def test_dial_model_04_compile(dialog, model,
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     pytest.param(
-        'cf1_tutorial_02',oj('04_compile_c1-0-cf1_tutor_de8ebb', 'projDB.canflood2'),
+        'cf1_tutorial_02',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),
     )
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))

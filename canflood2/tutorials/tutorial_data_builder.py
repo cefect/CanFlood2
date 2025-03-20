@@ -6,7 +6,7 @@ Created on Mar 20, 2025
 helpers for loading tutorial data to the ui
 '''
 
-import os
+import os, re
 from ..parameters import src_dir
 #===============================================================================
 # parameters
@@ -14,22 +14,31 @@ from ..parameters import src_dir
 test_data_dir = os.path.join(os.path.dirname(__file__), 'data')
 assert os.path.exists(test_data_dir)
 
-widget_settings_d = {
+widget_values_lib = {
     #model config dialog widget data related to specific tutorials
     'cf1_tutorial_02': {
-        'comboBox_expoLevel':'depth-dependent (L2)',
-        'comboBox_AI_elevType':'ground',
-        'mFieldComboBox_cid':'xid',
-        'mFieldComboBox_AI_01_scale':'f0_scale',
-        'mFieldComboBox_AI_01_elev':'f0_elv',
-        'mFieldComboBox_AI_01_tag':'f0_tag',
-        'mFieldComboBox_AI_01_cap':'f0_cap',  
-        'labelLineEdit_AI_label':'my inventory',
-        'consequenceLineEdit_V':'some consequence',
-        'comboBox_R_highPtail': 'none',
-        'comboBox_R_lowPtail': 'extrapolate',
-        'doubleSpinBox_R_lowPtail': 1e9,   
-        'doubleSpinBox_R_highPtail': 0.1,
+        'Main_dialog':{
+            'studyAreaLineEdit': 'tutorial 2 area',
+            'userLineEdit': 'me?',
+            'scenarioNameLineEdit': 'undefended',
+            'climateStateLineEdit': 'historical climate', 
+            'hazardTypeLineEdit': 'fluvial',
+            },
+        'Model_config_dialog':{
+            'comboBox_expoLevel':'depth-dependent (L2)',
+            'comboBox_AI_elevType':'ground',
+            'mFieldComboBox_cid':'xid',
+            'mFieldComboBox_AI_01_scale':'f0_scale',
+            'mFieldComboBox_AI_01_elev':'f0_elv',
+            'mFieldComboBox_AI_01_tag':'f0_tag',
+            'mFieldComboBox_AI_01_cap':'f0_cap',  
+            'labelLineEdit_AI_label':'my inventory',
+            'consequenceLineEdit_V':'some consequence',
+            'comboBox_R_highPtail': 'none',
+            'comboBox_R_lowPtail': 'extrapolate',
+            'doubleSpinBox_R_lowPtail': 1e9,   
+            'doubleSpinBox_R_highPtail': 0.1,
+            },
      
     },
     }
@@ -38,6 +47,16 @@ widget_settings_d = {
 #===============================================================================
 # functions
 #===============================================================================
+def format_fancy_tutorial_name(input_string):
+    # Use regex to extract the tutorial number
+    match = re.search(r'tutorial_(\d+)', input_string)
+    if match:
+        tutorial_number = int(match.group(1))
+        return f'Tutorial {tutorial_number}'
+    else:
+        raise ValueError("Input string does not match the expected format")
+    
+    
 def get_test_data_filepaths_for_tutorials(
         search_dirs = ['cf1_tutorial_01', 'cf1_tutorial_02'],
         ):
@@ -106,3 +125,4 @@ def get_test_data_filepaths_for_tutorials(
     return data_lib
 
 tutorial_data_lib = get_test_data_filepaths_for_tutorials()
+tutorial_fancy_names_d = {k:format_fancy_tutorial_name(k) for k in tutorial_data_lib.keys()}

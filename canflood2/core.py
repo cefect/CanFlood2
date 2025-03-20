@@ -345,14 +345,19 @@ class Model_run_methods(object):
         #=======================================================================
         
         #sum on nestID and retrieve impacts
-        df = impacts_dx['impact_capped'].dropna().groupby(['indexField', 'event_names']).sum().unstack('event_names').fillna(0.0)
+        df = impacts_dx['impact_capped'].groupby(['indexField', 'event_names']).sum().unstack('event_names').fillna(0.0)
         
         #=======================================================================
         # check
         #=======================================================================
-        self.assert_finv_index_match(df.index, projDB_fp=projDB_fp, logger=log)
+        self.assert_finv_index_match(df.index, projDB_fp=projDB_fp)
         
-        log.debug(f'loaded {dmgs_df.shape} damages')
+        #=======================================================================
+        # write
+        #=======================================================================
+        self.set_tables({'table_impacts_simple':df.reset_index()}, projDB_fp=projDB_fp)
+        
+ 
         
         
     
@@ -635,17 +640,21 @@ class Model(Model_run_methods):
         #=======================================================================
         # check
         #=======================================================================
-        if isinstance(index_test, pd.MultiIndex):
-            if not index_test.names == ['indexField', 'nestID']:
-                raise AssertionError(f'bad index_test names: {index_test.names}')
-            assert_index_match(index_test, finv_index)
+        try:
+            if isinstance(index_test, pd.MultiIndex):
+                if not index_test.names == ['indexField', 'nestID']:
+                    raise AssertionError(f'bad index_test names: {index_test.names}')
+                assert_index_match(index_test, finv_index)
+                
+            elif isinstance(index_test, pd.Index):
+                assert index_test.name == 'indexField'
+                assert_index_match(index_test, finv_index.get_level_values('indexField'))
+                
+            else:
+                raise IOError(f'bad index_test type: {type(index_test)}')
             
-        elif isinstance(index_test, pd.Index):
-            assert index_test.name == 'indexField'
-            assert_index_match(index_test, finv_index.get_level_values('indexField'))
-            
-        else:
-            raise IOError(f'bad index_test type: {type(index_test)}')
+        except Exception as e:
+            raise AssertionError(f'index {index_test.shape} does not match finv index \n    {e}') from None
         
         
  

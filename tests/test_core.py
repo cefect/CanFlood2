@@ -118,7 +118,7 @@ def test_core_01_init(model):
     print(model.get_index_d())
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_dModel('04_compile_c1-0-cf1_tutor_de8ebb', 'projDB.canflood2'))
 ])
@@ -134,7 +134,7 @@ def test_core_02_table_impacts_to_db(model,
     
     
     
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_645f61', 'projDB.canflood2'))
 ])

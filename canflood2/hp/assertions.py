@@ -48,7 +48,10 @@ def assert_index_match(test_index, expected_index):
     elif isinstance(test_index, pd.Index):
         assert isinstance(expected_index, pd.Index)
         assert test_index.name == expected_index.name
-        assert_intersection(test_index, expected_index)
+        try:
+            assert_intersection(test_index, expected_index)
+        except AssertionError as e:
+            raise AssertionError(f"pd.Index mismatch \n    {e}") from None
         
     else:
         raise AssertionError(f"unexpected index type: {type(test_index)}")

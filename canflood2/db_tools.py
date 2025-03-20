@@ -52,7 +52,10 @@ def assert_df_template_match(df, schema_df, check_dtypes=True):
     if check_dtypes:
         actual_dtypes = df.dtypes.astype(str).sort_index()
         expected_dtypes = schema_df.dtypes.astype(str).sort_index()
-        assert_series_match(expected_dtypes, actual_dtypes)
+        try:
+            assert_series_match(expected_dtypes, actual_dtypes)
+        except Exception as e:
+            raise AssertionError(f"Dtype mismatch\n    {e}") from None
     #assert_series_equal(actual_dtypes, expected_dtypes)
     #assert actual_dtypes.equals(expected_dtypes),f"Dtype mismatch: \nactuals:\n{actual_dtypes} vs expected\n{expected_dtypes}"
     
@@ -76,11 +79,12 @@ def get_template_df(table_name, template_prefix=None):
         assert table_name in project_db_schema_d, f'failed to find template \'{table_name}\''
         result =  project_db_schema_d[table_name]
         
-    #check consistency (index names are not in the column names)
-    if isinstance(result.index, pd.MultiIndex):
-        assert not result.index.names in result.columns, f'found index names in columns for \'{table_name}\''
-    else:
-        assert not result.index.name in result.columns, f'found index name in columns for \'{table_name}\''
+    if not result is None: 
+        #check consistency (index names are not in the column names)
+        if isinstance(result.index, pd.MultiIndex):
+            assert not result.index.names in result.columns, f'found index names in columns for \'{table_name}\''
+        else:
+            assert not result.index.name in result.columns, f'found index name in columns for \'{table_name}\''
         
     return result
     

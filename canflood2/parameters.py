@@ -205,7 +205,7 @@ modelTable_params_d = {
         ),
         'phase': 'run'
     },
-    'table_impacts_simple': {
+    'table_impacts_prob': {
         'df':pd.DataFrame(
             index=finv_index,
             ),

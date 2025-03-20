@@ -10,6 +10,9 @@ from datetime import datetime
 import numpy as np
 
 np.set_printoptions(suppress=True)
+
+from scipy import interpolate, integrate
+
 #===============================================================================
 # IMPORTS-----
 #===============================================================================
@@ -20,6 +23,7 @@ from .hp.sql import get_table_names, pd_dtype_to_sqlite_type
 from . import __version__
 
 
+from .db_tools import (get_template_df, assert_df_template_match)
 
 from .assertions import (
     assert_projDB_fp, assert_hazDB_fp, assert_df_matches_projDB_schema, assert_projDB_conn,
@@ -316,7 +320,7 @@ class Model_run_methods(object):
     mresult_dx.dtypes
     """
     
-    def _table_impacts_simple_to_db(self, projDB_fp=None, logger=None):
+    def _table_impacts_prob_to_db(self, projDB_fp=None, logger=None):
         """compute and set the simple impacts table
         
         this is a condensed and imputed version of the impacts table
@@ -327,7 +331,7 @@ class Model_run_methods(object):
         # defaults
         #=======================================================================
         if logger is None: logger = self.logger
-        log = logger.getChild('_table_impacts_simple_to_db')
+        log = logger.getChild('_table_impacts_prob_to_db')
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
             
@@ -347,15 +351,49 @@ class Model_run_methods(object):
         #sum on nestID and retrieve impacts
         df = impacts_dx['impact_capped'].groupby(['indexField', 'event_names']).sum().unstack('event_names').fillna(0.0)
         
+        
+        #=======================================================================
+        # #remap columns to ARI----
+        #=======================================================================
+        #=======================================================================
+        # haz events
+        #=======================================================================
+        haz_events_df = self.parent.projDB_get_tables(['05_haz_events'], projDB_fp=projDB_fp)[0]
+        
+        haz_events_s = haz_events_df.set_index('event_name')['prob']
+        
+        #get probability type
+    
+        haz_meta_s = self.parent.projDB_get_tables(['04_haz_meta'], projDB_fp=projDB_fp)[0].set_index('varName')['value']
+        
+        probability_type = 'ARI' if bool(haz_meta_s['probability_type']) else 'AEP'
+
+        log.debug(f'retrieved {len(haz_events_s)} events w/ probability_type=\'{probability_type}\'')
+        
+        #convert to AEP
+        if probability_type=='AEP':
+            pass
+        else:
+            haz_events_s = 1/haz_events_s
+            
+        haz_events_s = haz_events_s.rename('AEP')
+        
+        #=======================================================================
+        # remap
+        #=======================================================================
+        impacts_prob_df = df.rename(columns=haz_events_s).sort_index(ascending=False, axis=1)
+        impacts_prob_df.columns.name = haz_events_s.name
+        
         #=======================================================================
         # check
         #=======================================================================
-        self.assert_finv_index_match(df.index, projDB_fp=projDB_fp)
+        
+        self.assert_impacts_prob_df(impacts_prob_df)
         
         #=======================================================================
         # write
         #=======================================================================
-        self.set_tables({'table_impacts_simple':df}, projDB_fp=projDB_fp)
+        self.set_tables({'table_impacts_prob':impacts_prob_df}, projDB_fp=projDB_fp)
         
  
         
@@ -382,27 +420,11 @@ class Model_run_methods(object):
         #=======================================================================
         # damages
         #=======================================================================
-        impacts_df = self.get_tables(['table_impacts'], projDB_fp=projDB_fp)[0]
-        dmgs_dx = self.get_tables(['table_dmgs'], projDB_fp=projDB_fp)[0].set_index(['indexField', 'nestID', 'event_names'])
-        
+        impacts_df = self.get_tables(['table_impacts_prob'], projDB_fp=projDB_fp)[0]
+ 
 
-        #=======================================================================
-        # events
-        #=======================================================================
-        haz_events_df = self.parent.projDB_get_tables(['05_haz_events'], projDB_fp=projDB_fp)[0]
         
-        haz_events_s = haz_events_df.set_index('event_name')['prob']
         
-        #get probability type
-    
-        haz_meta_s = self.parent.projDB_get_tables(['04_haz_meta'], projDB_fp=projDB_fp)[0].set_index('varName')['value']
-        
-        probability_type = 'ARI' if bool(haz_meta_s['probability_type']) else 'AEP'
-
-        log.debug(f'retrieved {len(haz_events_s)} events w/ probability_type=\'{probability_type}\'')
-        
-        if probability_type=='AEP':
-            raise NotImplementedError('no support for AEP yet')
         #=======================================================================
         # risk params
         #=======================================================================
@@ -423,17 +445,51 @@ class Model_run_methods(object):
         #=======================================================================
         # compute-------
         #=======================================================================
+
         """
+        impacts_prob_df.columns
         view(dmgs_dx)
         """
         #=======================================================================
-        # add tails
+        # add left tail
         #=======================================================================
+        if ead_ltail=='none':
+            impacts_df2 = impacts_df.copy()
+        elif ead_ltail=='flat':
+            raise NotImplementedError('no support for flat yet')
+        elif ead_ltail=='extrapolate':
+            
+            sorted_cols = sorted(impacts_prob_df.columns.astype(float))
+            # Select the two smallest ARI values
+            x0, x1 = sorted_cols[0], sorted_cols[1]
+            
+            extrapolated_values = impacts_prob_df[x0] + (0 - x0) * (impacts_prob_df[x1] - impacts_prob_df[x0]) / (x1 - x0)
+            
+            impacts_prob_df[0.0] =  extrapolated_values.max(0)
+            
+ 
+            #===================================================================
+            # f = lambda row: interpolate.interp1d(row.values, 
+            #                                           impacts_prob_df.columns.values,
+            #                                           impacts_prob_df,
+            #                                           fill_value='extrapolate')
+            # 
+            # 
+            # f(impacts_prob_df.iloc[0, :])
+            # 
+            # impacts_prob_df.apply(f, axis=1)
+            #===================================================================
+            
+ 
+            
+            
+            raise NotImplementedError('no support for extrapolate yet')
+        elif 'user' in ead_ltail:
+            raise NotImplementedError('no support for user yet')
+        else:
+            raise KeyError(f'unreecognized ead_ltail: {ead_ltail}')
         
-        dmgs_df
-        
-        #group by the indexers and sum the damages
-        ead_s = dmgs_df.groupby(dmgs_df.index.names).sum()['impact_capped']
+ 
         
         #=======================================================================
         # write to projDB
@@ -443,10 +499,94 @@ class Model_run_methods(object):
         
         return ead_s
         
+class Model_table_assertions(object):
+    """organizer for the model table assertions"""
+    def assert_finv_index_match(self, index_test, finv_index = None, projDB_fp=None):
+        """check that the finv index matches the project database
+        
+        flexible to check index w/ or w/o nestID
+        """
+        #=======================================================================
+        # defaults
+        #=======================================================================
+ 
+ 
+ 
+        #=======================================================================
+        # load data
+        #=======================================================================
+        if finv_index is None:
+            finv_index = self.get_tables(['table_finv'], projDB_fp=projDB_fp)[0].index
+ 
+        if not isinstance(finv_index, pd.MultiIndex):
+            raise AssertionError(f'bad type on the finv_index:{type(finv_index)}')
+        
+        #=======================================================================
+        # check
+        #=======================================================================
+        try:
+            if isinstance(index_test, pd.MultiIndex):
+                if not index_test.names == ['indexField', 'nestID']:
+                    raise AssertionError(f'bad index_test names: {index_test.names}')
+                assert_index_match(index_test, finv_index)
+                
+            elif isinstance(index_test, pd.Index):
+                assert index_test.name == 'indexField'
+                assert_index_match(index_test, finv_index.get_level_values('indexField'))
+                
+            else:
+                raise IOError(f'bad index_test type: {type(index_test)}')
+            
+        except Exception as e:
+            raise AssertionError(f'index {index_test.shape} does not match finv index \n    {e}') from None
+        
+        
+ 
+        
+        return
+    
+    def assert_impacts_prob_df(self, impacts_prob_df=None, projDB_fp=None):
+        """check the impacts simple table conform to expectations"""
+        if impacts_prob_df is None:
+            impacts_prob_df = self.get_tables(['table_impacts_prob'], projDB_fp=projDB_fp)[0]
+        
+        #=======================================================================
+        # #simple schema check
+        #=======================================================================
+        schema_df = get_template_df('table_impacts_prob', template_prefix=self.template_prefix_str)
+        assert_df_template_match(impacts_prob_df, schema_df, check_dtypes=False)
+ 
+        assert impacts_prob_df.columns.name =='AEP'
+        assert 'float' in impacts_prob_df.columns.dtype.name
+        #=======================================================================
+        # index check
+        #=======================================================================
+        self.assert_finv_index_match(impacts_prob_df.index, projDB_fp=projDB_fp)
+        
+
+        #=======================================================================
+        # check order
+        #=======================================================================
+        if not np.all(np.diff(impacts_prob_df.columns) <= 0):
+            raise AssertionError('passed headers are not descending')
+        
+        #=======================================================================
+        # check everything is positive
+        #=======================================================================
+        booldf = impacts_prob_df >= 0
+        if not booldf.all().all():
+            raise AssertionError('Negative values found in table_impacts_prob')
+        
+        #=======================================================================
+        # check for damage monotonicity
+        #=======================================================================
+        cboolidx = np.invert(impacts_prob_df.apply(lambda x: x.is_monotonic_increasing, axis=1))
+        if cboolidx.any():
+            raise AssertionError('Non-monotonic-increasing damages in table_impacts_prob')
+
  
     
-    
-class Model(Model_run_methods):
+class Model(Model_run_methods, Model_table_assertions):
     """skinny helper functions for dealing with an individual model 
     on the model suite tab
     
@@ -566,7 +706,7 @@ class Model(Model_run_methods):
         for tn in table_names:
             assert tn in template_names, f'bad table name: {tn}'
     
-        result = list(f'model_{self.name}_{k}' for k in table_names)
+        result = list(self.template_prefix_str + f'{k}' for k in table_names)
         
         if result_as_dict:
             return dict(zip(table_names, result))
@@ -588,7 +728,7 @@ class Model(Model_run_methods):
             match_l = [k for k in table_names if f'model_{self.name}' in k]
     
         if result_as_dict:
-            return {k.replace(f'model_{self.name}_', ''): k for k in match_l}
+            return {k.replace(self.template_prefix_str, ''): k for k in match_l}
         else:
             return match_l
 
@@ -619,49 +759,7 @@ class Model(Model_run_methods):
     
  
     
-    def assert_finv_index_match(self, index_test, finv_index = None, projDB_fp=None):
-        """check that the finv index matches the project database
-        
-        flexible to check index w/ or w/o nestID
-        """
-        #=======================================================================
-        # defaults
-        #=======================================================================
- 
- 
- 
-        #=======================================================================
-        # load data
-        #=======================================================================
-        if finv_index is None:
-            finv_index = self.get_tables(['table_finv'], projDB_fp=projDB_fp)[0].index
- 
-        if not isinstance(finv_index, pd.MultiIndex):
-            raise AssertionError(f'bad type on the finv_index:{type(finv_index)}')
-        
-        #=======================================================================
-        # check
-        #=======================================================================
-        try:
-            if isinstance(index_test, pd.MultiIndex):
-                if not index_test.names == ['indexField', 'nestID']:
-                    raise AssertionError(f'bad index_test names: {index_test.names}')
-                assert_index_match(index_test, finv_index)
-                
-            elif isinstance(index_test, pd.Index):
-                assert index_test.name == 'indexField'
-                assert_index_match(index_test, finv_index.get_level_values('indexField'))
-                
-            else:
-                raise IOError(f'bad index_test type: {type(index_test)}')
-            
-        except Exception as e:
-            raise AssertionError(f'index {index_test.shape} does not match finv index \n    {e}') from None
-        
-        
- 
-        
-        return
+
     
     
     def get_model_tables_all(self, projDB_fp=None, result_as_dict=True):

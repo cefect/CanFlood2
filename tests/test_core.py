@@ -134,23 +134,23 @@ def test_core_02_table_impacts_to_db(model,
     
     
     
-
+@pytest.mark.dev 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_645f61', 'projDB.canflood2'))
 ])
-def test_core_03_table_impacts_simple_to_db(model,
+def test_core_03_table_impacts_prob_to_db(model,
                      tutorial_name, #dont really need this
                      test_name,
                      ):
     """call the _table_impacts_to_db"""
      
-    model._table_impacts_simple_to_db()
+    model._table_impacts_prob_to_db()
     
     write_projDB(model, test_name)
     
-@pytest.mark.dev 
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('03_table_impacts_simple_t_43a657', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('03_table_impacts_prob_t_43a657', 'projDB.canflood2'))
 ])
 def test_core_04_table_ead_to_db(model,
                      tutorial_name, #dont really need this

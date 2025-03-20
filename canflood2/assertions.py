@@ -151,7 +151,7 @@ def assert_projDB_conn(conn,
 def assert_df_matches_projDB_schema(table_name, actual_df, **kwargs):
     """compare the df to the schema"""
     assert isinstance(actual_df, pd.DataFrame)
-    assert table_name in project_db_schema_d.keys(), f"bad table_name: {table_name}"
+    assert table_name in project_db_schema_d.keys(), f"table name \'{table_name}\' not found in schema"
     
     schema_df = project_db_schema_d[table_name]
     

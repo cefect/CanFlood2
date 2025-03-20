@@ -823,38 +823,9 @@ class Main_dialog_modelSuite(object):
  
         log.info(f'cleared {cnt} models')
         
-    def get_model_index_dx(self, **kwargs):
-        df = self.projDB_get_tables(['03_model_suite_index'], **kwargs)[0]
 
-        df['modelid'] = df['modelid'].astype(int)
-        return df.set_index(['modelid', 'category_code'])
-    
-    def set_model_index_dx(self, dx, **kwargs):
-        self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, **kwargs)
-        """
-        dx.reset_index().dtypes
-        """
-        
-    def update_model_index_dx(self, model, **kwargs):
-        """update the model index table with the model"""
-        dx = self.get_model_index_dx()
-        
-        """
-        view(dx)
-        """
- 
-        
-        #retrieve the parameters from teh models parameter table
-        s = model.get_model_index_ser()
- 
-        
-        #assert 'status' in s.index, 'missing status' #should always be present
-        
-        #update the dx (where teh column names match the param_s index
-        dx.loc[(model.modelid, model.category_code), :] = s
         
 
-        self.set_model_index_dx(dx, **kwargs)
 
             
             
@@ -1013,80 +984,39 @@ class Main_dialog_projDB(object):
 
  
         
-    def _load_projDB(self):
-        """load an existing project database file"""
-        log = self.logger.getChild('_load_projDB')
- 
-        fp =  self.get_projDB_fp()
-        assert not fp is None, 'no project database file path specified'
-        log.debug(f'loading project database from\n    {fp}')
+
+    def update_model_index_dx(self, model, **kwargs):
+        """update the model index table with the model"""
+        dx = self.get_model_index_dx()
         
-        
-        assert_projDB_fp(fp, check_consistency=True)
-        
- 
-            
-        #=======================================================================
-        # set the ui state from the project parameters
-        #=======================================================================
-        table_name='02_project_parameters'
-        df_raw = self.projDB_get_tables([table_name], projDB_fp=fp)[0]
-        s = df_raw.dropna(subset=['widgetName', 'value']).set_index('widgetName')['value']
- 
-        if len(s)>0:
-            log.debug(f'loading {len(s)} project parameters')
-            for widgetName, value in s.items():
-     
-                #get the widget
-                try:
-                    widget = getattr(self, widgetName)                
-                    set_widget_value(widget, value)
-                except Exception as e:
-                    log.error(f'failed to set widget \'{widgetName}\' to \'{value}\': \n'+\
-                               f'    {e}\nprojDB may be out of sync')
-                
-        else:
-            log.warning(f'no project parameters found in projDB')
-        
+        """
+        view(dx)
+        """
  
         
-        
-                
-        #=======================================================================
-        # set the model suite
-        #=======================================================================
+        #retrieve the parameters from teh models parameter table
+        s = model.get_model_index_ser()
  
-        #clear the model suite
-        self._clear_all_models(clear_projDB=False, logger=log)
         
-        model_index_dx = self.get_model_index_dx(projDB_fp=fp)
+        #assert 'status' in s.index, 'missing status' #should always be present
         
-        if len(model_index_dx)>0:
-            log.debug(f'loading {len(model_index_dx)} models')
-            cnt=0
-            for (modelid, category_code) , row in model_index_dx.iterrows():
- 
-                #get the groupbox
-                params = consequence_category_d[category_code]
-                gb = getattr(self, params['boxName'])                
-                
-                self._add_model(gb.layout(), category_code, logger=log)
-                
-                #check the modelid was added
-                assert modelid in self.model_index_d[category_code], f'failed to add model {modelid}'
-                cnt+=1
-            
-            log.info(f'loaded {cnt} models from project database')
-                
-        else:
-            log.warning(f'no models found in projDB')
- 
-        #=======================================================================
-        # wrap
-        #=======================================================================
-        log.push(f'loaded project from {os.path.basename(fp)}')
+        #update the dx (where teh column names match the param_s index
+        dx.loc[(model.modelid, model.category_code), :] = s
         
-        return  
+
+        self.set_model_index_dx(dx, **kwargs) 
+        
+    def get_model_index_dx(self, **kwargs):
+        df = self.projDB_get_tables(['03_model_suite_index'], **kwargs)[0]
+
+        df['modelid'] = df['modelid'].astype(int)
+        return df.set_index(['modelid', 'category_code'])
+    
+    def set_model_index_dx(self, dx, **kwargs):
+        self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, **kwargs)
+        """
+        dx.reset_index().dtypes
+        """
  
         
  
@@ -1211,7 +1141,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
                 )
             if filename:
                 self.lineEdit_PS_projDB_fp.setText(filename) 
-                self._load_projDB()
+                self._load_projDB_to_ui()
                 
                 #activate the save button
                 self.pushButton_save.setEnabled(True)            
@@ -1503,6 +1433,83 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         log.push(f'UI state saved to project database')
             
         return
+    
+    def _load_projDB_to_ui(self):
+        """load an existing project database file"""
+        log = self.logger.getChild('_load_projDB_to_ui')
+ 
+        fp =  self.get_projDB_fp()
+        assert not fp is None, 'no project database file path specified'
+        log.debug(f'loading project database from\n    {fp}')
+        
+        
+        assert_projDB_fp(fp, check_consistency=True)
+        
+ 
+            
+        #=======================================================================
+        # set the ui state from the project parameters
+        #=======================================================================
+        table_name='02_project_parameters'
+        df_raw = self.projDB_get_tables([table_name], projDB_fp=fp)[0]
+        s = df_raw.dropna(subset=['widgetName', 'value']).set_index('widgetName')['value']
+ 
+        if len(s)>0:
+            log.debug(f'loading {len(s)} project parameters')
+            for widgetName, value in s.items():
+     
+                #get the widget
+                try:
+                    widget = getattr(self, widgetName)                
+                    set_widget_value(widget, value)
+                except Exception as e:
+                    log.error(f'failed to set widget \'{widgetName}\' to \'{value}\': \n'+\
+                               f'    {e}\nprojDB may be out of sync')
+                
+        else:
+            log.warning(f'no project parameters found in projDB')
+        
+ 
+        
+        
+                
+        #=======================================================================
+        # set the model suite
+        #=======================================================================
+ 
+        #clear the model suite
+        self._clear_all_models(clear_projDB=False, logger=log)
+        
+        model_index_dx = self.get_model_index_dx(projDB_fp=fp)
+        
+        if len(model_index_dx)>0:
+            log.debug(f'loading {len(model_index_dx)} models')
+            cnt=0
+            for (modelid, category_code) , row in model_index_dx.iterrows():
+ 
+                #get the groupbox
+                params = consequence_category_d[category_code]
+                gb = getattr(self, params['boxName'])                
+                
+                self._add_model(gb.layout(), category_code, logger=log)
+                
+                #check the modelid was added
+                assert modelid in self.model_index_d[category_code], f'failed to add model {modelid}'
+                cnt+=1
+            
+            log.info(f'loaded {cnt} models from project database')
+                
+        else:
+            log.warning(f'no models found in projDB')
+ 
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.push(f'loaded project from {os.path.basename(fp)}')
+        
+        return 
+    
+    
     
     def get_dem_vlay(self):
         """get the DEM layer"""

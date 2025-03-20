@@ -9,6 +9,7 @@ from datetime import datetime
 
 import numpy as np
 
+np.set_printoptions(suppress=True)
 #===============================================================================
 # IMPORTS-----
 #===============================================================================
@@ -80,67 +81,99 @@ class Model_run_methods(object):
         log = logger.getChild('_table_dmgs_to_db')
         
         #=======================================================================
-        # load data
+        # load data-------
         #=======================================================================
-        #model exposure and inventory
+        #=======================================================================
+        # #model exposure and inventory
+        #=======================================================================
         expos_df, finv_df = self.get_tables(['table_expos', 'table_finv'], projDB_fp=projDB_fp)
         
-        assert set(finv_df['indexField']) == set(expos_df.index), 'index mismatch'
+        #clean up indexers
+        finv_dx = finv_df.set_index(['indexField', 'nestID'])
+        expos_df.columns.name = 'event_names'
         
-        #DEM
+        assert set(finv_dx.index.unique('indexField')) == set(expos_df.index), 'index mismatch'
+        
+        
+                
+        #=======================================================================
+        # #DEM
+        #=======================================================================
         if self.param_d['finv_elevType']=='ground':
             dem_df = self.get_tables(['table_gels'], projDB_fp=projDB_fp)[0]
-            assert set(finv_df['indexField']) == set(dem_df.index), 'index mismatch'
+            assert set(finv_dx.index.unique('indexField')) == set(dem_df.index), 'index mismatch'
         else:
             dem_df = None
         
-        #dfuncs
+        #=======================================================================
+        # #dfuncs
+        #=======================================================================
         if not 'L2' in self.param_d['expo_level']:
             raise NotImplementedError(f'expo_level=\'{self.param_d["expo_level"]}\'')
  
         vfunc_index_df, vfunc_data_df = self.parent.projDB_get_tables(['06_vfunc_index', '07_vfunc_data'], projDB_fp=projDB_fp)
         
-        assert set(finv_df['tag']).issubset(vfunc_index_df.index), 'missing tags'
+        assert set(finv_dx['tag']).issubset(vfunc_index_df.index), 'missing tags'
         
  
         #=======================================================================
-        # compute
+        # compute-------
         #=======================================================================
         #loop on each tag (unique damage function)
+        result_d = dict()
         g_vfunc = vfunc_data_df.round(precision).groupby('tag')
-        g = finv_df.groupby('tag')
+        g = finv_dx.groupby('tag')
         log.info(f'computing damages for {len(g)} ftags')
         for i, (tag, gdf) in enumerate(g):
             log.debug(f'computing damages for {i+1}/{len(g)} tag=\'{tag}\' w/ {len(gdf)} assets')
             
+ 
             #===================================================================
-            # prep depths
+            # prep exposures----------
             #===================================================================
             #get these depths
-            expoi_df = expos_df.loc[expos_df.index.isin(gdf['indexField']), :]
+            expoi_df = expos_df.loc[expos_df.index.isin(gdf.index.unique('indexField')), :]
  
-            
+
 
             
-            #adjust for DEM
+            #===================================================================
+            # #adjust for DEM
+            #===================================================================
             if dem_df is None:
                 deps_df = expoi_df
             else:
                 #get the DEM values
-                gels_s = dem_df.loc[dem_df.index.isin(gdf['indexField']), :].iloc[:, 0]                
+                gels_s = dem_df.loc[dem_df.index.isin(gdf.index.unique('indexField')), :].iloc[:, 0]                
                 
                 #subtract the DEM from the WSE
                 deps_df = expoi_df.subtract(gels_s, axis=0)
                 
-            #get the unique depths
-            deps_s = deps_df.round(precision).stack()
-            deps_ar = np.unique(deps_s.dropna().values) #not sorting
-            
-            assert min(deps_ar)>=0, 'negative depths'
-
-            raise NotImplementedError('need to compute damages')
             #===================================================================
-            # prep dfunc
+            # #adjust for asset height (elv)            
+            #===================================================================
+            #join the exposures onto the assets
+            dep_elev_df = gdf['elev'].to_frame().join(deps_df, on='indexField')
+            
+            #subrtact the elev column from the other columns
+            deps_df = dep_elev_df.drop(columns='elev').subtract(dep_elev_df['elev'], axis=0)
+            deps_df.columns.name = 'event_names'
+
+            negative_bx = deps_df<0
+            if negative_bx.any().any():
+                log.warning(f'got {negative_bx.sum().sum()}/{deps_df.size} negative depths for tag \'{tag}\'')
+            #===================================================================
+            # final prep
+            #===================================================================
+            #stack into a series
+            deps_s = deps_df.round(precision).stack().rename('exposure')
+ 
+            #get unique
+            deps_ar = np.unique(deps_s.dropna().values) #not sorting
+
+ 
+            #===================================================================
+            # prep dfunc----------
             #===================================================================
             dd_ar = g_vfunc.get_group(tag).sort_values('exposure').loc[:, ['exposure', 'impact']].astype(float).T.values
             
@@ -151,24 +184,110 @@ class Model_run_methods(object):
             #===================================================================
             # compute damages
             #===================================================================
-            get_dmg = lambda depth: np.interp(depth, #depth find damage on
-                                            dd_ar[0], #depths (xcoords)
-                                            dd_ar[1], #damages (ycoords)
-                                            left=0, #depth below range
-                                            right=max(dd_ar[1]), #depth above range
-                                            )
-            get_dmg(deps_ar)
-            e_impacts_d = {dep:get_dmg(dep) for dep in deps_ar}
+            #===================================================================
+            # get_dmg = lambda depth: np.interp(depth, #depth find damage on
+            #                                 dd_ar[0], #depths (xcoords)
+            #                                 dd_ar[1], #damages (ycoords)
+            #                                 left=0, #depth below range
+            #                                 right=max(dd_ar[1]), #depth above range
+            #                                 )
+            # get_dmg(deps_ar)
+            # e_impacts_d = {dep:get_dmg(dep) for dep in deps_ar}
+            #===================================================================
+            expo_ar = np.interp(deps_ar, #depth find damage on
+                    dd_ar[0], #depths (xcoords)
+                    dd_ar[1], #damages (ycoords)
+                    left=0, #depth below range
+                    right=max(dd_ar[1]), #depth above range
+                    )
             
+            """
+            plot_line_from_array(dd_ar, deps_ar)
+            """
             
+            #join back onto the depths
+            result_dx = deps_s.to_frame().join(pd.Series(expo_ar, index=deps_ar, name='impact'), on='exposure')
+            
+
+                
+            
+                
+            
+            #===================================================================
+            # scale
+            #===================================================================
+            #apply the scale
+            dx = result_dx.join(gdf['scale'], on=gdf.index.names).drop('exposure', axis=1)
+            result_dx['impact_scaled'] = dx['impact']*dx['scale']
+            
+            #===================================================================
+            # cap
+            #===================================================================
+            dx = result_dx.join(gdf['cap'], on=gdf.index.names).loc[:, ['impact_scaled', 'cap']]
+            result_dx['impact_capped'] = dx.min(axis=1)
+            
+            #===================================================================
+            # #add any missing entries that were all null
+            #===================================================================
+ 
+            
+            # Create a new MultiIndex from the product of the existing index and the new level values
+            complete_index = pd.MultiIndex.from_product(
+                [
+                    gdf.index.get_level_values(0).unique(),
+                    gdf.index.get_level_values(1).unique(),
+                    expos_df.columns
+                ],
+                names=gdf.index.names + [expos_df.columns.name]
+            )
             
  
+            bx = complete_index.isin(result_dx.index)
+
+            
+            if not bx.all():
+                log.debug(f'adding {np.invert(bx).sum()}/{len(bx)} missing entries for tag \'{tag}\'')
+                
+                assert expoi_df.isna().any().any() 
+                
+                #add the missing indexers as nans to the result
+                result_dx = result_dx.reindex(complete_index)
+            
+            #===================================================================
+            # wrap
+            #===================================================================
+            log.debug(f'finished computing damages for tag \'{tag}\' w/ {len(result_dx)} records')
+            result_d[tag] = result_dx
+            
+        #=======================================================================
+        # collectg
+        #=======================================================================
+        mresult_dx = pd.concat(result_d, names=['tag'])#.reorder_levels(['indexField', 'nestID', 'tag', 'event_names']).sort_index()
         
+        # Check if the 'tag' level is redundant against all other indexers
+        assert mresult_dx.index.droplevel('tag').nunique() == mresult_dx.index.nunique(), "The 'tag' level is not redundant"
+ 
+        # Drop the 'tag' level from the index
+        mresult_dx = mresult_dx.droplevel('tag')
+ 
+        #=======================================================================
+        # #check
+        #=======================================================================
+
         
+        #check the index matches the finv_dx
+        mresult_dx_index_check = mresult_dx.index.droplevel('event_names').drop_duplicates().sort_values()
+        assert mresult_dx_index_check.equals(finv_dx.index.sort_values()), 'Index mismatch'
+
+        log.info(f'finished computing damages w/ {mresult_dx.shape}')
         
+        #=======================================================================
+        # write to projDB
+        #=======================================================================
+        self.set_tables({'table_dmgs':mresult_dx.reset_index()}, projDB_fp=projDB_fp)
  
         
-        return df
+        return mresult_dx
         
  
     
@@ -694,6 +813,40 @@ def _update_proj_meta(log, conn, meta_d=dict()):
  
     log.debug(f'updated \'project_meta\' w/ {proj_meta_df.shape}')
     return proj_meta_df
+
+
+
+ 
+
+
+def plot_line_from_array(dd_ar, depths=None):
+    """
+    Plots a line from a 2 x N numpy array and optionally plots depths as black circles.
+
+    Parameters:
+        dd_ar (np.ndarray): A 2 x N array where the first row contains x-values
+                            and the second row contains y-values.
+        depths (np.ndarray, optional): A 1 x N array containing x-values for depths.
+    """
+    import matplotlib.pyplot as plt
+    if dd_ar.shape[0] != 2:
+        raise ValueError("The input array must have exactly 2 rows.")
+
+    x = dd_ar[0]
+    y = dd_ar[1]
+
+    plt.figure()
+    plt.plot(x, y, marker='x', label='dfunc')  # The marker highlights the individual points.
+
+    if depths is not None:
+        dy = np.interp(depths, x, y, left=0, right=max(y))
+        plt.scatter(depths, dy, color='black', label='Depths', marker='O')  # Plot depths as black circles.
+
+    plt.xlabel("exposure")
+    plt.ylabel("impacts")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
 
         

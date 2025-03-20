@@ -60,11 +60,17 @@ def get_test_data_filepaths_for_tutorials(
         d = dict()
         for root, dirs, files in os.walk(tutorial_dir):
             for file in files:
+
+                if '~' in file:
+                    continue
+
                 #only include tif and geojson
                 if file.endswith(('.tif', '.geojson', '.csv', '.xls')):
                     pass
                 else:
                     continue
+                
+                
                 
                 
                 #collect hazard rasters as a diicttionary keyed by the ARI

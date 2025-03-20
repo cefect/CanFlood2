@@ -46,6 +46,7 @@ class Model_run_methods(object):
         # defaults
         #=======================================================================
         log = self.logger.getChild('run_model')
+        start_time= datetime.now()
         
         self.assert_is_ready(logger=log)
  
@@ -70,6 +71,14 @@ class Model_run_methods(object):
         
         #compute damages 
         self._table_dmgs_to_db(**skwargs)
+        
+        #compute EAD
+        self._set_ead(**skwargs)
+        
+        
+        log.info(f'finished running model  in {datetime.now()-start_time}')
+        
+        return projDB_fp
         
     def _table_dmgs_to_db(self, projDB_fp=None, logger=None, precision=3):
         """compute the damages and write to the database"""
@@ -288,6 +297,38 @@ class Model_run_methods(object):
  
         
         return mresult_dx
+    """
+    mresult_dx.dtypes
+    """
+    
+    def _set_ead(self, projDB_fp=None, logger=None):
+        """compute the EAD from the damages and write to the database"""
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger = self.logger
+        log = logger.getChild('_set_ead')
+        
+        log.debug(f'computing EAD from \n    {projDB_fp}')
+        #=======================================================================
+        # load data-------
+        #=======================================================================
+        dmgs_dx = self.get_tables(['table_dmgs'], projDB_fp=projDB_fp)[0].set_index(['indexField', 'nestID', 'event_names'])
+        
+        #=======================================================================
+        # compute-------
+        #=======================================================================
+        #group by the indexers and sum the damages
+        ead_s = dmgs_df.groupby(dmgs_df.index.names).sum()['impact_capped']
+        
+        #=======================================================================
+        # write to projDB
+        #=======================================================================
+        self.result_ead = ead_s.sum()
+        self.set_tables({'table_ead':ead_s.reset_index().rename(columns={'impact_capped':'ead'})}, projDB_fp=projDB_fp)
+        
+        return ead_s
         
  
     

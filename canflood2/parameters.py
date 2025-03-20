@@ -186,7 +186,15 @@ modelTable_params_d = {
         'phase': 'compile'
     },
     'table_dmgs': {
-        'df': None,
+        'df': pd.DataFrame({
+            'exposure': pd.Series(dtype=float),
+            'impact': pd.Series(dtype=float),
+            'impact_scaled': pd.Series(dtype=float),
+            'impact_capped': pd.Series(dtype=float),
+            'event_names': pd.Series(dtype=str), #index
+            'nestID': pd.Series(dtype=int), #index
+            'indexField': pd.Series(dtype=int) #index
+        }),
         'phase': 'run'
     }
 }

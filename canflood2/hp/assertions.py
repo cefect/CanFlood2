@@ -136,7 +136,7 @@ def assert_df_template_match(df, schema_df, check_dtypes=True):
         actual_dtypes = df.dtypes.astype(str).sort_index()
         expected_dtypes = schema_df.dtypes.astype(str).sort_index()
         try:
-            assert_series_match(expected_dtypes, actual_dtypes)
+            assert_series_match(actual_dtypes, expected_dtypes)
         except Exception as e:
             raise AssertionError(f"Dtype mismatch\n    {e}") from None
     #assert_series_equal(actual_dtypes, expected_dtypes)

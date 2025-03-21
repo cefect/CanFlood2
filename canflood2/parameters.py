@@ -135,7 +135,7 @@ project_db_schema_d['02_project_parameters'] = pd.concat(
 #03_model_suite_index
 """TODO: switch this to use a schema index"""
 index = pd.MultiIndex.from_arrays(
-    [pd.Series([], dtype='str'), pd.Series([], dtype='int')], 
+    [pd.Series([], dtype='str'), pd.Series([], dtype='int64')], 
     names=['category_code', 'modelid']
 )
  
@@ -230,6 +230,15 @@ modelTable_params_d = {
             'ead': pd.Series(dtype=float),
             },
             index=finv_index,
+            ),
+        'phase': 'run',
+        },
+    
+    'table_impacts_sum': { #used for the risk model
+        'df': pd.DataFrame({
+            'AEP': pd.Series(dtype=float),
+            'impacts': pd.Series(dtype=float),
+            },
             ),
         'phase': 'run',
         },

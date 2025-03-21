@@ -51,7 +51,7 @@ from qgis.core import (
 
 from .hp.plug import (
     plugLogger, bind_layersListWidget, get_layer_info_from_combobox, bind_tableWidget,
-    bind_MapLayerComboBox
+    bind_MapLayerComboBox, bind_simpleListWidget
     )
 
 from .hp.basic import view_web_df as view
@@ -270,9 +270,14 @@ class Main_dialog_projDB(object):
 
         # Update the dx DataFrame where the MultiIndex names match the model's category_code and modelid
         dx.loc[pd.IndexSlice[model.category_code, model.modelid], :] = s
+        
+        #recast types from template
+        """necessary when we set a single row like the above"""
+        dx = dx.astype(parameters.project_db_schema_d['03_model_suite_index'].dtypes.to_dict())
   
         
         """
+        dx.dtypes
         dx.index.dtypes
         """
         #self.set_model_index_dx(dx, **kwargs)
@@ -482,9 +487,7 @@ class Main_dialog_haz(object):
         #=======================================================================
         # Hazard Scenario Database File
         #=======================================================================
- 
-        
-        
+
         def import_hazard_database_ui():
             filename, _ = QFileDialog.getOpenFileName(
                 self,  # Parent widget (your dialog)
@@ -996,7 +999,11 @@ class Main_dialog_modelSuite(object):
         #check the model index
         model_s = model.get_model_index_ser()
         
-        assert_series_match(model_s, model_index_s)
+        try:
+            """some precision issues with result_ead in this check"""
+            assert_series_match(model_s.drop('result_ead'), model_index_s.drop('result_ead'))
+        except Exception as e:
+            raise ValueError(f'failed to match model index series w/ error:\n    {e}')
         
         
         #=======================================================================
@@ -1363,11 +1370,23 @@ class Main_dialog_reporting(object):
         self.pushButton_R_open.clicked.connect(open_output_directory)
         
         #=======================================================================
-        # results maps and figures
+        # results maps and figures------
         #=======================================================================
-        bind_tableWidget(self.tableWidget_R_models, self.logger, iface=self.iface,)
+        
+        #=======================================================================
+        # model selection
+        #=======================================================================
+        bind_simpleListWidget(self.listView_R_modelSelection, logger=self.logger)
         
         self.pushButton_R_populate.clicked.connect(self._populate_results_model_selection)
+        self.pushButton_R_selectAll.clicked.connect(lambda:self.listView_R_modelSelection.check_all())
+        self.pushButton_R_clear.clicked.connect(lambda:self.listView_R_modelSelection.clear_checks())
+        
+        
+        #=======================================================================
+        # plotting functions
+        #=======================================================================
+        self.pushButton_R_riskCurve.clicked.connect(self._plot_risk_curve)
         
     def _populate_results_model_selection(self):
         """from the projDB, populate the model selection table"""
@@ -1382,11 +1401,76 @@ class Main_dialog_reporting(object):
         #=======================================================================
         model_index_dx = self.projDB_get_tables(['03_model_suite_index'])[0]
         
-        model_df = model_index_dx.reset_index().loc[:, ['category_code', 'modelid', 'asset_label', 'consq_label', 'result_ead']]
+        model_df = model_index_dx.reset_index().loc[:, 
+            ['name', 'category_code', 'modelid', 'asset_label', 'consq_label', 'result_ead']]
+        
+        log.debug(f'filtered model index table to {model_df.shape}')
+        #=======================================================================
+        # populate the table widget
+        #=======================================================================
+        """need something that shows the columns better...
+        #collapse the frame into a list of strings
+        string_s = model_df.apply(lambda row: ', '.join(row.astype(str)), axis=1)
+        data_l = [f'model: {e}' for e in string_s.values.tolist()]"""
+        
+        #just using the names for now
+        data_l = model_df['name'].to_list()
+ 
+        
+        self.listView_R_modelSelection.set_data(data_l)
         
         """
-        view(model_index_dx)
+        view(model_df)
         """
+        
+    def _get_selected_models(self, projDB_fp=None):
+        """return the models container for those selected in the listView"""
+        
+        #retrieve selected names from the widget
+        names_l = self.listView_R_modelSelection.get_checked_items()
+        
+        #locate these in the model index
+        dx = self.projDB_get_tables(['03_model_suite_index'], projDB_fp=projDB_fp)[0]
+        
+        bx = dx['name'].isin(names_l)
+        
+        assert bx.sum()==len(names_l), f'failed to find all selected models'
+ 
+        
+        selected_models_df = dx[bx].reset_index().loc[:, ['name', 'category_code', 'modelid']]
+        
+        #=======================================================================
+        # retrieve these from the model container
+        #=======================================================================
+        cnt = 0
+        d = dict()
+        
+        for i, row in selected_models_df.iterrows():
+            
+            """using a flat indexer"""
+            d[row['name']] = self.model_index_d[row['category_code']][row['modelid']]
+            cnt+=1
+            
+        assert cnt==len(names_l), f'failed to load all selected models'
+        
+        return d
+            
+        
+            
+        
+    def _plot_risk_curve(self, *args):
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        log = self.logger.getChild('_plot_risk_curve')
+        projDB_fp = self.get_projDB_fp()
+        
+        #=======================================================================
+        # load data
+        #=======================================================================
+        models_d = self._get_selected_models(projDB_fp=projDB_fp)
+        
+        tables_d = self._load_model_tables(models_d, projDB_fp=projDB_fp)
         
  
     

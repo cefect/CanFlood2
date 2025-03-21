@@ -38,7 +38,11 @@ from canflood2.hp.qt import set_widget_value
 # TESTS=======--------
 #===============================================================================
  
-@pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02', 'cf1_tutorial_01'])
+@pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02', 
+       pytest.param('cf1_tutorial_01', 
+                    marks=pytest.mark.xfail(raises=IOError, reason='this tutorial is not setup yet'),
+                    )
+                                           ])
 def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_name,
  
                                            ):
@@ -111,7 +115,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
      ])
-def test_dial_main_03_report_init(dialog_loaded, test_name,
+def test_dial_main_03_report_risk_curve(dialog_loaded, test_name,
                                 ):
     """run the model"""
     dialog = dialog_loaded
@@ -124,15 +128,26 @@ def test_dial_main_03_report_init(dialog_loaded, test_name,
         - aoi, dem, haz layers
     """
     
+    #populate the model results selection widget
+    click(dialog.pushButton_R_populate) #Main_dialog._populate_results_model_selection(
+    
+    #select teh first model
+    dialog.listView_R_modelSelection.check_byName(['c1_0'])
+    
     #===========================================================================
-    # exec
+    # execute
     #===========================================================================
-    click(dialog.pushButton_R_populate)
+    click(dialog.pushButton_R_riskCurve) #Main_dialog._run_selected_models()
+    
     
  
  
 """ 
+
+
 dialog.show()
 QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
 sys.exit(QApp.exec_()) #wrap
+
+
 """

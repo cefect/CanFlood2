@@ -18,3 +18,4 @@ ead_highPtail,comboBox_R_highPtail,,TRUE,FALSE,extrapolate. Float. None. User
 ead_lowPtail,comboBox_R_lowPtail,,TRUE,FALSE,flat. Extrapolate. Float.none. User
 ead_highPtail_user,doubleSpinBox_R_highPtail,,FALSE,FALSE,value for 'user'
 ead_lowPtail_user,doubleSpinBox_R_lowPtail,,FALSE,FALSE,value for 'user'
+result_ead,,,FALSE,TRUE,set by run method _set_ead_total

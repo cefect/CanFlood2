@@ -20,7 +20,8 @@ from qgis.gui import QgisInterface, QgsMapLayerComboBox, QgsFieldComboBox
 
 #pyQt
 from PyQt5.QtWidgets import (
-    QFileDialog, QGroupBox, QComboBox, QTableWidgetItem, QWidget, QTableWidget,QDoubleSpinBox, QHeaderView
+    QFileDialog, QGroupBox, QComboBox, QTableWidgetItem, QWidget, QTableWidget,QDoubleSpinBox, QHeaderView,
+    QListView
     )
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5.QtCore import Qt, QAbstractTableModel, QObject
@@ -360,6 +361,45 @@ def bind_tableWidget(widget, logger, iface=None, widget_type_d=dict()):
         log.debug(f'Updated QTableWidget with {cnt} cells')
         
     
+    def set_df_to_QTableWidget_strings(df):
+        """
+        Populate the QTableWidget with the contents of the DataFrame as strings.
+        
+        Parameters:
+            widget (QTableWidget): The widget to populate.
+            df (pandas.DataFrame): The DataFrame containing the data.
+            logger (optional): A logging object for debug messages.
+        
+        Raises:
+            TypeError: if df is not a pandas DataFrame.
+        """
+ 
+    
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("df must be a pandas DataFrame")
+    
+        # Clear current contents and set new dimensions.
+        widget.clearContents()
+        num_rows, num_cols = df.shape
+        widget.setRowCount(num_rows)
+        widget.setColumnCount(num_cols)
+    
+        # Set horizontal header labels from DataFrame columns.
+        widget.setHorizontalHeaderLabels(list(df.columns))
+    
+        # Populate each cell with a string version of the DataFrame's value.
+        cnt = 0
+        for row in range(num_rows):
+            for col in range(num_cols):
+                cnt+=1
+                value = df.iat[row, col]
+                # Convert NaN values to an empty string.
+                cell_text = "" if pd.isnull(value) else str(value)
+                widget.setItem(row, col, QTableWidgetItem(cell_text))
+                
+        log.debug(f'Updated QTableWidget with {cnt} cells')
+        
+    
     def clear_tableWidget(*args):
         """
         Fully clear a QTableWidget by removing all items, cell widgets, and header labels.
@@ -396,6 +436,7 @@ def bind_tableWidget(widget, logger, iface=None, widget_type_d=dict()):
     widget.get_axis_labels = get_axis_labels
     widget.set_df_to_QTableWidget_spinbox=set_df_to_QTableWidget_spinbox
     widget.clear_tableWidget = clear_tableWidget
+    widget.set_df_to_QTableWidget_strings=set_df_to_QTableWidget_strings
 
     return widget
     
@@ -509,7 +550,84 @@ def bind_layersListWidget(widget, #instanced widget
         setattr(widget, fName, types.MethodType(eval(fName), widget)) 
         
         
+def bind_simpleListWidget(widget, logger=None):
+    """
+    Bind a QTableView (or a QTableWidget using a model) to additional methods for DataFrame handling 
+    and row selection via checkboxes. Uses a ListModel (a QStandardItemModel subclass) as the model.
+ 
+    """
+    
+    assert isinstance(widget, QListView)
+    # Ensure the widget uses our custom ListModel instance.
+    # (ListModel should be defined elsewhere as a subclass of QStandardItemModel)
+    if not hasattr(widget, "model") or widget.model() is None:
+        # Create and set a new ListModel instance.
+        widget.setModel(ListModel())
         
+    widget.logger = logger
+
+    def set_data(self, data_l):
+        """
+ 
+        """
+        assert isinstance(data_l,list)
+        
+        model = self.model()
+        model.clear()
+        
+        #retrieve
+        # Set header labels; prepend a "Select" header for the checkboxes.
+        
+        model.add_checkable_data([QStandardItem(l) for l in data_l])
+        #=======================================================================
+        # headers = ["Select"] + list(df.columns)
+        # model.setHorizontalHeaderLabels(headers)
+        # 
+        # # Populate each row.
+        # for row_idx, (_, row) in enumerate(df.iterrows()):
+        #     row_items = []
+        #     # First column: checkable item.
+        #     chk_item = QStandardItem()
+        #     chk_item.setCheckable(True)
+        #     chk_item.setCheckState(Qt.Unchecked)
+        #     row_items.append(chk_item)
+        #     # Remaining columns: string representations.
+        #     for col in df.columns:
+        #         cell_value = row[col]
+        #         text = "" if pd.isnull(cell_value) else str(cell_value)
+        #         row_items.append(QStandardItem(text))
+        #     model.appendRow(row_items)
+        #=======================================================================
+        
+ 
+        self.logger.debug(f"Populated model with {len(data_l)} rows")
+    
+ 
+    
+    def check_byName(self, names_l):
+        self.model().set_checked_byVal(names_l) 
+                
+    def clear_checks(self):
+        self.model().set_checked_all()
+        
+            
+    def check_all(self):
+        self.model().set_checked_all(state=Qt.Checked)
+        
+    def get_checked_items(self):
+        items = self.model().get_checked() #names of layers checked by user
+        #retrieve a list of strings from the QStandrrdItems
+        return [item.text() for item in items]
+    
+    # Bind the helper methods to the widget.
+    widget.set_data = types.MethodType(set_data, widget)
+    widget.get_checked_items = types.MethodType(get_checked_items, widget)
+    widget.clear_checks = types.MethodType(clear_checks, widget)
+    widget.check_all = types.MethodType(check_all, widget)
+    widget.check_byName = types.MethodType(check_byName, widget)
+    
+    return widget
+
         
         
 def bind_MapLayerComboBox(widget, #

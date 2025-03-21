@@ -29,7 +29,23 @@ def get_table_names(conn):
     table_names = [row[0] for row in cursor.fetchall()]
     return table_names
     
+def get_columns_names(conn, table_name):
+    """Retrieves a list of all columns from a SQLite table.
 
+    Args:
+        conn: A connection object to the SQLite database.
+        table_name: The name of the table to retrieve columns from.
+
+    Returns:
+        A list of column names.
+    """
+
+    cursor = conn.cursor()
+    cursor.execute(f"""
+        PRAGMA table_info([{table_name}]);
+    """)
+    column_names = [row[1] for row in cursor.fetchall()]
+    return column_names
 
  
 

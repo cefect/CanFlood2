@@ -1280,34 +1280,14 @@ QGroupBox {
                   </spacer>
                  </item>
                  <item>
-                  <widget class="QPushButton" name="pushButton_HZ_hrlay_selectAll_2">
+                  <widget class="QPushButton" name="pushButton_R_selectAll">
                    <property name="text">
                     <string>Select All</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QPushButton" name="pushButton_HZ_hrlay_selectVis_2">
-                   <property name="toolTip">
-                    <string>Select all layers visible in the canvas</string>
-                   </property>
-                   <property name="text">
-                    <string>Select Visible</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_HZ_hrlay_canvas_2">
-                   <property name="toolTip">
-                    <string>Set the selection to match the selection from the main QGIS canvas</string>
-                   </property>
-                   <property name="text">
-                    <string>Canvas Selection</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_HZ_hrlay_clear_2">
+                  <widget class="QPushButton" name="pushButton_R_clear">
                    <property name="text">
                     <string>Clear Selection</string>
                    </property>
@@ -1316,12 +1296,12 @@ QGroupBox {
                 </layout>
                </item>
                <item>
-                <widget class="QTableWidget" name="tableWidget_R_models">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>400</height>
-                  </size>
+                <widget class="QListView" name="listView_R_modelSelection">
+                 <property name="toolTip">
+                  <string>Select the models to include</string>
+                 </property>
+                 <property name="alternatingRowColors">
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>
@@ -1387,7 +1367,7 @@ QGroupBox {
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="pushButton_2">
+                <widget class="QPushButton" name="pushButton_R_riskCurve">
                  <property name="text">
                   <string>Risk Curve</string>
                  </property>

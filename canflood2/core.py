@@ -631,11 +631,27 @@ class Model_run_methods(object):
         #=======================================================================
         # integrate-----
         #=======================================================================
-        self.result_ead = get_area_from_ser(impacts_s)
+        result_ead = get_area_from_ser(impacts_s)
         
-        log.info(f'finished computing EAD w/ {self.result_ead}')
+        #=======================================================================
+        # wrap-------
+        #=======================================================================
+        #=======================================================================
+        # set table
+        #=======================================================================
+        df = impacts_s.to_frame().reset_index()
+        #df.dtypes
+        self.set_tables({'table_impacts_sum':df}, projDB_fp=projDB_fp)
         
-        return self.result_ead
+        #=======================================================================
+        # set parameter value
+        #=======================================================================
+        self.set_parameter_value('result_ead', result_ead, projDB_fp=projDB_fp)
+        
+        
+        log.info(f'finished computing EAD w/ {result_ead}')
+        
+        return result_ead
         
 class Model_table_assertions(object):
     """organizer for the model table assertions"""
@@ -762,7 +778,7 @@ class Model(Model_run_methods, Model_table_assertions):
     
     widget_d=None #container for Main_dialog's run, fongi, minus, plus buttons on teh model suite tab
     
-    result_ead=None
+    #result_ead=None
     param_d=None
     
     compile_model_tables = [k for k,v in modelTable_params_d.items() if v['phase']=='compile'] 
@@ -829,8 +845,9 @@ class Model(Model_run_methods, Model_table_assertions):
         #=======================================================================
         # results
         #=======================================================================
-        
+        """included in the params now
         s['result_ead'] = self.result_ead if self.result_ead is not None else np.nan
+        """
 
  
         
@@ -1033,6 +1050,8 @@ class Model(Model_run_methods, Model_table_assertions):
         if param_df is None:
             param_df = self.get_table_parameters()
             
+        self.update_parameter_d()
+            
         status=None
         msg=None
         #=======================================================================
@@ -1087,11 +1106,13 @@ class Model(Model_run_methods, Model_table_assertions):
                     msg=None #clear from above            
      
                     #check if results have been computed
-                    if pd.isnull(self.result_ead):
-                        status='ready'
-     
+                    if 'result_ead' in self.param_d:
+                        if pd.isnull(self.param_d['result_ead']):
+                            status = 'ready'
+                        else:
+                            status = 'complete'     
                     else:
-                        status = 'complete'
+                        status = 'ready'
  
             
         assert not status is None, 'failed to determine status'

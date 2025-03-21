@@ -27,10 +27,10 @@ from canflood2.assertions import assert_vfunc_fp, assert_series_match
 from canflood2.dialog_model import Model_config_dialog
 from canflood2.core import ModelNotReadyError
 
-from .test_dialog_main import widget_data_d, dialog_main
-from .test_dialog_main import dialog_loaded as dialog_main_loaded
+from tests.test_01_dialog_main import widget_data_d, dialog_main
+from tests.test_01_dialog_main import dialog_loaded as dialog_main_loaded
  
-from .test_dialog_main import oj as oj_main
+from tests.test_01_dialog_main import oj as oj_main
 #need to import the fixture from dialog_main
 
 
@@ -50,7 +50,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 # HELPERS----------
 #===============================================================================
 
-
+overwrite_testdata_plugin=True #for updating the projDB in the plugin tutorial data loader
 overwrite_testdata=True
 def write_projDB(dialog_model, test_name):
  
@@ -378,9 +378,13 @@ def test_dial_model_04_compile(dialog_model, model,
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_05_run(dialog_model, model,
-                           test_name, 
+                           test_name,
+                           tutorial_name 
                            ):
-    """Test run (post compile)"""
+    """run the model (post compile)
+    
+    NOTE: this outputs the projDB file used by teh plugin tutorial data loader
+    """
     
     #===========================================================================
     # load parameters
@@ -421,6 +425,22 @@ def test_dial_model_05_run(dialog_model, model,
     # write------
     #===========================================================================
     write_projDB(dialog_model, test_name)
+    
+    #write to plugin test
+    if overwrite_testdata_plugin:
+        from canflood2.tutorials.tutorial_data_builder import test_data_dir as plugin_test_data_dir
+        
+        ofp = os.path.join(plugin_test_data_dir, tutorial_name, 'projDB.canflood2')
+        assert os.path.exists(ofp), f'expected to find a projDB file at \n    {ofp}'
+        
+        #copy over the .sqlite file
+        projDB_fp = dialog_model.parent.get_projDB_fp()
+        shutil.copyfile(projDB_fp, ofp) 
+        
+        dialog_model.logger.info(f'wrote projDB_fp to \n    {ofp}')
+        
+        
+    
     
 
 

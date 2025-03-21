@@ -79,19 +79,19 @@ def vfunc_fp(tutorial_name, tmpdir):
 #===============================================================================
 @pytest.fixture(scope='function')
 @clean_qgis_layer
-def dem_rlay(dem_fp):
+def dem_rlay(dem_fp, tutorial_name):
     #if dem_fp is None:return None
-    layer = QgsRasterLayer(dem_fp, 'dem_rlay')
+    layer = QgsRasterLayer(dem_fp, tutorial_name+'_dem')
     QgsProject.instance().addMapLayer(layer)
     print(f'dem_rlay fixture instantiated from {dem_fp}')
     return layer
 
 @pytest.fixture(scope='function')
 @clean_qgis_layer
-def aoi_vlay(aoi_fp):
+def aoi_vlay(aoi_fp, tutorial_name):
     #if aoi_fp is None:return None
     assert os.path.exists(aoi_fp), f'bad filepath on aoi_vlay fixture:\n    {aoi_fp}'
-    layer = QgsVectorLayer(aoi_fp, 'aoi_vlay', 'ogr')
+    layer = QgsVectorLayer(aoi_fp, tutorial_name+'_aoi', 'ogr')
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
     print(f'aoi_vlay fixture instantiated from {aoi_fp}')
@@ -99,11 +99,11 @@ def aoi_vlay(aoi_fp):
 
 @pytest.fixture(scope='function')
 @clean_qgis_layer
-def finv_vlay(finv_fp):
+def finv_vlay(finv_fp, tutorial_name):
     if finv_fp is None:
         return None
     assert os.path.exists(finv_fp), f'bad filepath on finv_vlay fixture:\n    {finv_fp}'
-    layer = QgsVectorLayer(finv_fp, 'finv_vlay', 'ogr')
+    layer = QgsVectorLayer(finv_fp, tutorial_name+'_finv', 'ogr')
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
     return layer

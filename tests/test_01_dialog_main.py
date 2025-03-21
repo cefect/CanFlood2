@@ -32,7 +32,7 @@ from tests.conftest import (
     result_write_filename_prep, click
     )
 
-from canflood2.tutorials.tutorial_data_builder import tutorial_fancy_names_d
+
 
 from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp, assert_series_match
 
@@ -580,6 +580,9 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     
     click(dialog.pushButton_MS_createTemplates)  #Main_dialog._create_model_templates()
     
+    #===========================================================================
+    # check
+    #===========================================================================
     #check they have been added to the dialog index
     assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
     
@@ -590,22 +593,7 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     write_projDB(dialog, test_name)
     
     
-@pytest.mark.dev
-@pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02'])
-def test_dial_main_06_W_load_tutorial_data(dialog, tutorial_name, test_name):
-    """test loading tutorial data"""
-    #set the combo box
-    set_widget_value(dialog.comboBox_tut_names, tutorial_fancy_names_d[tutorial_name])
- 
-    
-    click(dialog.pushButton_tut_load) #Main_dialog._load_tutorial_to_ui()
 
- 
-""" 
-dialog.show()
-QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
-sys.exit(QApp.exec_()) #wrap
-"""
 
     
     

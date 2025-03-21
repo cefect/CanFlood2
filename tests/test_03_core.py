@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QWidget
 from canflood2.core import Model, Model_table_assertions
 from canflood2.dialog_main import Main_dialog_projDB 
 
-from .test_dialog_model import oj as oj_dModel
+from tests.test_02_dialog_model import oj as oj_dModel
 
 import tests.conftest as conftest
 from .conftest import (

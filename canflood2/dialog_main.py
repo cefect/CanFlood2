@@ -140,30 +140,45 @@ class Main_dialog_dev(object):
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
         
-        def add_layer(layer, param_name):            
-            #set the widget
-            widget = getattr(self, param_s[param_name])
-            set_widget_value(widget, layer)
+        def add_layer(data_key, param_name, Constructor):            
+
+            
+            #load the layer
+            layer = Constructor(data_d[data_key], tutorial_name+'_'+data_key)
             
             # Check if the layer is valid before adding it to the project.
             if not layer.isValid():
-                self.iface.messageBar().pushWarning("Layer not valid", f"Layer {layer.name()} is not valid.")
-                return
+                raise IOError(f'failed to load layer \'{data_key}\'')
+                
             
             # Add the layer to the current QGIS project, which updates the canvas automatically.
             QgsProject.instance().addMapLayer(layer)
             
+            #check this was loaded to the project
+            assert get_unique_layer_by_name(layer.name()) is not None, f'failed to load layer \'{layer.name()}\''
+            
+            
+            #set the widget
+            widget = getattr(self, param_s[param_name])
+            set_widget_value(widget, layer)
+            
+            #wrap            
             log.debug(f'added layer \'{layer.name()}\' to project')
             
         
         #=======================================================================
         # from parametesr
         #=======================================================================
+        """note... these layer names need to match what was set when teh projDB test was done
+        see tests.data.tutorial_fixtures
+        """
         #aoi
-        add_layer(QgsVectorLayer(data_d['aoi'], 'aoi', 'ogr'), 'aoi_vlay_name')
+        add_layer('aoi', 'aoi_vlay_name', lambda x,y:QgsVectorLayer(x,y, 'ogr'))
+        #add_layer(QgsVectorLayer(data_d['aoi'], 'aoi_vlay', 'ogr'), 'aoi_vlay_name')
  
         #DEM
-        add_layer(QgsRasterLayer(data_d['dem'], 'dem'), 'dem_rlay_name')
+        add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
+        #add_layer(QgsRasterLayer(data_d['dem'], 'dem_rlay'), 'dem_rlay_name')
         
         #=======================================================================
         # #hazard rasters
@@ -1620,6 +1635,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
                     widget = getattr(self, widgetName)                
                     set_widget_value(widget, value)
                 except Exception as e:
+                    raise ValueError(f'failed to set widget \'{widgetName}\' to \'{value}\': \n    {e}')
                     log.error(f'failed to set widget \'{widgetName}\' to \'{value}\': \n'+\
                                f'    {e}\nprojDB may be out of sync')
                 

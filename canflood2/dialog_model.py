@@ -144,11 +144,16 @@ class Model_compiler(object):
         #move nestID and indexField columns to front
         df = df[['nestID', 'indexField'] + [c for c in df.columns if c not in ['nestID', 'indexField']]]
         
- 
+        df = df.astype({'indexField':'int64', 'nestID':'int64'}).set_index(['indexField', 'nestID'])
+        
+        """
+        df.dtypes
+        df.index.dtypes
+        """
         #=======================================================================
         # #write it to the database
         #=======================================================================
-        model.set_tables({'table_finv':df.set_index(['indexField', 'nestID'])}, logger=log)
+        model.set_tables({'table_finv':df}, logger=log)
         
         log.debug(f'finished')
         return df
@@ -204,6 +209,10 @@ class Model_compiler(object):
         #=======================================================================
         # write resulting table
         #=======================================================================
+        """
+        samples_s.dtypes
+        samples_s.index.dtype
+        """
         model.set_tables({'table_gels':samples_s.to_frame()}, logger=log)
         
         

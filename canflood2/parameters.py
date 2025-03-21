@@ -157,8 +157,15 @@ project_db_schema_d['03_model_suite_index'].index.dtypes
 
 #special table parameters
 
-finv_index = pd.Index([], name='indexField', dtype=int)
-finv_multiIndex = pd.MultiIndex.from_tuples([], names=['indexField','nestID'])
+finv_index = pd.Index([], name='indexField', dtype='int64')
+finv_multiIndex = pd.MultiIndex.from_arrays(
+    [pd.Series([], dtype='int64'), pd.Series([], dtype='int64')], 
+    names=['indexField', 'nestID']
+)
+impacts_multiIndex = pd.MultiIndex.from_arrays(
+    [pd.Series([], dtype='int64'), pd.Series([], dtype='int64'), pd.Series([], dtype='str')], 
+    names=['indexField', 'nestID', 'event_names']
+)
 
 #these will be prefixed by the model name
 modelTable_params_d = {
@@ -207,7 +214,7 @@ modelTable_params_d = {
             #'nestID': pd.Series(dtype=int), #index
             #'indexField': pd.Series(dtype=int) #index
         },
-        index=pd.MultiIndex.from_tuples([], names=['indexField','nestID', 'event_names']),
+        index=impacts_multiIndex,
         ),
         'phase': 'run'
     },
@@ -280,7 +287,7 @@ consequence_category_d = {
 
 project_db_schema_d['06_vfunc_index'] = pd.DataFrame({
     k: pd.Series(dtype=v) for k, v in vfunc_cdf_chk_d.items() if not k in ['exposure', 'tag']
-        },index=pd.Index([], name='tag', dtype=int))
+        },index=pd.Index([], name='tag', dtype=str))
 
 project_db_schema_d['07_vfunc_data'] = pd.DataFrame({
     'tag': pd.Series(dtype=str),

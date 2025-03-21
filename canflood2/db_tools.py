@@ -11,7 +11,7 @@ import warnings
 import pandas as pd
 from .parameters import project_db_schema_d, projDB_schema_modelTables_d
 from .hp.sql import pd_dtype_to_sqlite_type
-from .hp.assertions import assert_intersection, assert_series_match, assert_sqlite_table_exists
+from .hp.assertions import assert_df_template_match,  assert_sqlite_table_exists
 
 """need some very simple functions here to workaround module dependence"""
 
@@ -23,42 +23,7 @@ from .hp.assertions import assert_intersection, assert_series_match, assert_sqli
 
     
 
-def assert_df_template_match(df, schema_df, check_dtypes=True):
-    """check the df matches the schema"""
-    assert isinstance(df, pd.DataFrame)
-    assert isinstance(schema_df, pd.DataFrame)
-    
-    #compare index names
-    if isinstance(df.index, pd.MultiIndex):
-        if not df.index.names == schema_df.index.names:
-            raise AssertionError(
-            f"Index name mismatch: test \'{df.index.names}\' vs scema \'{schema_df.index.names}\'"
-            ) from None
-    
-    elif not df.index.name == schema_df.index.name:
-        raise AssertionError(
-        f"Index name mismatch: test \'{df.index.name}\' vs scema \'{schema_df.index.name}\'"
-        ) from None
-    
-    # Compare columns (you can use assert_frame_equal if order matters)
-    if len(schema_df.columns)>0: #some schemas dont specify columns
-        try:
-            assert_intersection(df.columns, schema_df.columns)
-        except Exception as e:
-            raise AssertionError(f"Column mismatch\n    {e}") from None
- 
-    
-    # Compare the string representation of dtypes for a more approximate check:
-    if check_dtypes:
-        actual_dtypes = df.dtypes.astype(str).sort_index()
-        expected_dtypes = schema_df.dtypes.astype(str).sort_index()
-        try:
-            assert_series_match(expected_dtypes, actual_dtypes)
-        except Exception as e:
-            raise AssertionError(f"Dtype mismatch\n    {e}") from None
-    #assert_series_equal(actual_dtypes, expected_dtypes)
-    #assert actual_dtypes.equals(expected_dtypes),f"Dtype mismatch: \nactuals:\n{actual_dtypes} vs expected\n{expected_dtypes}"
-    
+
     
 #===============================================================================
 # HELPER FUNCS---------
@@ -112,6 +77,7 @@ def sql_to_df(table_name, conn, template_prefix=None, **kwargs):
         
         if isinstance(template_df.index, pd.MultiIndex):
             index_col = template_df.index.names
+            dtype.update(template_df.index.dtypes.to_dict()) #add the index dtypes
         elif template_df.index.name is None:
             index_col = None
         else:
@@ -127,6 +93,33 @@ def sql_to_df(table_name, conn, template_prefix=None, **kwargs):
         df = pd.read_sql(f'SELECT * FROM [{table_name}]', conn, dtype=dtype, index_col=index_col,  **kwargs)
     except Exception as e:
         raise IOError(f'failed to read table \'{table_name}\' from db w/ \n    {e}')
+    
+    #===========================================================================
+    # set index dtype
+    #===========================================================================
+    """doesnt seem to be a way to do this with pd.read_sql"""
+    if not template_df is None:
+        if isinstance(template_df.index, pd.MultiIndex):
+            if not df.index.dtypes.to_dict() == template_df.index.dtypes.to_dict():
+                raise TypeError(f'index dtypes mismatch on \'{table_name}\'')
+            #df.index.dtypes
+            #df.index = df.index.astype(template_df.index.dtypes.to_dict())
+ 
+        else:
+            df.index = df.index.astype(template_df.index.dtype)
+    
+    #===========================================================================
+    # dev
+    #===========================================================================
+    if table_name=='03_model_suite_index':
+        
+        assert_df_template_match(df, template_df, check_dtypes=True)
+        
+        df.index.dtypes
+        template_df.index.dtypes
+        
+        if len(df)>0:
+            assert df.index.names == ['category_code', 'modelid'], f'bad index names on \'{table_name}\''
     
     #===========================================================================
     # if table_name=='06_vfunc_index':
@@ -178,7 +171,10 @@ def df_to_sql(df, table_name, conn, template_prefix=None,if_exists='replace', **
             write_index=True
             
             #simulating the behavior of pd.to_sql
-            assert_df_template_match(df, template_df, check_dtypes=False)
+            try:
+                assert_df_template_match(df, template_df, check_dtypes=False)
+            except Exception as e:
+                raise AssertionError(f"passed \'{table_name}\' ({df.shape}) does not match template \n    {e}") 
  
     
     #===========================================================================
@@ -189,5 +185,14 @@ def df_to_sql(df, table_name, conn, template_prefix=None,if_exists='replace', **
     result = df.to_sql(table_name, conn, dtype=dtype, index=write_index, if_exists=if_exists, **kwargs)
     
     assert result==len(df), f'failed to write table \'{table_name}\''
+    
+    #===========================================================================
+    # dev
+    #===========================================================================
+    if table_name=='03_model_suite_index':
+        assert_df_template_match(df, template_df, check_dtypes=True)
+        
+        if len(df)>0:
+            assert df.index.names == ['category_code', 'modelid'], f'bad index names on \'{table_name}\''
     
     return result

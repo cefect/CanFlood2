@@ -58,7 +58,7 @@ def assert_index_match(test_index, expected_index):
     
 
 
-def assert_series_match(expected_series, actual_series):
+def assert_series_match( actual_series, expected_series):
     """an easier to read implementation of pd.testing.assert_series_equal"""
     assert isinstance(expected_series, pd.Series)
     assert isinstance(actual_series, pd.Series)
@@ -79,3 +79,66 @@ def assert_sqlite_table_exists(conn, table_name):
     result = cursor.fetchone()
     if not result:
         raise AssertionError(f"Table '{table_name}' not found in database") # Check if DRF table exists
+    
+
+def assert_df_template_match(df, schema_df, check_dtypes=True):
+    """check the df matches the schema"""
+    assert isinstance(df, pd.DataFrame)
+    assert isinstance(schema_df, pd.DataFrame)
+    
+    #===========================================================================
+    # #check index types
+    #===========================================================================
+    
+    if isinstance(df.index, pd.MultiIndex): 
+            
+        #compare index dtypes
+        try:
+            assert_intersection(df.index.names, schema_df.index.names)
+        except Exception as e:
+            raise AssertionError(f"MultiIndex names mismatch\n    {e}") from None
+        
+        try:
+            assert_series_match(df.index.dtypes, schema_df.index.dtypes)
+        except Exception as e:            
+            raise AssertionError(f"MultiIndex dtype mismatch\n    {e}") from None
+ 
+    
+    else:
+        if not df.index.name == schema_df.index.name:
+            raise AssertionError(
+            f"Index name mismatch: test \'{df.index.name}\' vs scema \'{schema_df.index.name}\'"
+            ) from None
+        #check index dtype
+
+ 
+
+        if not pd.api.types.is_dtype_equal(df.index.dtype, schema_df.index.dtype):
+            raise AssertionError(
+                f"Index dtype mismatch: test '{df.index.dtype}' vs schema '{schema_df.index.dtype}'"
+            ) from None
+
+        
+        
+    
+    
+    
+    # Compare columns (you can use assert_frame_equal if order matters)
+    if len(schema_df.columns)>0: #some schemas dont specify columns
+        try:
+            assert_intersection(df.columns, schema_df.columns)
+        except Exception as e:
+            raise AssertionError(f"Column mismatch\n    {e}") from None
+ 
+    
+    # Compare the string representation of dtypes for a more approximate check:
+    if check_dtypes:
+        actual_dtypes = df.dtypes.astype(str).sort_index()
+        expected_dtypes = schema_df.dtypes.astype(str).sort_index()
+        try:
+            assert_series_match(expected_dtypes, actual_dtypes)
+        except Exception as e:
+            raise AssertionError(f"Dtype mismatch\n    {e}") from None
+    #assert_series_equal(actual_dtypes, expected_dtypes)
+    #assert actual_dtypes.equals(expected_dtypes),f"Dtype mismatch: \nactuals:\n{actual_dtypes} vs expected\n{expected_dtypes}"
+    

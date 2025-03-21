@@ -98,7 +98,7 @@ QTabBar::tab:selected {
       </font>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">
@@ -1172,24 +1172,24 @@ QGroupBox {
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_27">
           <item>
-           <widget class="QLineEdit" name="lineEdit_wdir">
+           <widget class="QLineEdit" name="lineEdit_R_outdir">
             <property name="text">
              <string/>
             </property>
             <property name="placeholderText">
-             <string>Select working directory for this session</string>
+             <string>Select directory for saving report files</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_wd">
+           <widget class="QPushButton" name="pushButton_R_browse">
             <property name="text">
              <string>Browse</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_wd_open">
+           <widget class="QPushButton" name="pushButton_R_open">
             <property name="text">
              <string>Open</string>
             </property>
@@ -1211,7 +1211,7 @@ QGroupBox {
          </property>
         </spacer>
        </item>
-       <item>
+       <item alignment="Qt::AlignHCenter">
         <widget class="QGroupBox" name="groupBox_19">
          <property name="title">
           <string>Narative Report Template</string>
@@ -1219,6 +1219,9 @@ QGroupBox {
          <layout class="QVBoxLayout" name="verticalLayout_30">
           <item>
            <widget class="QPushButton" name="pushButton">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="text">
              <string>Generate Report</string>
             </property>
@@ -1249,239 +1252,78 @@ QGroupBox {
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout">
             <item>
-             <widget class="QGroupBox" name="groupBox_18">
-              <property name="font">
-               <font>
-                <pointsize>-1</pointsize>
-               </font>
-              </property>
+             <widget class="QGroupBox" name="groupBox_7">
               <property name="title">
                <string>Model Selection</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_28">
+              <layout class="QHBoxLayout" name="horizontalLayout_7">
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_32">
+                <layout class="QVBoxLayout" name="verticalLayout_17">
                  <item>
-                  <widget class="QLabel" name="label_70">
+                  <widget class="QPushButton" name="pushButton_R_populate">
                    <property name="text">
-                    <string>Model: ??</string>
+                    <string>Populate</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="label_71">
+                  <spacer name="verticalSpacer_6">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>40</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_HZ_hrlay_selectAll_2">
                    <property name="text">
-                    <string>Consequence: ??      </string>
+                    <string>Select All</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="label_72">
+                  <widget class="QPushButton" name="pushButton_HZ_hrlay_selectVis_2">
+                   <property name="toolTip">
+                    <string>Select all layers visible in the canvas</string>
+                   </property>
                    <property name="text">
-                    <string>Asset: ??</string>
+                    <string>Select Visible</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QCheckBox" name="checkBox_6">
+                  <widget class="QPushButton" name="pushButton_HZ_hrlay_canvas_2">
+                   <property name="toolTip">
+                    <string>Set the selection to match the selection from the main QGIS canvas</string>
+                   </property>
                    <property name="text">
-                    <string/>
+                    <string>Canvas Selection</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_HZ_hrlay_clear_2">
+                   <property name="text">
+                    <string>Clear Selection</string>
                    </property>
                   </widget>
                  </item>
                 </layout>
                </item>
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_29">
-                 <item>
-                  <widget class="QLabel" name="label_64">
-                   <property name="text">
-                    <string>Model: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_65">
-                   <property name="text">
-                    <string>Consequence: ??      </string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_66">
-                   <property name="text">
-                    <string>Asset: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="checkBox_4">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_28">
-                 <item>
-                  <widget class="QLabel" name="label_61">
-                   <property name="text">
-                    <string>Model: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_62">
-                   <property name="text">
-                    <string>Consequence: ??      </string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_63">
-                   <property name="text">
-                    <string>Asset: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="checkBox_3">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_31">
-                 <item>
-                  <widget class="QLabel" name="label_67">
-                   <property name="text">
-                    <string>Model: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_68">
-                   <property name="text">
-                    <string>Consequence: ??      </string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_69">
-                   <property name="text">
-                    <string>Asset: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="checkBox_5">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_26">
-                 <item>
-                  <widget class="QLabel" name="label_55">
-                   <property name="text">
-                    <string>Model: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_56">
-                   <property name="text">
-                    <string>Consequence: ??      </string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_57">
-                   <property name="text">
-                    <string>Asset: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="checkBox">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_34">
-                 <item>
-                  <widget class="QLabel" name="label_76">
-                   <property name="text">
-                    <string>Model: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_77">
-                   <property name="text">
-                    <string>Consequence: ??      </string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_78">
-                   <property name="text">
-                    <string>Asset: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="checkBox_8">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_33">
-                 <item>
-                  <widget class="QLabel" name="label_73">
-                   <property name="text">
-                    <string>Model: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_74">
-                   <property name="text">
-                    <string>Consequence: ??      </string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_75">
-                   <property name="text">
-                    <string>Asset: ??</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="checkBox_7">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
+                <widget class="QTableWidget" name="tableWidget_R_models">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>400</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
               </layout>
              </widget>
@@ -1489,7 +1331,7 @@ QGroupBox {
             <item alignment="Qt::AlignHCenter">
              <widget class="QGroupBox" name="groupBox_21">
               <property name="title">
-               <string/>
+               <string>Generate</string>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_31">
                <item>
@@ -1514,6 +1356,9 @@ QGroupBox {
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_34">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                    <horstretch>0</horstretch>
@@ -1527,6 +1372,9 @@ QGroupBox {
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_35">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                    <horstretch>0</horstretch>
@@ -1547,6 +1395,9 @@ QGroupBox {
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_5">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="text">
                   <string>Risk Matrix</string>
                  </property>
@@ -1554,6 +1405,9 @@ QGroupBox {
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_36">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="text">
                   <string>Create Layer(s)</string>
                  </property>
@@ -1561,10 +1415,26 @@ QGroupBox {
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_37">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="text">
                   <string>Draft Map</string>
                  </property>
                 </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacer_7">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
                </item>
               </layout>
              </widget>

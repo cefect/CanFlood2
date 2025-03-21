@@ -334,6 +334,9 @@ class Model_run_methods(object):
         #=======================================================================
         # write to projDB
         #=======================================================================
+        """
+        mresult_dx.index.dtypes
+        """
         self.set_tables({'table_impacts':mresult_dx}, projDB_fp=projDB_fp)
  
         
@@ -802,12 +805,7 @@ class Model(Model_run_methods, Model_table_assertions):
         modelid = self.modelid
         category_code = self.category_code
         
-        """no... pull from teh parameters table (master data soource)
-        if (modelid, category_code) in model_index_dx.index:
-            return model_index_dx.loc[(modelid, category_code)]
-        else:
-            return None
-        """
+ 
         #=======================================================================
         # from parameters import table
         #=======================================================================
@@ -840,7 +838,7 @@ class Model(Model_run_methods, Model_table_assertions):
         # post
         #=======================================================================
  
-        s.name=(modelid, category_code) #rename for multindex
+        s.name=(category_code, modelid) #rename for multindex
         assert not None in s.values
         assert not 'nan' in s.values
         return s

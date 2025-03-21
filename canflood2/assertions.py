@@ -87,7 +87,10 @@ def assert_projDB_conn(conn,
             
         df_d[table_name] = sql_to_df(table_name, conn)
         
-        assert_df_matches_projDB_schema(table_name,df_d[table_name])
+        try:
+            assert_df_matches_projDB_schema(table_name,df_d[table_name])
+        except Exception as e:
+            raise AssertionError(f"table '{table_name}' schema mismatch:\n    {e}") from None
 
     if missing_tables:
         raise AssertionError(f"Missing tables in project database: {', '.join(missing_tables)}")

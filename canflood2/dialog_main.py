@@ -57,6 +57,7 @@ from .hp.plug import (
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value
 from .hp.sql import get_table_names
+from .hp.Q import get_unique_layer_by_name
  
 
 from .parameters import (
@@ -1544,7 +1545,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         #=======================================================================
         # set the ui state from the project parameters
         #=======================================================================
-        """does this load the layers into the combo box?"""
+        """loads dem and aoi as well"""
         table_name='02_project_parameters'
         df_raw = self.projDB_get_tables([table_name], projDB_fp=fp)[0]
         s = df_raw.dropna(subset=['widgetName', 'value']).set_index('widgetName')['value']
@@ -1565,13 +1566,31 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
             log.warning(f'no project parameters found in projDB')
         
  
+        #=======================================================================
+        # load hazard data
+        #=======================================================================
+        log.debug('loading hazard data')
+        table_name='05_haz_events'
+        haz_events_df = self.projDB_get_tables([table_name], projDB_fp=fp)[0]
+        """
+        view(haz_events_df)
+        """
+        #refresh the raster window
+        self.listView_HZ_hrlay.populate_layers()
         
+        #check that these events are loaded onto the project
+        for _, row in haz_events_df.iterrows():
+            layer_match = get_unique_layer_by_name(row['event_name'], layer_type=QgsRasterLayer)
+            if layer_match is None:
+                raise IOError(f'failed to find matching raster for: {row["event_name"]}')
         
+        #load the event meta onto the widget
+        self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(haz_events_df)  
                 
         #=======================================================================
         # set the model suite
         #=======================================================================
- 
+        log.debug('loading model suite')
         #clear the model suite
         self._clear_all_models(clear_projDB=False, logger=log)
         

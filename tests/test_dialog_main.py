@@ -85,7 +85,7 @@ def dialog_projDB_load(dialog, projDB_fp, monkeypatch, tmpdir):
     #patch the load button
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda*args, **kwargs:(projDB_fp, ''))
     #load the project database
-    click(dialog.pushButton_PS_projDB_load)
+    click(dialog.pushButton_PS_projDB_load) #Main_dialog.load_project_database_ui()
 
 
 def dialog_create_new_projDB(monkeypatch, dialog, tmpdir):
@@ -148,8 +148,8 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
            #widget_data_d,
            #aoi_vlay, 
            #dem_rlay, 
-           haz_rlay_d, 
-           eventMeta_df, #tutorial parameters           
+           #haz_rlay_d, 
+           #eventMeta_df, #tutorial parameters           
            ):
     """dialog fixture.
     
@@ -273,10 +273,36 @@ def widget_data_d(dialog, widget_Main_dialog_data_d):
     return  copy.deepcopy(widget_Main_dialog_data_d)
 
 
-    
+@pytest.fixture
+def aoi_vlay_set(aoi_vlay, dialog):
+    """set the aoi_vlay on teh combobox"""
+    dialog.comboBox_aoi.setLayer(aoi_vlay)
+    return True
 
 
+@pytest.fixture
+def dem_rlay_set(dem_rlay, dialog):
+    """set the dem_rlay on teh combobox"""
+    dialog.comboBox_dem.setLayer(dem_rlay)
+    return True
+
     
+@pytest.fixture
+def event_meta_set(eventMeta_df, dialog, haz_rlay_d):
+    """set the eventMeta_df onto the dialog
+    
+    this shortcuts selecting, loading, and entering in the values
+        see test_dial_main_02_load_to_eventMeta_widget 
+    """
+    print(f'loading {eventMeta_df.shape} eventMeta_df')
+    """this will overwrite click(dialog.pushButton_HZ_hrlay_load)"""
+    assert not haz_rlay_d is None, 'must provide haz_rlay_d to load eval_d'
+    #check the keys match
+    assert set(eventMeta_df.iloc[:,0]) == set(haz_rlay_d.keys()), 'eval_d keys do not match haz_rlay_d keys'
+ 
+
+    dialog.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)  
+    return True
  
  
  
@@ -317,13 +343,13 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
      
     
  
-@pytest.mark.dev
+
 @pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
 def test_dial_main_02_load_to_eventMeta_widget(dialog, tutorial_name, test_name,
                                                haz_rlay_d, #loads to project
                                                #eventMeta_df,
                                                ):
-    """test loading tutorial data"""
+    """on the hazard tab, loading the rasters, setting the probabilities, and loading back the table"""
  
     
     #===========================================================================
@@ -342,17 +368,7 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog, tutorial_name, test_name,
     # add some numbers
     #===========================================================================
     event_df = dialog.tableWidget_HZ_eventMeta.get_df_from_QTableWidget()
-    """
-    view(event_df)
-    event_df.columns
-    
-    Index(['Event Name', 'Probability', 'Metadata (optional)', 'layer_id',
-       'layer_fp'],
-      dtype='object')
-      
-    eventMeta_df.columns
-      
-    """
+ 
     #add some dummy probabilities
     event_df.loc[:,'Probability'] = pd.Series([50, 100, 200, 1000], dtype=float)
     event_df.loc[:,event_df.columns[2]] = test_name
@@ -371,11 +387,7 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog, tutorial_name, test_name,
     """here we use the builtin loaders to check them and the setting functions"""
     test_event_df = dialog.get_haz_events_df()
     
-    """
-    test_event_df.dtypes
-    event_df.dtypes
-    """
-    
+ 
     assert_frame_equal(event_df, test_event_df)
  
 
@@ -384,7 +396,13 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog, tutorial_name, test_name,
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 @pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
 def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monkeypatch, 
-                                                  widget_data_d):
+                          widget_data_d, #widget values set during instance
+                          aoi_vlay_set, dem_rlay_set, #combobox set during instance
+                          event_meta_set, #eventMeta_df set during instance, loads haz_rlay_d
+                          
+                          #for testing
+                          aoi_vlay, dem_rlay, eventMeta_df,
+                                                  ):
     """
     load tutorial and other data onto dialog
     Create New ProjDB
@@ -394,10 +412,16 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
  
     """
     #===========================================================================
-    # prep
+    # populate UI
     #===========================================================================
-    """by passing """
- 
+    """instanced by fixture
+    
+    widget_data_d
+    aoi_vlay
+    dem_vlay
+    eventMeta_df
+    
+    """
  
     #===========================================================================
     # #create a new projDB
@@ -431,7 +455,15 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
     for widgetName,v in widget_data_d.items():
         assert test_d[widgetName] == v, f'failed to set {widgetName}'
         
+    
+    #check that the aoi_vlay is on comboBox_aoi
+    assert dialog.comboBox_aoi.currentLayer() == aoi_vlay
+     
+    #check hte dem_rlay is on comboBox_dem
+    assert dialog.comboBox_dem.currentLayer() == dem_rlay
         
+    
+    assert_frame_equal(dialog.get_haz_events_df(), eventMeta_df)
     #===========================================================================
     # write
     #===========================================================================
@@ -442,16 +474,22 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
 ])
 def test_dial_main_03_load_projDB(dialog,
           aoi_vlay,dem_rlay, #instancing loads to project. dialog_projDB_load loads to UI
-                                  projDB_fp, monkeypatch,
-                                  tmpdir
+          haz_rlay_d, #load to project. _load_projDB_to_ui checks for name match
+                                  projDB_fp, monkeypatch,tmpdir,
+                                  
+                                  #for testing
+                                  eventMeta_df
+                                  
                                              ):
     """Test that clicking the 'load project database' button sets the lineEdit with the dummy file path.
+    
+    no model suite yet?
  
     """
  
@@ -460,11 +498,12 @@ def test_dial_main_03_load_projDB(dialog,
     #===========================================================================
  
     #patch and click load projDB
-    dialog_projDB_load(dialog, projDB_fp, monkeypatch, tmpdir)
+    dialog_projDB_load(dialog, projDB_fp, monkeypatch, tmpdir) #Main_dialog._load_projDB_to_ui()
     
     #===========================================================================
     # check
     #===========================================================================
+    print(f'\n\n{"=" * 80}\nchecking loaded data\n{"=" * 80}\n\n')
     result = dialog.get_projDB_fp()
     assert_projDB_fp(result, check_consistency=True)
     
@@ -473,6 +512,10 @@ def test_dial_main_03_load_projDB(dialog,
      
     #check hte dem_rlay is on comboBox_dem
     assert dialog.comboBox_dem.currentLayer() == dem_rlay
+    
+    #check the eventMeta_df
+    check_df = dialog.get_haz_events_df()
+    assert_frame_equal(check_df.drop('layer_id', axis=1), eventMeta_df.drop('layer_id', axis=1))
     
     
  
@@ -490,6 +533,7 @@ def test_dial_main_03_load_projDB(dialog,
 ])
 def test_dial_main_04_MS_createTemplates(dialog, test_name,
                                          projDB_fp,
+                                         tutorial_name,
                                          ):
     """test creation and clearing of the model suite"""
     

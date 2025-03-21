@@ -3,16 +3,55 @@ Created on Mar 17, 2025
 
 @author: cef
 '''
-import os, logging
+import os, logging, pprint
 import pandas as pd
 import pprint, tempfile
 import processing
 from qgis.core import (
-    QgsProcessingContext, QgsProcessingFeedback, QgsFeatureRequest,QgsApplication
+    QgsProcessingContext, QgsProcessingFeedback, QgsFeatureRequest,QgsApplication,
+    QgsProject, QgsMapLayer
     )
 
 
 
+
+def get_unique_layer_by_name(layer_name: str, layer_type = None) -> QgsMapLayer:
+    """
+    Checks if there is a unique layer loaded in the project with the given name,
+    optionally filtered by layer type.
+    
+    Args:
+        layer_name (str): The name of the layer to look for.
+        layer_type (QgsMapLayer.Type, optional): Filter to consider only layers of a specific type.
+    
+    Returns:
+        QgsMapLayer: The uniquely matching layer, or None if no unique match is found.
+    """
+    if not layer_name:
+        raise ValueError("Layer name must be provided.")
+    
+    # Retrieve all layers from the current project.
+    all_layers_d = QgsProject.instance().mapLayers()
+    
+    """
+    pprint.pprint(all_layers_d)
+    """ 
+    
+    # Filter layers based on name and (if provided) layer type.
+    matching_layers = []
+    for layer_id, layer in all_layers_d.items():
+        if layer.name() == layer_name:
+            if layer_type is not None:
+                if issubclass(type(layer), layer_type):
+                    matching_layers.append(layer)
+            else:
+                matching_layers.append(layer)
+    
+    # Return the layer only if there is exactly one match.
+    if len(matching_layers) == 1:
+        return matching_layers[0]
+    
+    return None
 
 
 

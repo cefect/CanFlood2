@@ -30,6 +30,7 @@ from .parameters import (
 from .hp.sql import get_table_names
 from .hp.vfunc import load_vfunc_to_df_d, vfunc_df_to_dict, vfunc_cdf_chk_d
 from .hp.basic import view_web_df as view
+from .hp.Q import get_unique_layer_by_name
 
 #===============================================================================
 # helpers--------
@@ -41,7 +42,11 @@ from .hp.basic import view_web_df as view
  
 
 
-    
+def assert_layerName_in_project(layer_name, layer_type=None):
+    result = get_unique_layer_by_name(layer_name, layer_type=layer_type)
+    if result is None:
+        raise AssertionError(f"Layer '{layer_name}' not found in project") from None
+                                    
     
 
 #===============================================================================

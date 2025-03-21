@@ -71,11 +71,7 @@ def vfunc_fp(tutorial_name, tmpdir):
     
     #copy over to the testin directory for relative pathing
     fp = tutorial_data_lib[tutorial_name]['vfunc']
- #==============================================================================
- # 
- #==============================================================================
-    
-    
+
     return shutil.copyfile(fp, os.path.join(tmpdir, os.path.basename(fp)))
 
 #===============================================================================
@@ -143,8 +139,7 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
  
 @pytest.fixture
 def widget_modelConfig_data_d(tutorial_name):
-    if tutorial_name is None:
-        return None
+    #if tutorial_name is None:        return None
     return widget_values_lib[tutorial_name]['Model_config_dialog']
 
 @pytest.fixture

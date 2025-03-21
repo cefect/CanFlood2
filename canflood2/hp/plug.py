@@ -438,7 +438,7 @@ def bind_layersListWidget(widget, #instanced widget
         items = self.model().get_checked() #names of layers checked by user
         nms_l = [item.text() for item in items]
         
-        assert len(nms_l)>0, 'no selection!'
+        assert len(nms_l)>0, 'layersListWidget has no layers selected!'
         
         
         #retrieve layers from canvas

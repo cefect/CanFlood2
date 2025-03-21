@@ -26,7 +26,7 @@
 #===============================================================================
 
 
-import os, sys, re, gc
+import os, sys, re, gc, shutil
 import sqlite3
 import pandas as pd
 import numpy as np
@@ -153,6 +153,8 @@ class Main_dialog_dev(object):
             # Add the layer to the current QGIS project, which updates the canvas automatically.
             QgsProject.instance().addMapLayer(layer)
             
+            log.debug(f'added layer \'{layer.name()}\' to project')
+            
         
         #=======================================================================
         # from parametesr
@@ -166,11 +168,49 @@ class Main_dialog_dev(object):
         #=======================================================================
         # #hazard rasters
         #=======================================================================
-        raise NotImplementedError('stopped here')
+        haz_rlay_d = dict()
+        for ari, fp in data_d['haz'].items():
+            log.debug(f'adding hazard raster \'{ari}\'={os.path.basename(fp)}')
+            
+            #load to project
+            layer = QgsRasterLayer(fp, os.path.basename(fp).split('.')[0])
+            QgsProject.instance().addMapLayer(layer)
+            
+            haz_rlay_d[layer.name()] = layer
+            
+        
+        log.debug(f'added {len(haz_rlay_d)} hazard rasters')
+        
+        #update the meta table widget
+        """not strictly necessary for the projDB, but nice for the user to see"""
+        self.listView_HZ_hrlay.populate_layers()
+        self.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
+            
+        #=======================================================================
+        # model specific data
+        #=======================================================================
+ 
         
         #=======================================================================
         # load projDB------
         #=======================================================================
+        #retrieve
+        projDB_fp = data_d['projDB']
+        #copy over the project database file
+        """dont want the user to make changes to the plugin version"""
+        projDB_fp = shutil.copyfile(projDB_fp, os.path.join(home_dir, os.path.basename(projDB_fp)))
+        log.debug(f'copied project database to\n    {projDB_fp}')
+        
+        #set in dialog
+        """same thing that happens when pushButton_PS_projDB_load is pushed"""
+        self.lineEdit_PS_projDB_fp.setText(projDB_fp) 
+        
+        #run load routines
+        self._load_projDB_to_ui(projDB_fp=projDB_fp)
+        
+        #activate the save button
+        self.pushButton_save.setEnabled(True)
+        
  
     
     
@@ -506,8 +546,16 @@ class Main_dialog_haz(object):
         return df
     
     def get_haz_rlay_d(self):
-        """get the selected hazard rasters"""
-        return self.listView_HZ_hrlay.get_selected_layers()
+        """get the selected hazard rasters
+        
+        here we simply retrieve teh selected rasters from the top panel
+        these should be checked against the eventMeta table widget prior to use
+        """
+        try:
+            return self.listView_HZ_hrlay.get_selected_layers()
+    
+        except Exception as e:
+            raise IOError(f'failed to retrieve selected hazard rasters w/:\n    {e}')
     
  
             
@@ -1536,19 +1584,22 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
             
         return
     
-    def _load_projDB_to_ui(self):
+    def _load_projDB_to_ui(self, projDB_fp=None):
         """load an existing project database file
         
         this does not 'load' QgsMapLayers, but attempts to select them by name
         """
         log = self.logger.getChild('_load_projDB_to_ui')
+        
+        if projDB_fp is None:
+            projDB_fp = self.get_projDB_fp()
  
-        fp =  self.get_projDB_fp()
-        assert not fp is None, 'no project database file path specified'
-        log.debug(f'loading project database from\n    {fp}')
+ 
+        assert not projDB_fp is None or projDB_fp=='', 'no project database file path specified'
+        log.debug(f'loading project database from\n    {projDB_fp}')
         
         
-        assert_projDB_fp(fp, check_consistency=True)
+        assert_projDB_fp(projDB_fp, check_consistency=True)
         
  
             
@@ -1557,7 +1608,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         #=======================================================================
         """loads dem and aoi as well"""
         table_name='02_project_parameters'
-        df_raw = self.projDB_get_tables([table_name], projDB_fp=fp)[0]
+        df_raw = self.projDB_get_tables([table_name], projDB_fp=projDB_fp)[0]
         s = df_raw.dropna(subset=['widgetName', 'value']).set_index('widgetName')['value']
  
         if len(s)>0:
@@ -1581,7 +1632,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         #=======================================================================
         log.debug('loading hazard data')
         table_name='05_haz_events'
-        haz_events_df = self.projDB_get_tables([table_name], projDB_fp=fp)[0]
+        haz_events_df = self.projDB_get_tables([table_name], projDB_fp=projDB_fp)[0]
         """
         view(haz_events_df)
         """
@@ -1589,10 +1640,17 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         self.listView_HZ_hrlay.populate_layers()
         
         #check that these events are loaded onto the project
+        haz_rlay_d = dict()
         for _, row in haz_events_df.iterrows():
             layer_match = get_unique_layer_by_name(row['event_name'], layer_type=QgsRasterLayer)
             if layer_match is None:
                 log.warning(f'failed to find matching raster for: {row["event_name"]}')
+            
+            haz_rlay_d[row['event_name']] = layer_match
+        
+        #select these
+        """later, we assert that the selection matches the event meta table widget"""
+        self.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
         
         #load the event meta onto the widget
         self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(haz_events_df)  
@@ -1604,7 +1662,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         #clear the model suite
         self._clear_all_models(clear_projDB=False, logger=log)
         
-        model_index_dx = self.get_model_index_dx(projDB_fp=fp)
+        model_index_dx = self.get_model_index_dx(projDB_fp=projDB_fp)
         
         if len(model_index_dx)>0:
             log.debug(f'loading {len(model_index_dx)} models')
@@ -1629,7 +1687,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         #=======================================================================
         # wrap
         #=======================================================================
-        log.push(f'loaded project from {os.path.basename(fp)}')
+        log.push(f'loaded project from {os.path.basename(projDB_fp)}')
         
         return 
     

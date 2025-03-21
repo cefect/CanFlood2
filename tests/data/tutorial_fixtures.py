@@ -118,6 +118,8 @@ def haz_rlay_d(haz_fp_d):
         layer = QgsRasterLayer(fp, os.path.basename(fp).split('.')[0])
         QgsProject.instance().addMapLayer(layer)
         d[layer.name()] = layer
+        
+    print(f'haz_rlay_d fixture instantiated w/ {len(d)} layers')
     return d
 
 @pytest.fixture(scope='function')

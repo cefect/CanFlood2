@@ -27,10 +27,12 @@ from canflood2.assertions import assert_vfunc_fp, assert_series_match
 from canflood2.dialog_model import Model_config_dialog
 from canflood2.core import ModelNotReadyError
 
-from .test_dialog_main import dialog as dialog_main
+from .test_dialog_main import widget_data_d, dialog_main
+from .test_dialog_main import dialog_loaded as dialog_main_loaded
+ 
 from .test_dialog_main import oj as oj_main
 #need to import the fixture from dialog_main
-from .test_dialog_main import widget_data_d
+
 
 import tests.conftest as conftest
 from .conftest import (
@@ -50,9 +52,9 @@ os.makedirs(test_data_dir, exist_ok=True)
 
 
 overwrite_testdata=True
-def write_projDB(dialog, test_name):
+def write_projDB(dialog_model, test_name):
  
-    projDB_fp = dialog.parent.get_projDB_fp()
+    projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
  
     if overwrite_testdata:
@@ -75,11 +77,11 @@ def oj_out(test_name, result):
 #===============================================================================
 
 #===============================================================================
-# dialog setup
+# dialog_model setup
 #===============================================================================
 interactive = False
 @pytest.fixture
-def dialog(dialog_main, model,
+def dialog_model(dialog_main_loaded, model,
            #turtorial data
            finv_vlay, 
  
@@ -108,7 +110,7 @@ def dialog(dialog_main, model,
         click tests seem to erase the pydev pyunit output capture
     """
     # Retrieve the model from the main dialog and the button that launches the config dialog.
- 
+    dialog_main = dialog_main_loaded
     
     dlg = dialog_main.Model_config_dialog
 
@@ -164,7 +166,7 @@ def model(dialog_main, consequence_category, modelid):
 
 
 @pytest.fixture
-def vfunc(dialog, vfunc_fp, monkeypatch):
+def vfunc(dialog_model, vfunc_fp, monkeypatch):
     
     assert_vfunc_fp(vfunc_fp)
     
@@ -172,7 +174,7 @@ def vfunc(dialog, vfunc_fp, monkeypatch):
     """over-writes the monkeypatch from teh main dialog test?"""
     monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (vfunc_fp, ''))
     
-    click(dialog.pushButton_V_vfunc_load) #Model_config_dialog._vfunc_load_from_file()
+    click(dialog_model.pushButton_V_vfunc_load) #Model_config_dialog._vfunc_load_from_file()
     
     return vfunc_fp
 
@@ -184,10 +186,11 @@ def vfunc(dialog, vfunc_fp, monkeypatch):
 
 
 
-
-@pytest.mark.parametrize("projDB_fp", [oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')])
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
+])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_01_launch_config(dialog,model, qtbot):
+def test_dial_model_01_launch_config(dialog_model,model, qtbot):
     """simple launching and closing of the model configuration dialog
     
     handled by the fixture
@@ -197,7 +200,7 @@ def test_dial_model_01_launch_config(dialog,model, qtbot):
     #===========================================================================
     # close
     #===========================================================================
-    qtbot.mouseClick(dialog.pushButton_close, Qt.LeftButton)
+    qtbot.mouseClick(dialog_model.pushButton_close, Qt.LeftButton)
     
 
 
@@ -205,7 +208,7 @@ def test_dial_model_01_launch_config(dialog,model, qtbot):
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_02_save(dialog,
+def test_dial_model_02_save(dialog_model,
                             model, 
                             widget_modelConfig_data_d, 
                             test_name, qtbot):
@@ -220,7 +223,7 @@ def test_dial_model_02_save(dialog,
     # resolve dialog
     #===========================================================================
     #click(dialog.pushButton_ok)
-    qtbot.mouseClick(dialog.pushButton_ok, Qt.LeftButton)
+    qtbot.mouseClick(dialog_model.pushButton_ok, Qt.LeftButton)
     
     #===========================================================================
     # check---------
@@ -230,7 +233,7 @@ def test_dial_model_02_save(dialog,
     #against testing parameters
     for k,v in widget_modelConfig_data_d.items():
         #print(f'checking \'{k}\'==\'{v}\'')
-        widget = getattr(dialog, k)
+        widget = getattr(dialog_model, k)
         assert get_widget_value(widget)==v, f'for \'{k}\' got bad value \'{get_widget_value(widget)}\''
         
     #against set projeft Database
@@ -253,7 +256,7 @@ def test_dial_model_02_save(dialog,
     #===========================================================================
     # write------
     #===========================================================================
-    write_projDB(dialog, test_name)
+    write_projDB(dialog_model, test_name)
  
 
 
@@ -263,7 +266,7 @@ def test_dial_model_02_save(dialog,
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_03_save_vfunc(dialog, model,                                  
+def test_dial_model_03_save_vfunc(dialog_model, model,                                  
                             vfunc,
                             test_name, qtbot):
     """basic + vfunc loading
@@ -284,7 +287,7 @@ def test_dial_model_03_save_vfunc(dialog, model,
     #===========================================================================
     # resolve dialog
     #===========================================================================
-    click(dialog.pushButton_ok)
+    click(dialog_model.pushButton_ok)
     #qtbot.mouseClick(dialog.pushButton_ok, Qt.LeftButton) #Model_config_dialog._save_and_close()
     
     #===========================================================================
@@ -295,10 +298,10 @@ def test_dial_model_03_save_vfunc(dialog, model,
  
     vfunc_fp = vfunc
     df_d = load_vfunc_to_df_d(vfunc_fp)
-    assert len(df_d)==int(dialog.label_V_functionCount.text()), f'vfunc count failed to set'
+    assert len(df_d)==int(dialog_model.label_V_functionCount.text()), f'vfunc count failed to set'
     
     #check the vfunc index 
-    vfunc_index_df = dialog.parent.projDB_get_tables(['06_vfunc_index'])[0]
+    vfunc_index_df = dialog_model.parent.projDB_get_tables(['06_vfunc_index'])[0]
  
     
     #check the keys match
@@ -308,7 +311,7 @@ def test_dial_model_03_save_vfunc(dialog, model,
     #===========================================================================
     # write------
     #===========================================================================
-    write_projDB(dialog, test_name)
+    write_projDB(dialog_model, test_name)
 
 
 
@@ -321,8 +324,11 @@ def test_dial_model_03_save_vfunc(dialog, model,
     )
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_04_compile(dialog, model,
-                           test_name, 
+def test_dial_model_04_compile(dialog_model, model,
+                           test_name,
+                           
+                           #load data onto project
+                           #dem_rlay, aoi_vlay, finv_vlay, haz_rlay_d, 
                            ):
     """Test compile sequence"""
     
@@ -339,11 +345,11 @@ def test_dial_model_04_compile(dialog, model,
     # execute
     #===========================================================================
     """this is part of the run call"""
-    skwargs = dict(logger=dialog.logger, model=model)
+    skwargs = dict(logger=dialog_model.logger, model=model)
     
-    dialog._set_ui_to_table_parameters(**skwargs)
-    dialog.compile_model(**skwargs)
-    #click(dialog.pushButton_run) #Model_config_dialog._run_model()
+    dialog_model._set_ui_to_table_parameters(**skwargs)
+    dialog_model.compile_model(**skwargs)
+ 
     
     
     #===========================================================================
@@ -360,7 +366,7 @@ def test_dial_model_04_compile(dialog, model,
     #===========================================================================
     # write------
     #===========================================================================
-    write_projDB(dialog, test_name)
+    write_projDB(dialog_model, test_name)
 
 
 
@@ -371,7 +377,7 @@ def test_dial_model_04_compile(dialog, model,
     )
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_05_run(dialog, model,
+def test_dial_model_05_run(dialog_model, model,
                            test_name, 
                            ):
     """Test run (post compile)"""
@@ -397,12 +403,12 @@ def test_dial_model_05_run(dialog, model,
     #===========================================================================
     # trigger run sequence
     #===========================================================================
-    dialog._run_model(compile_model=False)
+    dialog_model._run_model(compile_model=False)
     
     #===========================================================================
     # check
     #===========================================================================
-    print(f'\n\nchecking dialog\n{"="*80}')
+    print(f'\n\nchecking dialog_model\n{"="*80}')
     
     
     for table_name in model.compile_model_tables:
@@ -414,7 +420,7 @@ def test_dial_model_05_run(dialog, model,
     #===========================================================================
     # write------
     #===========================================================================
-    write_projDB(dialog, test_name)
+    write_projDB(dialog_model, test_name)
     
 
 

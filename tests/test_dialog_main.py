@@ -55,9 +55,9 @@ os.makedirs(test_data_dir, exist_ok=True)
 # HELPERS=========---------
 #===============================================================================
 overwrite_testdata=True
-def write_projDB(dialog, test_name):
+def write_projDB(dialog_main, test_name):
  
-    projDB_fp = dialog.get_projDB_fp()
+    projDB_fp = dialog_main.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
  
     if overwrite_testdata:
@@ -78,14 +78,6 @@ def oj_out(test_name, result):
 
 
  
-
-def xxx_dialog_projDB_load(dialog, projDB_fp, monkeypatch, tmpdir):
-    """helper to load the projDB"""
-    projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp))) #assert_projDB_fp(projDB_fp)
-    #patch the load button
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda*args, **kwargs:(projDB_fp, ''))
-    #load the project database
-    click(dialog.pushButton_PS_projDB_load) #Main_dialog.load_project_database_ui()
 
 
 def dialog_create_new_projDB(monkeypatch, dialog, tmpdir):
@@ -143,7 +135,7 @@ use fixtures to parameterize in blocks
  
     
 @pytest.fixture(scope='function') 
-def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
+def dialog_main(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
            #projDB_fp,
            #widget_data_d,
            #aoi_vlay, 
@@ -151,7 +143,7 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
            #haz_rlay_d, 
            #eventMeta_df, #tutorial parameters           
            ):
-    """dialog fixture.
+    """dialog_main fixture.
     
     custom parameters should all be None if not specifeid
     tutorial parameters are ALL returned if tutorial_name is passed
@@ -161,7 +153,7 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
     #===========================================================================
     # init  
     #===========================================================================
-    dialog =  Main_dialog(parent=None, 
+    dialog_main =  Main_dialog(parent=None, 
                           iface=qgis_iface,
                           debug_logger=logger, #connect python logger for rtests 
                           )
@@ -245,10 +237,10 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
         
  
     print(f'\n\n{"=" * 80}\nDIALOG fixture setup complete\n{"=" * 80}\n\n')
-    return dialog
+    return dialog_main
 
 @pytest.fixture
-def dialog_loaded(dialog,  
+def dialog_loaded(dialog_main,  
                 aoi_vlay,dem_rlay, #instancing loads to project. dialog_projDB_load loads to UI
                 haz_rlay_d, #load to project. _load_projDB_to_ui checks for name match
                 projDB_fp, monkeypatch,tmpdir,
@@ -268,19 +260,19 @@ def dialog_loaded(dialog,
     #patch the load button
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda*args, **kwargs:(projDB_fp, ''))
     #load the project database
-    click(dialog.pushButton_PS_projDB_load) #Main_dialog.load_project_database_ui()
+    click(dialog_main.pushButton_PS_projDB_load) #Main_dialog._load_projDB_to_ui()
     
-    return dialog
+    return dialog_main
     
  
  
 @pytest.fixture
-def widget_data_d(dialog, widget_Main_dialog_data_d):
+def widget_data_d(dialog_main, widget_Main_dialog_data_d):
     """calling this fixture attaches it to the dialog"""
  
     print('setting widget data')
     for widget_name, v in widget_Main_dialog_data_d.items():
-        widget = getattr(dialog, widget_name, None)
+        widget = getattr(dialog_main, widget_name, None)
         if widget is not None:
             set_widget_value(widget, v)
             
@@ -288,21 +280,21 @@ def widget_data_d(dialog, widget_Main_dialog_data_d):
 
 
 @pytest.fixture
-def aoi_vlay_set(aoi_vlay, dialog):
+def aoi_vlay_set(aoi_vlay, dialog_main):
     """set the aoi_vlay on teh combobox"""
-    dialog.comboBox_aoi.setLayer(aoi_vlay)
+    dialog_main.comboBox_aoi.setLayer(aoi_vlay)
     return True
 
 
 @pytest.fixture
-def dem_rlay_set(dem_rlay, dialog):
+def dem_rlay_set(dem_rlay, dialog_main):
     """set the dem_rlay on teh combobox"""
-    dialog.comboBox_dem.setLayer(dem_rlay)
+    dialog_main.comboBox_dem.setLayer(dem_rlay)
     return True
 
     
 @pytest.fixture
-def event_meta_set(eventMeta_df, dialog, haz_rlay_d):
+def event_meta_set(eventMeta_df, dialog_main, haz_rlay_d):
     """set the eventMeta_df onto the dialog
     
     this shortcuts selecting, loading, and entering in the values
@@ -315,7 +307,7 @@ def event_meta_set(eventMeta_df, dialog, haz_rlay_d):
     assert set(eventMeta_df.iloc[:,0]) == set(haz_rlay_d.keys()), 'eval_d keys do not match haz_rlay_d keys'
  
 
-    dialog.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)  
+    dialog_main.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)  
     return True
  
  
@@ -330,36 +322,36 @@ sys.exit(QApp.exec_()) #wrap
 """
 
 
-def test_dial_main_00_init(dialog,): 
-    assert hasattr(dialog, 'logger')
+def test_dial_main_00_init(dialog_main,): 
+    assert hasattr(dialog_main, 'logger')
     
     
 
 
 
  
-def test_dial_main_01_create_new_projDB(monkeypatch, dialog, tmpdir, test_name):
+def test_dial_main_01_create_new_projDB(monkeypatch, dialog_main, tmpdir, test_name):
     """create new projDB
     
     note this is redundant with test_dial_main_02_save_ui_to_project_database
     """
-    dialog_create_new_projDB(monkeypatch, dialog, tmpdir)
+    dialog_create_new_projDB(monkeypatch, dialog_main, tmpdir)
  
     
     #===========================================================================
     # post
     #===========================================================================
-    result = dialog.get_projDB_fp()
+    result = dialog_main.get_projDB_fp()
     assert_projDB_fp(result, check_consistency=True)
     
-    write_projDB(dialog, test_name)
+    write_projDB(dialog_main, test_name)
      
      
     
  
 
 @pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
-def test_dial_main_02_load_to_eventMeta_widget(dialog, tutorial_name, test_name,
+def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_name,
                                                haz_rlay_d, #loads to project
                                                #eventMeta_df,
                                                ):
@@ -371,17 +363,17 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog, tutorial_name, test_name,
     #===========================================================================
     print(f'populating on {len(haz_rlay_d)} hazard layers')
     #select all of these layers in listView_HZ_hrlay
-    dialog.listView_HZ_hrlay.populate_layers()
-    dialog.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
+    dialog_main.listView_HZ_hrlay.populate_layers()
+    dialog_main.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
     
     #load into the event metadata
-    click(dialog.pushButton_HZ_hrlay_load) #load_selected_rasters_to_eventMeta_widget()
+    click(dialog_main.pushButton_HZ_hrlay_load) #load_selected_rasters_to_eventMeta_widget()
     
     
     #===========================================================================
     # add some numbers
     #===========================================================================
-    event_df = dialog.tableWidget_HZ_eventMeta.get_df_from_QTableWidget()
+    event_df = dialog_main.tableWidget_HZ_eventMeta.get_df_from_QTableWidget()
  
     #add some dummy probabilities
     event_df.loc[:,'Probability'] = pd.Series([50, 100, 200, 1000], dtype=float)
@@ -392,14 +384,14 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog, tutorial_name, test_name,
                 columns={v['label']:k for k,v in eventMeta_control_d.items()}
                 ).astype({'prob':float})
     #set back onto the widget
-    dialog.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(event_df.copy())
+    dialog_main.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(event_df.copy())
     
     print(f'\n\nfinished setting {event_df.shape} event data\n{"=" * 80}\n\n ')
     #===========================================================================
     # check
     #===========================================================================
     """here we use the builtin loaders to check them and the setting functions"""
-    test_event_df = dialog.get_haz_events_df()
+    test_event_df = dialog_main.get_haz_events_df()
     
  
     assert_frame_equal(event_df, test_event_df)
@@ -409,7 +401,7 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog, tutorial_name, test_name,
 
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 @pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
-def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monkeypatch, 
+def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
                           widget_data_d, #widget values set during instance
                           aoi_vlay_set, dem_rlay_set, #combobox set during instance
                           event_meta_set, #eventMeta_df set during instance, loads haz_rlay_d
@@ -440,7 +432,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
     #===========================================================================
     # #create a new projDB
     #===========================================================================
-    dialog_create_new_projDB(monkeypatch, dialog, tmpdir)
+    dialog_create_new_projDB(monkeypatch, dialog_main, tmpdir)
  
  
  
@@ -449,7 +441,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
     #===========================================================================
  
     # Simulate clicking the save button.
-    click(dialog.pushButton_save) #Main_dialog._save_ui_to_projDB()
+    click(dialog_main.pushButton_save) #Main_dialog._save_ui_to_projDB()
  
     
     
@@ -457,11 +449,11 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
     # test
     #===========================================================================
     # Verify that the project database file path is saved.
-    result = dialog.get_projDB_fp()
+    result = dialog_main.get_projDB_fp()
     assert_projDB_fp(result, check_consistency=True)
     
     #load parmeters table
-    df = dialog.projDB_get_tables(['02_project_parameters'])[0]
+    df = dialog_main.projDB_get_tables(['02_project_parameters'])[0]
     
     test_d = df.loc[:, ['widgetName', 'value']].set_index('widgetName').to_dict()['value']
     
@@ -471,17 +463,17 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
         
     
     #check that the aoi_vlay is on comboBox_aoi
-    assert dialog.comboBox_aoi.currentLayer() == aoi_vlay
+    assert dialog_main.comboBox_aoi.currentLayer() == aoi_vlay
      
     #check hte dem_rlay is on comboBox_dem
-    assert dialog.comboBox_dem.currentLayer() == dem_rlay
+    assert dialog_main.comboBox_dem.currentLayer() == dem_rlay
         
     
-    assert_frame_equal(dialog.get_haz_events_df(), eventMeta_df)
+    assert_frame_equal(dialog_main.get_haz_events_df(), eventMeta_df)
     #===========================================================================
     # write
     #===========================================================================
-    write_projDB(dialog, test_name)
+    write_projDB(dialog_main, test_name)
  
  
 
@@ -536,7 +528,7 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
 ])
@@ -598,7 +590,7 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     write_projDB(dialog, test_name)
     
     
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02'])
 def test_dial_main_06_W_load_tutorial_data(dialog, tutorial_name, test_name):
     """test loading tutorial data"""
@@ -609,9 +601,11 @@ def test_dial_main_06_W_load_tutorial_data(dialog, tutorial_name, test_name):
     click(dialog.pushButton_tut_load) #Main_dialog._load_tutorial_to_ui()
 
  
-
-
-
+""" 
+dialog.show()
+QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+sys.exit(QApp.exec_()) #wrap
+"""
 
     
     

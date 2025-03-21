@@ -256,7 +256,7 @@ QToolBox::tab {
       <enum>QFrame::Raised</enum>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page">
       <property name="geometry">
@@ -841,8 +841,8 @@ QToolBox::tab {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>595</height>
+        <width>639</width>
+        <height>207</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1036,8 +1036,8 @@ QToolBox::tab {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>595</height>
+        <width>621</width>
+        <height>256</height>
        </rect>
       </property>
       <attribute name="label">

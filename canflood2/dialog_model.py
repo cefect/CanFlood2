@@ -27,7 +27,7 @@ from qgis.core import (
 
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
-from .hp.plug import bind_QgsFieldComboBox
+from .hp.plug import bind_QgsFieldComboBox, bind_MapLayerComboBox
 from .hp.Q import vlay_to_df, ProcessingEnvironment
 
 from .assertions import assert_projDB_fp, assert_vfunc_fp, assert_projDB_conn
@@ -325,8 +325,8 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # Asset Inventory--------
         #=======================================================================
-        self.comboBox_finv_vlay.setFilters(QgsMapLayerProxyModel.VectorLayer)
-        self.comboBox_finv_vlay.setCurrentIndex(-1)
+        bind_MapLayerComboBox(self.comboBox_finv_vlay, iface=self.iface, layerType=QgsMapLayerProxyModel.VectorLayer)
+ 
         
         #bind the exposure geometry label
         def update_finv_geometry_label():
@@ -369,6 +369,22 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
                 
              
         self.pushButton_V_vfunc_load.clicked.connect(load_vfunc_fp)
+        
+        
+        #=======================================================================
+        # risk-------
+        #=======================================================================
+        self.comboBox_R_lowPtail.setCurrentIndex(-1)
+        #connect the SpinBox so that it becomes enabled when 'user' is selected in the combobox
+        
+        self.comboBox_R_lowPtail.currentIndexChanged.connect(
+            lambda: self.doubleSpinBox_R_lowPtail.setEnabled(self.comboBox_R_lowPtail.currentText()=='user')
+            )
+        
+        self.comboBox_R_highPtail.setCurrentIndex(-1)
+        self.comboBox_R_highPtail.currentIndexChanged.connect(
+            lambda: self.doubleSpinBox_R_highPtail.setEnabled(self.comboBox_R_highPtail.currentText()=='user')
+            )
         
 
         
@@ -505,27 +521,39 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         
     def load_model(self, model, projDB_fp=None):
         """load the model worker into the dialog"""
+        #=======================================================================
+        # defaults
+        #=======================================================================
         log = self.logger.getChild('load_model')
         assert isinstance(model, Model), f'bad model type: {type(model)}'
         
-        #set model references
-        self.model = model
-        model.configDialog = self
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
             
         log.debug(f'loading model {model.name} onto configDialog')
+        
+        
         #=======================================================================
-        # #load parameters from the table
+        # #attach model references
+        #=======================================================================
+        self.model = model
+        model.configDialog = self
+        
+
+        #=======================================================================
+        # #load parameters from the table to the ui
         #=======================================================================
         params_df = model.get_table_parameters(projDB_fp=projDB_fp)
+        """
+        view(params_df)
+        """
         
         #get just those with values
         params_df = params_df.loc[:, ['widgetName', 'value']].dropna(subset=['value', 'widgetName']
                                        ).set_index('widgetName')
  
-        if len(params_df)==0:
-            log.debug(f'loaded {len(params_df)} parameters for model {model.name}')
+        if len(params_df)>0:
+            log.debug(f'loading {len(params_df)} parameters for model {model.name}')
             for k,row in params_df.iterrows():
                 widget = getattr(self, k)
                 set_widget_value(widget, row['value'])
@@ -659,6 +687,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # defaults
         #=======================================================================
+        self.progressBar.setValue(0)
         log = self.logger.getChild('_run_model')
         model = self.model        
         assert not model is None, 'no model loaded'
@@ -669,22 +698,32 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         
         log.info(f'running model {model.name}')
         
+        
         #=======================================================================
         # trigger save        
         #=======================================================================
+        self.progressBar.setValue(5)
         self._set_ui_to_table_parameters(**skwargs)
         
 
         #=======================================================================
         # compiling
         #=======================================================================
+        self.progressBar.setValue(20)
         if compile_model:
             self.compile_model(**skwargs)
         
         #=======================================================================
         # run it
         #=======================================================================
+        self.progressBar.setValue(50)
         model.run_model(projDB_fp=self.parent.get_projDB_fp())
+        
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        self.progressBar.setValue(100)
+        log.push(f'finished running model {model.name}')
 
     def _save_and_close(self):
         """save the dialog to the model parameters table"""

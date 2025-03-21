@@ -323,7 +323,7 @@ QToolBox::tab {
                    </size>
                   </property>
                   <property name="text">
-                   <string>Inventory Vector Layer:</string>
+                   <string>Inventory Vector Layer*:</string>
                   </property>
                  </widget>
                 </item>
@@ -362,7 +362,7 @@ QToolBox::tab {
                    </size>
                   </property>
                   <property name="text">
-                   <string>Elevation type:</string>
+                   <string>Elevation type*:</string>
                   </property>
                  </widget>
                 </item>
@@ -422,7 +422,7 @@ QToolBox::tab {
                    </size>
                   </property>
                   <property name="text">
-                   <string>         Index FieldName:</string>
+                   <string>         Index FieldName*:</string>
                   </property>
                  </widget>
                 </item>
@@ -462,133 +462,164 @@ QToolBox::tab {
                 <property name="title">
                  <string>Function Group: 01</string>
                 </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                <layout class="QVBoxLayout" name="verticalLayout_18">
                  <item>
-                  <widget class="QLabel" name="label_21">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
+                  <widget class="QLabel" name="label_29">
                    <property name="text">
-                    <string>scale</string>
+                    <string>Select the fields from your inventory vector layer that provide the scale, elevation, tag, and cap information for each asset</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_scale"/>
+                  <layout class="QHBoxLayout" name="horizontalLayout_11">
+                   <item>
+                    <widget class="QLabel" name="label_23">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="text">
+                      <string>tag</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag"/>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="label_21">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="text">
+                      <string>scale</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_scale"/>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="label_22">
+                     <property name="text">
+                      <string>elevation</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="label_27">
+                     <property name="enabled">
+                      <bool>false</bool>
+                     </property>
+                     <property name="text">
+                      <string>cap</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_cap">
+                     <property name="enabled">
+                      <bool>false</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
                  </item>
                  <item>
-                  <widget class="QLabel" name="label_22">
+                  <widget class="QLabel" name="label_32">
                    <property name="text">
-                    <string>elevation</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_23">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                   <property name="text">
-                    <string>tag</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag"/>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_27">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="text">
-                    <string>cap</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_cap">
-                   <property name="enabled">
-                    <bool>false</bool>
+                    <string>See the &quot;Advanced&quot; tab to add additional function groups</string>
                    </property>
                   </widget>
                  </item>
                 </layout>
                </widget>
               </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_4">
+             <property name="title">
+              <string>Metadata</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_19">
               <item>
-               <widget class="QGroupBox" name="groupBox_4">
-                <property name="title">
-                 <string>Metadata</string>
+               <widget class="QLabel" name="label_33">
+                <property name="text">
+                 <string>Provide additional information about your asset inventory data</string>
                 </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_2">
-                 <item>
-                  <layout class="QFormLayout" name="formLayout">
-                   <item row="0" column="0">
-                    <widget class="QLabel" name="dataSourceLabel">
-                     <property name="text">
-                      <string>Source</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <widget class="QLineEdit" name="dataSourceLineEdit_AI">
-                     <property name="placeholderText">
-                      <string>Describe the source of this data</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="0">
-                    <widget class="QLabel" name="labelLabel">
-                     <property name="text">
-                      <string>Asset Label</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="1">
-                    <widget class="QLineEdit" name="labelLineEdit_AI_label">
-                     <property name="placeholderText">
-                      <string>Short description of this asset (e.g., 'houses')</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item>
-                  <layout class="QFormLayout" name="formLayout_2">
-                   <item row="0" column="0">
-                    <widget class="QLabel" name="dateLabel">
-                     <property name="text">
-                      <string>Date</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <widget class="QLineEdit" name="dateLineEdit_AI"/>
-                   </item>
-                  </layout>
-                 </item>
-                </layout>
                </widget>
+              </item>
+              <item>
+               <layout class="QFormLayout" name="formLayout">
+                <item row="2" column="0">
+                 <widget class="QLabel" name="dataSourceLabel">
+                  <property name="text">
+                   <string>Source:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="1">
+                 <widget class="QLineEdit" name="dataSourceLineEdit_AI">
+                  <property name="placeholderText">
+                   <string>Describe the source of this data</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QLineEdit" name="labelLineEdit_AI_label">
+                  <property name="placeholderText">
+                   <string>Short description of this asset (e.g., 'houses')</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="labelLabel">
+                  <property name="text">
+                   <string>Asset Label*:</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QFormLayout" name="formLayout_2">
+                <item row="0" column="0">
+                 <widget class="QLabel" name="dateLabel">
+                  <property name="text">
+                   <string>Date</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QLineEdit" name="dateLineEdit_AI"/>
+                </item>
+               </layout>
               </item>
              </layout>
             </widget>
@@ -841,8 +872,8 @@ QToolBox::tab {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>639</width>
-        <height>207</height>
+        <width>958</width>
+        <height>595</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1036,8 +1067,8 @@ QToolBox::tab {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>621</width>
-        <height>256</height>
+        <width>958</width>
+        <height>595</height>
        </rect>
       </property>
       <attribute name="label">

@@ -1686,7 +1686,7 @@ QLabel {
        </layout>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_9">
+       <widget class="QPushButton" name="pushButton_help">
         <property name="text">
          <string>Help</string>
         </property>

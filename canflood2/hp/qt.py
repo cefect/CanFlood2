@@ -67,8 +67,9 @@ def set_widget_value(widget, value):
     elif isinstance(widget, QSpinBox):
         widget.setValue(int(value))
     
-    # Handle QgsMapComboBox separately since it may be a subclass of QComboBox.
+    
     elif isinstance(widget, QgsMapLayerComboBox):
+        
         if isinstance(value, QgsMapLayer):
             widget.setLayer(value)        
         elif hasattr(widget, 'set_layer_by_name'):

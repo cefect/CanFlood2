@@ -26,7 +26,7 @@
 #===============================================================================
 
 
-import os, sys, re, gc, shutil
+import os, sys, re, gc, shutil, webbrowser
 import sqlite3
 import pandas as pd
 import numpy as np
@@ -65,6 +65,7 @@ from .parameters import (
     fileDialog_filter_str, hazDB_schema_d, hazDB_meta_template_fp,
     projDB_schema_modelTables_d, consequence_category_d,
     eventMeta_control_d)
+import canflood2.parameters as parameters
 
 from .assertions import (
     assert_projDB_fp, assert_projDB_conn, assert_hazDB_conn, assert_hazDB_fp, 
@@ -1409,6 +1410,16 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         
         self.pushButton_save.clicked.connect(self._save_ui_to_projDB)
         
+        #connect the help button to launch the ReadTheDocs page
+        def launch_docs():
+            log.info(f'launching documentation at\n    {parameters.docs_url}')
+            try:
+                webbrowser.open(parameters.docs_url)
+            except Exception as e:
+                log.error(f'failed to launch documentation at\n    {parameters.docs_url} w/ {e}')
+        
+        self.pushButton_help.clicked.connect(launch_docs)
+        
         
         """not using 
         self.cancel_pushButton.clicked.connect(self.action_cancel_process)"""
@@ -1473,7 +1484,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
             
             
         def load_project_database_ui():
-            log.debug('create_new_project_database_ui')
+            log.debug('load_project_database_ui')
  
             filename, _ = QFileDialog.getOpenFileName(
                 self,  # Parent widget (your dialog)
@@ -1857,7 +1868,8 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         #=======================================================================
         log.debug('loading model suite')
         #clear the model suite
-        self._clear_all_models(clear_projDB=False, logger=log)
+        if len(self.model_index_d)>0:
+            self._clear_all_models(clear_projDB=False, logger=log)
         
         #load model index from the projDB
         model_index_dx = self.projDB_get_tables(['03_model_suite_index'], projDB_fp=projDB_fp)[0]

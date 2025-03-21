@@ -17,7 +17,13 @@ from PyQt5.QtWidgets import (
     QAction, QFileDialog, QListWidget, QTableWidgetItem,
     QComboBox,
     )
+
 from qgis.PyQt import QtWidgets
+from qgis.core import (
+    QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel,
+    QgsWkbTypes, QgsMapLayer, QgsLogger,
+    )
+
 
 from canflood2.hp.qt import set_widget_value, get_widget_value
 from canflood2.hp.vfunc import load_vfunc_to_df_d
@@ -193,7 +199,7 @@ def vfunc(dialog_model, vfunc_fp, monkeypatch):
 def test_dial_model_01_launch_config(dialog_model,model, qtbot):
     """simple launching and closing of the model configuration dialog
     
-    handled by the fixture
+    loads a simple projDB_fp (just initialized models)
     """     
     #assert dialog.model==model
     
@@ -213,6 +219,8 @@ def test_dial_model_02_save(dialog_model,
                             widget_modelConfig_data_d, 
                             test_name, qtbot):
     """basic dialog prep then click save/OK
+    
+    loads a simple projDB_fp (just initialized models)
     """     
     #assert dialog.model==model
     #===========================================================================
@@ -357,11 +365,13 @@ def test_dial_model_04_compile(dialog_model, model,
     #===========================================================================
     print(f'\n\nchecking dialog\n{"="*80}')
     
+    #check tables are loaded
     df_d = model.get_tables(model.compile_model_tables, result_as_dict=True)
     for table_name, df in df_d.items(): 
         assert len(df)>0, f'got empty table \'{table_name}\''
         
-    
+    #check finv layer was set
+    assert isinstance(dialog_model.get_finv_vlay(), QgsVectorLayer), 'failed to set finv layer'
     
     #===========================================================================
     # write------

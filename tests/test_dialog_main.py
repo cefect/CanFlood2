@@ -79,7 +79,7 @@ def oj_out(test_name, result):
 
  
 
-def dialog_projDB_load(dialog, projDB_fp, monkeypatch, tmpdir):
+def xxx_dialog_projDB_load(dialog, projDB_fp, monkeypatch, tmpdir):
     """helper to load the projDB"""
     projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp))) #assert_projDB_fp(projDB_fp)
     #patch the load button
@@ -247,19 +247,33 @@ def dialog(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
     print(f'\n\n{"=" * 80}\nDIALOG fixture setup complete\n{"=" * 80}\n\n')
     return dialog
 
-
-
-
-# Default fixtures that return None unless overridden.
+@pytest.fixture
+def dialog_loaded(dialog,  
+                aoi_vlay,dem_rlay, #instancing loads to project. dialog_projDB_load loads to UI
+                haz_rlay_d, #load to project. _load_projDB_to_ui checks for name match
+                projDB_fp, monkeypatch,tmpdir,
+                ):
+    """setup the project and load the dialog from the projDB"""
+    
+    #===========================================================================
+    # load maplayers onto project
+    #===========================================================================
+    """done by fixtures"""
+    
+    #===========================================================================
+    # load ui from projDB
+    #===========================================================================
+    #patch and click load projDB
+    projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp))) #assert_projDB_fp(projDB_fp)
+    #patch the load button
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda*args, **kwargs:(projDB_fp, ''))
+    #load the project database
+    click(dialog.pushButton_PS_projDB_load) #Main_dialog.load_project_database_ui()
+    
+    return dialog
+    
  
-
-
-#===============================================================================
-# @pytest.fixture
-# def widget_data_d(request):
-#     return getattr(request, "param", None)
-#===============================================================================
-
+ 
 @pytest.fixture
 def widget_data_d(dialog, widget_Main_dialog_data_d):
     """calling this fixture attaches it to the dialog"""
@@ -474,18 +488,14 @@ def test_dial_main_02_save_ui_to_project_database(dialog,tmpdir, test_name, monk
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
 ])
-def test_dial_main_03_load_projDB(dialog,
-          aoi_vlay,dem_rlay, #instancing loads to project. dialog_projDB_load loads to UI
-          haz_rlay_d, #load to project. _load_projDB_to_ui checks for name match
-                                  projDB_fp, monkeypatch,tmpdir,
+def test_dial_main_03_load_projDB(dialog_loaded,
                                   
                                   #for testing
-                                  eventMeta_df
-                                  
+                                  aoi_vlay, dem_rlay, eventMeta_df,                                  
                                              ):
     """Test that clicking the 'load project database' button sets the lineEdit with the dummy file path.
     
@@ -496,25 +506,24 @@ def test_dial_main_03_load_projDB(dialog,
     #===========================================================================
     # execute
     #===========================================================================
- 
-    #patch and click load projDB
-    dialog_projDB_load(dialog, projDB_fp, monkeypatch, tmpdir) #Main_dialog._load_projDB_to_ui()
+    """see dialog_loaded fixture"""
+
     
     #===========================================================================
     # check
     #===========================================================================
     print(f'\n\n{"=" * 80}\nchecking loaded data\n{"=" * 80}\n\n')
-    result = dialog.get_projDB_fp()
+    result = dialog_loaded.get_projDB_fp()
     assert_projDB_fp(result, check_consistency=True)
     
     #check that the aoi_vlay is on comboBox_aoi
-    assert dialog.comboBox_aoi.currentLayer() == aoi_vlay
+    assert dialog_loaded.comboBox_aoi.currentLayer() == aoi_vlay
      
     #check hte dem_rlay is on comboBox_dem
-    assert dialog.comboBox_dem.currentLayer() == dem_rlay
+    assert dialog_loaded.comboBox_dem.currentLayer() == dem_rlay
     
     #check the eventMeta_df
-    check_df = dialog.get_haz_events_df()
+    check_df = dialog_loaded.get_haz_events_df()
     assert_frame_equal(check_df.drop('layer_id', axis=1), eventMeta_df.drop('layer_id', axis=1))
     
     
@@ -527,21 +536,35 @@ def test_dial_main_03_load_projDB(dialog,
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
 ])
-def test_dial_main_04_MS_createTemplates(dialog, test_name,
-                                         projDB_fp,
+def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
+
                                          tutorial_name,
                                          ):
     """test creation and clearing of the model suite"""
     
  
+    #===========================================================================
+    # load database
+    #===========================================================================
+    """
+    dialog_loaded:
+        loads data from test_dial_main_02_save_ui_to_project_database:
+            parameters (widget data)
+            aoi_vlay
+            dem_rlay
+            haz_rlay_d
+            eventMeta_df
+    """
+
     
     #===========================================================================
     # #create the model suite templates
     #===========================================================================
+    dialog=dialog_loaded
     click(dialog.pushButton_MS_createTemplates)
  
     

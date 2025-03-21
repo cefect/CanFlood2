@@ -121,16 +121,21 @@ class Main_dialog_dev(object):
         #=======================================================================
         # set widget paramerters
         #=======================================================================
-        widget_data_d = widget_values_lib[tutorial_name]['Main_dialog']
-        
-        for widget_name, v in widget_data_d.items():
-            widget = getattr(self, widget_name, None)
-            if widget is not None:
-                set_widget_value(widget, v)
+        """no... just load from the projDB"""
+        #=======================================================================
+        # widget_data_d = widget_values_lib[tutorial_name]['Main_dialog']
+        # 
+        # for widget_name, v in widget_data_d.items():
+        #     widget = getattr(self, widget_name, None)
+        #     if widget is not None:
+        #         set_widget_value(widget, v)
+        #=======================================================================
                 
         #=======================================================================
         # load layers-----
         #=======================================================================
+        """here we load from the tutorial file data onto the QgisProject
+        loading the projDB will attempt to popuolate the ui by selecting from loaded layers"""
         data_d = tutorial_data_lib[tutorial_name]
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
@@ -161,9 +166,11 @@ class Main_dialog_dev(object):
         #=======================================================================
         # #hazard rasters
         #=======================================================================
+        raise NotImplementedError('stopped here')
         
-        
-        
+        #=======================================================================
+        # load projDB------
+        #=======================================================================
  
     
     
@@ -1530,7 +1537,10 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         return
     
     def _load_projDB_to_ui(self):
-        """load an existing project database file"""
+        """load an existing project database file
+        
+        this does not 'load' QgsMapLayers, but attempts to select them by name
+        """
         log = self.logger.getChild('_load_projDB_to_ui')
  
         fp =  self.get_projDB_fp()
@@ -1582,7 +1592,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         for _, row in haz_events_df.iterrows():
             layer_match = get_unique_layer_by_name(row['event_name'], layer_type=QgsRasterLayer)
             if layer_match is None:
-                raise IOError(f'failed to find matching raster for: {row["event_name"]}')
+                log.warning(f'failed to find matching raster for: {row["event_name"]}')
         
         #load the event meta onto the widget
         self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(haz_events_df)  

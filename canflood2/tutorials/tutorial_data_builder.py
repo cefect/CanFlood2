@@ -77,7 +77,7 @@ def get_test_data_filepaths_for_tutorials(
                     continue
 
                 #only include tif and geojson
-                if file.endswith(('.tif', '.geojson', '.csv', '.xls')):
+                if file.endswith(('.tif', '.geojson', '.csv', '.xls', '.canflood2')):
                     pass
                 else:
                     continue
@@ -116,6 +116,10 @@ def get_test_data_filepaths_for_tutorials(
                 elif file.startswith('vfunc'):
                     assert file.endswith('.xls'), f'bad file: {file}'
                     d['vfunc'] = os.path.join(root, file)
+                    
+                elif file.startswith('projDB'):
+                    assert file.endswith('.canflood2'), f'bad file: {file}'
+                    d['projDB'] = os.path.join(root, file)
                     
                 else:
                     raise IOError(f'unrecognized file: {file}')

@@ -76,7 +76,7 @@ from .dialog_model import Model_config_dialog
 
 
 #tutorial dev loaders
-from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d
+from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d, widget_values_lib
 
 #===============================================================================
 # load UI and resources
@@ -101,6 +101,71 @@ FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qg
 #===============================================================================
 # Dialog class
 #===============================================================================
+
+class Main_dialog_dev(object):
+    def _load_tutorial_to_ui(self):
+        """load the tutorial data into the UI"""
+        log = self.logger.getChild('_load_tutorial_to_ui')
+        
+        #retrieve the fancy tutorial name from teh combo box
+        tut_name_fancy = self.comboBox_tut_names.currentText()
+        
+        assert not tut_name_fancy == '', 'no tutorial selected'
+        
+        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]
+        
+        log.debug(f'loading tutorial \'{tutorial_name}\'')
+        
+        
+        #=======================================================================
+        # set widget paramerters
+        #=======================================================================
+        widget_data_d = widget_values_lib[tutorial_name]['Main_dialog']
+        
+        for widget_name, v in widget_data_d.items():
+            widget = getattr(self, widget_name, None)
+            if widget is not None:
+                set_widget_value(widget, v)
+                
+        #=======================================================================
+        # load layers-----
+        #=======================================================================
+        data_d = tutorial_data_lib[tutorial_name]
+        
+        param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
+        
+        def add_layer(layer, param_name):            
+            #set the widget
+            widget = getattr(self, param_s[param_name])
+            set_widget_value(widget, layer)
+            
+            # Check if the layer is valid before adding it to the project.
+            if not layer.isValid():
+                self.iface.messageBar().pushWarning("Layer not valid", f"Layer {layer.name()} is not valid.")
+                return
+            
+            # Add the layer to the current QGIS project, which updates the canvas automatically.
+            QgsProject.instance().addMapLayer(layer)
+            
+        
+        #=======================================================================
+        # from parametesr
+        #=======================================================================
+        #aoi
+        add_layer(QgsVectorLayer(data_d['aoi'], 'aoi', 'ogr'), 'aoi_vlay_name')
+ 
+        #DEM
+        add_layer(QgsRasterLayer(data_d['dem'], 'dem'), 'dem_rlay_name')
+        
+        #=======================================================================
+        # #hazard rasters
+        #=======================================================================
+        
+        
+        
+ 
+    
+    
 class Main_dialog_haz(object):
     """oragnizing hazard dialog functions here"""
     
@@ -153,27 +218,30 @@ class Main_dialog_haz(object):
                          widget_type_d=eventMeta_control_d,
                          )
         
-        #connect loading into the event metadata view
-        def load_selected_rasters_to_eventMeta_widget():
- 
-            #retrieve the selected layers from teh above table
-            layers_d = self.listView_HZ_hrlay.get_selected_layers()
-            
-            #use the layer names and the eventMeta_df_template to build a new dataframe
-            eventMeta_df = hazDB_schema_d['05_haz_events'].copy()
-            eventMeta_df['event_name'] = layers_d.keys()
-            eventMeta_df['layer_id'] = [layer.id() for layer in layers_d.values()]
-            eventMeta_df['layer_fp'] = [layer.source() for layer in layers_d.values()]
-            eventMeta_df['prob'] = 0.0 #probability]]    
-            
-            assert_df_matches_projDB_schema('05_haz_events', eventMeta_df)        
-            
-            #load this dataframe into the table widget
-            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)
+
             
  
         
-        self.pushButton_HZ_hrlay_load.clicked.connect(load_selected_rasters_to_eventMeta_widget)
+        self.pushButton_HZ_hrlay_load.clicked.connect(self.load_selected_rasters_to_eventMeta_widget)
+        
+            #connect loading into the event metadata view
+    def load_selected_rasters_to_eventMeta_widget(self):
+ 
+        #retrieve the selected layers from teh above table
+        layers_d = self.listView_HZ_hrlay.get_selected_layers()
+        
+        #use the layer names and the eventMeta_df_template to build a new dataframe
+        eventMeta_df = hazDB_schema_d['05_haz_events'].copy()
+        eventMeta_df['event_name'] = layers_d.keys()
+        eventMeta_df['layer_id'] = [layer.id() for layer in layers_d.values()]
+        eventMeta_df['layer_fp'] = [layer.source() for layer in layers_d.values()]
+        eventMeta_df['prob'] = 0.0 #probability]]    
+        
+        assert_df_matches_projDB_schema('05_haz_events', eventMeta_df)        
+        
+        #load this dataframe into the table widget
+        self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)
+        
     
     def xxx_create_new_hazDB(self, fp, overwrite=True):
         """create a new hazard database file
@@ -1025,7 +1093,7 @@ class Main_dialog_projDB(object):
         
  
     
-class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, 
+class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, Main_dialog_dev,
                   QtWidgets.QDialog, FORM_CLASS):
     
 
@@ -1112,9 +1180,17 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         self.comboBox_tut_names.addItems(
             [tutorial_fancy_names_d[k] for k in tutorial_data_lib.keys()]
             )
+        #reverr to index -1
+        self.comboBox_tut_names.setCurrentIndex(-1)
         
         #connect the runner button
         self.pushButton_tut_load.clicked.connect(self._load_tutorial_to_ui)
+        
+        #disable the pushbutton until the comboBox is set
+        self.pushButton_tut_load.setEnabled(False)
+        
+        self.comboBox_tut_names.currentIndexChanged.connect(
+            lambda : self.pushButton_tut_load.setEnabled(True))
         
         #=======================================================================
         # Project Setup tab========================-----------
@@ -1196,28 +1272,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         log.debug('slots connected')
         
 
-    def _load_tutorial_to_ui(self):
-        """load the tutorial data into the UI"""
-        log = self.logger.getChild('_load_tutorial_to_ui')
-        
-        #retrieve the fancy tutorial name from teh combo box
-        tut_name_fancy = self.comboBox_tut_names.currentText()
-        
-        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]
-        
-        log.debug(f'loading tutorial \'{tutorial_name}\'')
-        
-        
-        #=======================================================================
-        # set widget data
-        #=======================================================================
-        widget_data_d = tutorial_data_lib[tutorial_name]
-        
-        for widget_name, v in widget_data_d.items():
-            widget = getattr(self, widget_name, None)
-            if widget is not None:
-                set_widget_value(widget, v)
-        
+
 
     
     def _create_new_projDB(self, fp, overwrite=True):
@@ -1489,6 +1544,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         #=======================================================================
         # set the ui state from the project parameters
         #=======================================================================
+        """does this load the layers into the combo box?"""
         table_name='02_project_parameters'
         df_raw = self.projDB_get_tables([table_name], projDB_fp=fp)[0]
         s = df_raw.dropna(subset=['widgetName', 'value']).set_index('widgetName')['value']

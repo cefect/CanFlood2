@@ -71,7 +71,9 @@ def vfunc_fp(tutorial_name, tmpdir):
     
     #copy over to the testin directory for relative pathing
     fp = tutorial_data_lib[tutorial_name]['vfunc']
- 
+ #==============================================================================
+ # 
+ #==============================================================================
     
     
     return shutil.copyfile(fp, os.path.join(tmpdir, os.path.basename(fp)))
@@ -82,21 +84,21 @@ def vfunc_fp(tutorial_name, tmpdir):
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def dem_rlay(dem_fp):
-    if dem_fp is None:
-        return None
+    #if dem_fp is None:return None
     layer = QgsRasterLayer(dem_fp, 'dem_rlay')
     QgsProject.instance().addMapLayer(layer)
+    print(f'dem_rlay fixture instantiated from {dem_fp}')
     return layer
 
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def aoi_vlay(aoi_fp):
-    if aoi_fp is None:
-        return None
+    #if aoi_fp is None:return None
     assert os.path.exists(aoi_fp), f'bad filepath on aoi_vlay fixture:\n    {aoi_fp}'
     layer = QgsVectorLayer(aoi_fp, 'aoi_vlay', 'ogr')
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
+    print(f'aoi_vlay fixture instantiated from {aoi_fp}')
     return layer
 
 @pytest.fixture(scope='function')

@@ -38,7 +38,7 @@ from canflood2.hp.qt import set_widget_value
 # TESTS=======--------
 #===============================================================================
 @pytest.mark.dev
-@pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02'])
+@pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02', 'cf1_tutorial_01'])
 def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_name,
  
                                            ):
@@ -69,6 +69,11 @@ def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_
     
     #check they have been added to the dialog index
     assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
+    
+    #===========================================================================
+    # try clicking again
+    #===========================================================================
+    click(dialog.pushButton_tut_load)
 
  
 """ 

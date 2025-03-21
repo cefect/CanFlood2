@@ -84,8 +84,6 @@ from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_n
 #===============================================================================
 
 #append the path (resources_rc workaround)
-"""TODO: figure out if this is still needed or if there is a more elegant solution"""
-
 resources_module_fp = os.path.join(plugin_dir, 'resources.py')
 assert os.path.exists(resources_module_fp), resources_module_fp 
 if not os.path.dirname(resources_module_fp) in sys.path:
@@ -100,13 +98,23 @@ FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qg
 
 
 #===============================================================================
-# Dialog class
+# Dialog class------------------
 #===============================================================================
 
 class Main_dialog_dev(object):
     def _load_tutorial_to_ui(self):
         """load the tutorial data into the UI"""
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        
         log = self.logger.getChild('_load_tutorial_to_ui')
+        
+        # Get the current project instance and its layer tree root
+        project = QgsProject.instance()
+        root = project.layerTreeRoot()
+
+
         
         #retrieve the fancy tutorial name from teh combo box
         tut_name_fancy = self.comboBox_tut_names.currentText()
@@ -115,7 +123,19 @@ class Main_dialog_dev(object):
         
         tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]
         
+        
+        
+        
+        
         log.debug(f'loading tutorial \'{tutorial_name}\'')
+        
+ 
+        #=======================================================================
+        # # Create the parent group for this tutorial
+        #======================================================================= 
+        tutorialGroup = root.findGroup(tutorial_name)
+        if not tutorialGroup:
+            tutorialGroup = root.addGroup(tutorial_name)
         
         
         #=======================================================================
@@ -140,30 +160,37 @@ class Main_dialog_dev(object):
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
         
-        def add_layer(data_key, param_name, Constructor):            
+        def add_layer(data_key, param_name, Constructor, set_widget=True):           
 
-            
-            #load the layer
-            layer = Constructor(data_d[data_key], tutorial_name+'_'+data_key)
-            
-            # Check if the layer is valid before adding it to the project.
-            if not layer.isValid():
-                raise IOError(f'failed to load layer \'{data_key}\'')
+            try:
+                if not data_key in data_d:
+                    raise KeyError(f'failed to find data key \'{data_key}\'')
+                #load the layer
+                layer = Constructor(data_d[data_key], tutorial_name+'_'+data_key)
                 
-            
-            # Add the layer to the current QGIS project, which updates the canvas automatically.
-            QgsProject.instance().addMapLayer(layer)
-            
-            #check this was loaded to the project
-            assert get_unique_layer_by_name(layer.name()) is not None, f'failed to load layer \'{layer.name()}\''
-            
-            
-            #set the widget
-            widget = getattr(self, param_s[param_name])
-            set_widget_value(widget, layer)
-            
-            #wrap            
-            log.debug(f'added layer \'{layer.name()}\' to project')
+                # Check if the layer is valid before adding it to the project.
+                if not layer.isValid():
+                    raise IOError(f'failed to load layer \'{data_key}\'')
+                    
+                
+                # Add the layer to the current QGIS project, which updates the canvas automatically.
+                QgsProject.instance().addMapLayer(layer, False)
+                
+                tutorialGroup.addLayer(layer)
+                
+                #check this was loaded to the project
+                assert get_unique_layer_by_name(layer.name()) is not None, f'failed to load layer \'{layer.name()}\''
+                
+                
+                #set the widget
+                if set_widget:
+                    widget = getattr(self, param_s[param_name])
+                    set_widget_value(widget, layer)
+                
+                #wrap            
+                log.debug(f'added layer \'{layer.name()}\' to project')
+            except Exception as e:
+                log.error(f'failed to add layer \'{data_key}\' for {tutorial_name} w/\n    {e}')
             
         
         #=======================================================================
@@ -171,27 +198,63 @@ class Main_dialog_dev(object):
         #=======================================================================
         """note... these layer names need to match what was set when teh projDB test was done
         see tests.data.tutorial_fixtures
+        
+        NOTE: order matters for legend
+        
+        
+        TODO: add styles
         """
+        vlayConstructor = lambda x,y:QgsVectorLayer(x,y, 'ogr')
+        
+        
         #aoi
-        add_layer('aoi', 'aoi_vlay_name', lambda x,y:QgsVectorLayer(x,y, 'ogr'))
-        #add_layer(QgsVectorLayer(data_d['aoi'], 'aoi_vlay', 'ogr'), 'aoi_vlay_name')
+        add_layer('aoi', 'aoi_vlay_name', vlayConstructor)
+        
+        #FINV
+        add_layer('finv', 'finv_rlay_name', vlayConstructor,
+                  set_widget=False, #finv lives on the Model COnfig dialog
+                  )
+        
+
+ 
  
         #DEM
         add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
-        #add_layer(QgsRasterLayer(data_d['dem'], 'dem_rlay'), 'dem_rlay_name')
         
+
+        
+ 
+        
+ 
         #=======================================================================
-        # #hazard rasters
+        # layers: hazard----------
         #=======================================================================
+        #clear the selection
+        self.listView_HZ_hrlay.clear_checks()
+ 
+        hazardGroupName = "hazard event rasters"
+        hazardGroup = tutorialGroup.findGroup(hazardGroupName)
+        if not hazardGroup:
+            hazardGroup = tutorialGroup.addGroup(hazardGroupName)
+    
+    
         haz_rlay_d = dict()
         for ari, fp in data_d['haz'].items():
             log.debug(f'adding hazard raster \'{ari}\'={os.path.basename(fp)}')
             
             #load to project
             layer = QgsRasterLayer(fp, os.path.basename(fp).split('.')[0])
-            QgsProject.instance().addMapLayer(layer)
+            result = project.addMapLayer(layer,
+                                False, #dont add it ot the legend
+                                )
+            
+            assert not result is None
+            
+            hazardGroup.addLayer(layer)
             
             haz_rlay_d[layer.name()] = layer
+            
+        hazardGroup.setExpanded(False) #collapse the group
             
         
         log.debug(f'added {len(haz_rlay_d)} hazard rasters')
@@ -199,7 +262,11 @@ class Main_dialog_dev(object):
         #update the meta table widget
         """not strictly necessary for the projDB, but nice for the user to see"""
         self.listView_HZ_hrlay.populate_layers()
-        self.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
+        try:
+            self.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
+        except Exception as e:
+            """this can happen if the user pushes the button twice"""
+            log.error(f'failed to check layers w/ {e}')
             
         #=======================================================================
         # model specific data
@@ -210,21 +277,28 @@ class Main_dialog_dev(object):
         # load projDB------
         #=======================================================================
         #retrieve
-        projDB_fp = data_d['projDB']
-        #copy over the project database file
-        """dont want the user to make changes to the plugin version"""
-        projDB_fp = shutil.copyfile(projDB_fp, os.path.join(home_dir, os.path.basename(projDB_fp)))
-        log.debug(f'copied project database to\n    {projDB_fp}')
+        if 'projDB' in data_d:
+            
+            projDB_fp = data_d['projDB']
+            #copy over the project database file
+            """dont want the user to make changes to the plugin version"""
+            projDB_fp = shutil.copyfile(projDB_fp, os.path.join(home_dir, os.path.basename(projDB_fp)))
+            log.debug(f'copied project database to\n    {projDB_fp}')
+            
+            #set in dialog
+            """same thing that happens when pushButton_PS_projDB_load is pushed"""
+            self.lineEdit_PS_projDB_fp.setText(projDB_fp) 
+            
+            #run load routines
+            self._load_projDB_to_ui(projDB_fp=projDB_fp)
+            
+            #activate the save button
+            self.pushButton_save.setEnabled(True)
         
-        #set in dialog
-        """same thing that happens when pushButton_PS_projDB_load is pushed"""
-        self.lineEdit_PS_projDB_fp.setText(projDB_fp) 
-        
-        #run load routines
-        self._load_projDB_to_ui(projDB_fp=projDB_fp)
-        
-        #activate the save button
-        self.pushButton_save.setEnabled(True)
+        else:
+            log.warning('no projDB data found')
+            
+        log.push(f'loaded tutorial \'{tutorial_name}\'')
         
  
     
@@ -283,7 +357,12 @@ class Main_dialog_haz(object):
         
 
             
- 
+        #=======================================================================
+        # populating
+        #=======================================================================
+        self.pushButton_HZ_populate_clear.clicked.connect(
+            self.tableWidget_HZ_eventMeta.clear_tableWidget
+            )
         
         self.pushButton_HZ_hrlay_load.clicked.connect(self.load_selected_rasters_to_eventMeta_widget)
         

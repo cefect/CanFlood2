@@ -15,7 +15,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from PyQt5.QtTest import QTest
-from PyQt5.Qt import Qt, QApplication
+from PyQt5.Qt import Qt, QApplication #needed for itneractive
 from PyQt5.QtWidgets import (
     QAction, QFileDialog, QListWidget, QTableWidgetItem,
     QComboBox,
@@ -349,7 +349,7 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog_main, tmpdir, test_n
      
     
  
-
+@pytest.mark.dev
 @pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
 def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_name,
                                                haz_rlay_d, #loads to project
@@ -395,6 +395,11 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
     
  
     assert_frame_equal(event_df, test_event_df)
+    
+    #===========================================================================
+    # clear
+    #===========================================================================
+    click(dialog_main.pushButton_HZ_populate_clear)  
  
 
 

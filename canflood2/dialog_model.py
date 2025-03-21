@@ -33,7 +33,7 @@ from .hp.Q import vlay_to_df, ProcessingEnvironment
 from .assertions import assert_projDB_fp, assert_vfunc_fp, assert_projDB_conn
 
 from .parameters import (
-    consequence_category_d, home_dir, project_db_schema_d, finv_index,
+    consequence_category_d, home_dir, project_db_schema_d, finv_index,plugin_dir
     )
 from .hp.vfunc import  load_vfunc_to_df_d, vfunc_df_to_dict, vfunc_cdf_chk_d, vfunc_df_to_meta_and_ddf
 from .db_tools import sql_to_df
@@ -41,16 +41,26 @@ from .db_tools import sql_to_df
 from .core import Model
 
 
-
-
 #===============================================================================
-# load UI file
+# load UI and resources
 #===============================================================================
+
+#append the path (resources_rc workaround)
+resources_module_fp = os.path.join(plugin_dir, 'resources.py')
+assert os.path.exists(resources_module_fp), resources_module_fp 
+if not os.path.dirname(resources_module_fp) in sys.path:
+    sys.path.append(os.path.dirname(resources_module_fp))
+
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 ui_fp = os.path.join(os.path.dirname(__file__), 'canflood2_model_config.ui')
-assert os.path.exists(ui_fp), 'failed to find the ui file: \n    %s'%ui_fp
-FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='')
+assert os.path.exists(ui_fp), f'UI file not found: {ui_fp}'
+FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qgis
 
+ 
+
+#===============================================================================
+# Dialog class------------------
+#===============================================================================
 
 class Model_compiler(object):
     """organizer for model compilation functions

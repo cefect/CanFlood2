@@ -358,11 +358,44 @@ def bind_tableWidget(widget, logger, iface=None, widget_type_d=dict()):
  
         
         log.debug(f'Updated QTableWidget with {cnt} cells')
+        
+    
+    def clear_tableWidget(*args):
+        """
+        Fully clear a QTableWidget by removing all items, cell widgets, and header labels.
+        
+        Parameters:
+            widget (QTableWidget): The QTableWidget instance to clear.
+            logger (optional): A logging object for debugging (if provided).
+        
+        Returns:
+            None
+        """
+        # If a logger is provided, get a child logger for this operation.
+        if logger:
+            log = logger.getChild('clear_tableWidget')
+        else:
+            log = None
+    
+        # Remove all cell widgets from the table.
+        for row in range(widget.rowCount()):
+            for col in range(widget.columnCount()):
+                if widget.cellWidget(row, col) is not None:
+                    widget.removeCellWidget(row, col)
+    
+        # Clear all items and header labels.
+        widget.clear()
+        # Reset the row and column counts to zero to fully remove the layout.
+        widget.setRowCount(0)
+        widget.setColumnCount(0)
+        
+ 
 
     # Bind the helper methods to the widget for later use.
     widget.get_df_from_QTableWidget = get_df_from_QTableWidget
     widget.get_axis_labels = get_axis_labels
     widget.set_df_to_QTableWidget_spinbox=set_df_to_QTableWidget_spinbox
+    widget.clear_tableWidget = clear_tableWidget
 
     return widget
     

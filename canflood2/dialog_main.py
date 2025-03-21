@@ -1636,25 +1636,21 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
  
             if len(self.model_index_d)>0:
                 #d=dict()
+                cnt=0
                 log.debug(f'populating {table_name} w/ {len(self.model_index_d)} categories')
                 for category_code, modelid_d in self.model_index_d.items():     
                     for modelid, wrkr in modelid_d.items():
                         
                         """this function is not optimized for bulk writing like this...."""
                         self.update_model_index_dx(wrkr) #update the model index with this worker
-                        #=======================================================
-                        # raise NotImplementedError('use update_model_index_dx')
-                        # #add the model
-                        # s = wrkr.get_model_index_ser()
-                        # d[s.name] = s
-                        #=======================================================
+                        cnt+=1
+ 
                 
                 #check
                 model_index_dx = self.projDB_get_tables(['03_model_suite_index'])[0]
-                raise NotImplementedError('check this')
-                # Convert the dictionary to a DataFrame and concatenate with the blank DataFrame
-                #result_df = pd.concat([blank_df, pd.DataFrame(d).T], ignore_index=True)
-                #result_df.reindex(columns=blank_df.columns).astype(blank_df.dtypes.to_dict())
+                
+                assert len(model_index_dx)==cnt, f'failed to save all models: {len(model_index_dx)}'
+ 
             else:
                 log.debug(f'no models to save... storing template')
  

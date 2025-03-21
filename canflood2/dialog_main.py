@@ -1210,31 +1210,25 @@ class Main_dialog_projDB(object):
     def update_model_index_dx(self, model, **kwargs):
         """update the model index table with the model"""
         dx = self.get_model_index_dx()
-        
-        """
-        view(dx)
-        """
  
-        
         #retrieve the parameters from teh models parameter table
         s = model.get_model_index_ser()
  
         
-        #assert 'status' in s.index, 'missing status' #should always be present
-        
         #update the dx (where teh column names match the param_s index
-        dx.loc[(model.modelid, model.category_code), :] = s
-        
+        dx.loc[(model.modelid, model.category_code), :] = s        
 
         self.set_model_index_dx(dx, **kwargs) 
         
     def get_model_index_dx(self, **kwargs):
+        """todo: switch over to pure SCHEMA"""
         df = self.projDB_get_tables(['03_model_suite_index'], **kwargs)[0]
 
         df['modelid'] = df['modelid'].astype(int)
         return df.set_index(['modelid', 'category_code'])
     
     def set_model_index_dx(self, dx, **kwargs):
+        """TODO: switch to a schema index and remove these"""
         self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, **kwargs)
         """
         dx.reset_index().dtypes
@@ -1633,24 +1627,34 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
  
             blank_df = project_db_schema_d[table_name].copy()
  
-            d=dict()
- 
-        
-            for category_code, modelid_d in self.model_index_d.items():
- 
-                for modelid, wrkr in modelid_d.items():
-                    raise NotImplementedError('use update_model_index_dx')
-                    #add the model
-                    s = wrkr.get_model_index_ser()
-                    d[s.name] = s
-            
-            # Convert the dictionary to a DataFrame and concatenate with the blank DataFrame
-            result_df = pd.concat([blank_df, pd.DataFrame(d).T], ignore_index=True)
-            
-            # Reindex the result DataFrame to match the blank DataFrame's columns
-            df_d[table_name] = result_df.reindex(columns=blank_df.columns).astype(blank_df.dtypes.to_dict())
             
  
+            if len(self.model_index_d)>0:
+                #d=dict()
+                log.debug(f'populating {table_name} w/ {len(self.model_index_d)} categories')
+                for category_code, modelid_d in self.model_index_d.items():     
+                    for modelid, wrkr in modelid_d.items():
+                        
+                        """this function is not optimized for bulk writing like this...."""
+                        self.update_model_index_dx(wrkr) #update the model index with this worker
+                        #=======================================================
+                        # raise NotImplementedError('use update_model_index_dx')
+                        # #add the model
+                        # s = wrkr.get_model_index_ser()
+                        # d[s.name] = s
+                        #=======================================================
+                
+                #check
+                model_index_dx = self.get_model_index_dx()
+                # Convert the dictionary to a DataFrame and concatenate with the blank DataFrame
+                #result_df = pd.concat([blank_df, pd.DataFrame(d).T], ignore_index=True)
+                #result_df.reindex(columns=blank_df.columns).astype(blank_df.dtypes.to_dict())
+            else:
+                log.debug(f'no models to save... storing template')
+ 
+                df_d[table_name] = blank_df.copy()
+            
+            log.debug(f'finished setting {table_name}')
             #===================================================================
             # hazard tables
             #===================================================================

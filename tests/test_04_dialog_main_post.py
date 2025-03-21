@@ -3,9 +3,8 @@ Created on Mar 21, 2025
 
 @author: cef
 
-testing tutorial data loading
-    made this a separate module as these tests depend on all the tests
-    these dependencies (and workflow) are different from rest of the main dialog
+main dialog, post model config/run tests
+    for clenear test sequence and depenency management, made this separate
 '''
 
 #===============================================================================
@@ -22,7 +21,8 @@ from tests.conftest import (
     result_write_filename_prep, click
     )
 
-from tests.test_01_dialog_main import dialog_main #get the main dialog tests
+from tests.test_01_dialog_main import dialog_main, dialog_loaded #get the main dialog tests
+from tests.test_02_dialog_model import oj as oj_model #get the core
 
 
 from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp, assert_series_match
@@ -37,7 +37,7 @@ from canflood2.hp.qt import set_widget_value
 #===============================================================================
 # TESTS=======--------
 #===============================================================================
-@pytest.mark.dev
+ 
 @pytest.mark.parametrize("tutorial_name", ['cf1_tutorial_02', 'cf1_tutorial_01'])
 def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_name,
  
@@ -74,6 +74,37 @@ def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_
     # try clicking again
     #===========================================================================
     click(dialog.pushButton_tut_load)
+    
+
+@pytest.mark.dev
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    pytest.param(
+        'cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'),
+    )
+])
+def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, test_name,
+                                                  ):
+    """load the built main dialog, save it to a new project database
+    
+    see test_01_dialog_main.test_dial_main_02_save_ui_to_project_database() for pre-run test
+    """
+    dialog = dialog_loaded
+    #===========================================================================
+    # setup
+    #===========================================================================
+    """
+    dialog_loaded: configures
+        - projDB_fp set and loaded (should load the model suite)
+        - aoi, dem, haz layers
+    """
+    
+    #===========================================================================
+    # execute
+    #===========================================================================
+ 
+    # Simulate clicking the save button.
+    click(dialog.pushButton_save) #Main_dialog._save_ui_to_projDB()
+    
 
  
 """ 

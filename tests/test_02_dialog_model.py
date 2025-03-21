@@ -383,7 +383,11 @@ def test_dial_model_05_run(dialog_model, model,
                            ):
     """run the model (post compile)
     
-    NOTE: this outputs the projDB file used by teh plugin tutorial data loader
+
+    
+    NOTE: using this as the endpoint ProjDB for:
+        - builgin plugin tutorial data
+        - test_04_dialog_main_post.py
     """
     
     #===========================================================================

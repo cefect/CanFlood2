@@ -102,7 +102,7 @@ def assert_projDB_conn(conn,
         
         dx = df_d[table_name].copy()
         #dx['modelid'] = dx['modelid'].astype(str)
-        dx = dx.set_index(['modelid', 'category_code'])
+        #dx = dx.set_index(['modelid', 'category_code'])
         
         if len(dx)>0:
             tables_dx = dx.loc[:, projDB_schema_modelTables_d.keys()] 

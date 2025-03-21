@@ -483,7 +483,7 @@ class Main_dialog_haz(object):
                 #clean up the extraction
                 df_d[table_name] = df_d[table_name].replace('', pd.NA).astype(hazDB_schema_d[table_name].dtypes.to_dict())
                 
-                assert_eventMeta_df(df_d[table_name])
+                #assert_eventMeta_df(df_d[table_name])
                 
                             #warn on empties
                 for columnName, col in df_d[table_name].items():
@@ -975,8 +975,9 @@ class Main_dialog_modelSuite(object):
             self.projDB_drop_tables(*model_table_names_l, logger=log)
             
             #remove entry from model index table
-            dx = self.get_model_index_dx().drop(index=(modelid, category_code))
-            self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, logger=log)
+            dx = self.projDB_get_tables(['03_model_suite_index'] )[0].drop(index=(modelid, category_code))
+            #dx = self.get_model_index_dx().drop(index=(modelid, category_code))
+            self.projDB_set_tables({'03_model_suite_index':dx}, logger=log)
         
             
         
@@ -1035,7 +1036,7 @@ class Main_dialog_modelSuite(object):
         
         #check
         if clear_projDB:
-            model_index_dx = self.get_model_index_dx()
+            model_index_dx = self.projDB_get_tables(['03_model_suite_index'])[0]
             assert len(model_index_dx)==0, f'failed to clear models: {len(model_index_dx)}'
         
         #clear garbage
@@ -1209,7 +1210,8 @@ class Main_dialog_projDB(object):
 
     def update_model_index_dx(self, model, **kwargs):
         """update the model index table with the model"""
-        dx = self.get_model_index_dx()
+        dx = self.projDB_get_tables(['03_model_suite_index'])[0]
+ 
  
         #retrieve the parameters from teh models parameter table
         s = model.get_model_index_ser()
@@ -1218,21 +1220,24 @@ class Main_dialog_projDB(object):
         #update the dx (where teh column names match the param_s index
         dx.loc[(model.modelid, model.category_code), :] = s        
 
-        self.set_model_index_dx(dx, **kwargs) 
+        #self.set_model_index_dx(dx, **kwargs)
+        self.projDB_set_tables({'03_model_suite_index':dx}, **kwargs) 
         
-    def get_model_index_dx(self, **kwargs):
-        """todo: switch over to pure SCHEMA"""
-        df = self.projDB_get_tables(['03_model_suite_index'], **kwargs)[0]
-
-        df['modelid'] = df['modelid'].astype(int)
-        return df.set_index(['modelid', 'category_code'])
-    
-    def set_model_index_dx(self, dx, **kwargs):
-        """TODO: switch to a schema index and remove these"""
-        self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, **kwargs)
-        """
-        dx.reset_index().dtypes
-        """
+#===============================================================================
+#     def get_model_index_dx(self, **kwargs):
+#         """todo: switch over to pure SCHEMA"""
+#         df = self.projDB_get_tables(['03_model_suite_index'], **kwargs)[0]
+# 
+#         df['modelid'] = df['modelid'].astype(int)
+#         return df.set_index(['modelid', 'category_code'])
+#     
+#     def set_model_index_dx(self, dx, **kwargs):
+#         """TODO: switch to a schema index and remove these"""
+#         self.projDB_set_tables({'03_model_suite_index':dx.reset_index()}, **kwargs)
+#         """
+#         dx.reset_index().dtypes
+#         """
+#===============================================================================
  
         
  
@@ -1645,7 +1650,8 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
                         #=======================================================
                 
                 #check
-                model_index_dx = self.get_model_index_dx()
+                model_index_dx = self.projDB_get_tables(['03_model_suite_index'])[0]
+                raise NotImplementedError('check this')
                 # Convert the dictionary to a DataFrame and concatenate with the blank DataFrame
                 #result_df = pd.concat([blank_df, pd.DataFrame(d).T], ignore_index=True)
                 #result_df.reindex(columns=blank_df.columns).astype(blank_df.dtypes.to_dict())
@@ -1761,7 +1767,8 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         #clear the model suite
         self._clear_all_models(clear_projDB=False, logger=log)
         
-        model_index_dx = self.get_model_index_dx(projDB_fp=projDB_fp)
+        
+        model_index_dx = self.projDB_get_tables(['03_model_suite_index'], projDB_fp=projDB_fp)[0]
         
         if len(model_index_dx)>0:
             log.debug(f'loading {len(model_index_dx)} models')

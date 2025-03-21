@@ -68,7 +68,7 @@ from .parameters import (
 
 from .assertions import (
     assert_projDB_fp, assert_projDB_conn, assert_hazDB_conn, assert_hazDB_fp, 
-    assert_df_matches_projDB_schema
+    assert_df_matches_projDB_schema, assert_series_match
     )
 
 from .core import _get_proj_meta_d, Model
@@ -214,16 +214,9 @@ class Main_dialog_dev(object):
         add_layer('finv', 'finv_rlay_name', vlayConstructor,
                   set_widget=False, #finv lives on the Model COnfig dialog
                   )
-        
-
- 
  
         #DEM
         add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
-        
-
-        
- 
         
  
         #=======================================================================
@@ -714,6 +707,139 @@ class Main_dialog_modelSuite(object):
         """
         self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
     
+
+    def _add_model_widget(self, model, layout, 
+                          logger=None):
+        """add the widget for the model to the model suite tab"""
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log = logger.getChild('_add_model_widget')
+        
+        
+        
+        modelid, category_code = model.modelid, model.category_code
+        
+        log.debug(f'adding model to category \'{category_code}\'')
+        #=======================================================================
+        # precheck
+        #=======================================================================
+        #check the layout is empty
+        if layout.count() > 0:
+            raise AssertionError(f'layout {layout.name()} is not empty')
+        
+        assert model.widget_d is None, 'model already has widgets'
+ 
+        #=======================================================================
+        # start template
+        #=======================================================================
+        widget = load_model_widget_template() #load the model template
+        layout.addWidget(widget) #add it to the widget
+        
+        #loop through each of the widget elements and give them a reference
+        """because we add these dynamically, we need a way to lookup by model id"""
+        widget_d = dict()
+        for name, widget_type in self.modelSuite_widget_type_d.items(): 
+            
+            # Recursive search: findChild is recursive by default in PyQt.
+            child_widget = widget.findChild(widget_type, name)
+            assert isinstance(child_widget, widget_type), f'failed to find widget: {name}'
+            widget_d[name] = {'name':name, 'widget':child_widget}
+        
+        #=======================================================================
+        # #attach to the model worker
+        #=======================================================================
+        """not sure about this.. might make cleaning up strange"""
+        model.widget_d = widget_d
+        model.widget_suite = widget
+        #set labels
+        self._update_model_widget_labels(model=model)
+        
+        #connect the buttons
+        widget.pushButton_mod_run.clicked.connect(lambda:self._run_model(category_code, modelid))
+        widget.pushButton_mod_config.clicked.connect(lambda:self._launch_config_ui(category_code, modelid))
+        widget.pushButton_mod_minus.clicked.connect(lambda:self._remove_model(category_code, modelid))
+        widget.pushButton_mod_plus.clicked.connect(lambda:self._add_model(layout, category_code))
+        
+        return model
+    
+    def _load_model(self, layout, model_index_s, projDB_fp=None, logger=None):
+        """load a a model from the ProjDB onto the ui"""
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log = logger.getChild('_load_model')
+        
+        if projDB_fp is None: projDB_fp = self.get_projDB_fp()
+        
+        log.info(f'loading model \'{model_index_s["name"]}\' to model suite')
+        
+        #=======================================================================
+        # setup container
+        #=======================================================================
+        modelid, category_code = model_index_s.name
+        if not category_code in self.model_index_d:
+            self.model_index_d[category_code] = dict()
+        else:
+            if modelid in self.model_index_d[category_code]:
+                raise IOError(f'model \'{model_index_s["name"]}\' already loaded')
+        
+        #=======================================================================
+        # init worker
+        #=======================================================================        
+        
+        model = Model(parent=self,category_code=category_code, modelid=modelid, logger=self.logger)
+        
+        #=======================================================================
+        # consistency checks  
+        #=======================================================================
+        """user can load a partial model
+        jsut checking for minimum requirements:
+            has a table_parameters
+            has an entry in the model_index
+        """
+        
+        #check the parameter table is present
+        tables_d = model.get_table_names_all(projDB_fp=projDB_fp, result_as_dict=True)
+        assert 'table_parameters' in tables_d, 'no parameters table found' 
+        
+        #check there are some paramters        
+        assert not model.get_table_parameters()['value'].isna().all(), 'model parameters are empty'
+        
+        #check the modelid and category code match what is in the parameter table
+        index_d = model.get_index_d()
+        assert index_d['modelid']==modelid, 'modelid mismatch'
+        assert index_d['category_code']==category_code, 'category_code mismatch'
+        
+        #check the model index
+        model_s = model.get_model_index_ser()
+        
+        assert_series_match(model_s, model_index_s)
+        
+        
+        #=======================================================================
+        # #setup the UI        
+        #=======================================================================
+        model = self._add_model_widget(model, layout, logger=log) 
+ 
+        
+        #=======================================================================
+        # #add to the container
+        #=======================================================================
+ 
+        self.model_index_d[category_code][modelid] = model
+        
+        log.debug(f'added model \'{index_d}\'')
+        
+        return model
+        
+        
+        
+        
+
     def _add_model(self, layout, category_code,
                     logger=None,
                    projDB_fp=None,
@@ -740,12 +866,14 @@ class Main_dialog_modelSuite(object):
         
         log.debug(f'initiating model \'{modelName}\'')
         
+        #=======================================================================
+        # init worker
+        #=======================================================================
         model = Model(
             parent=self,
             category_code=category_code, modelid=modelid, logger=self.logger)
         
-        assert model.modelid==modelid, 'modelid mismatch'
-        
+        assert model.modelid==modelid, 'modelid mismatch'        
         index_d = model.get_index_d()
         
         
@@ -817,37 +945,7 @@ class Main_dialog_modelSuite(object):
         #=======================================================================
         # #setup the UI        
         #=======================================================================
-        log.debug(f'adding model to category \'{category_code}\'')
-        widget = load_model_widget_template() #load the model template
-        layout.addWidget(widget) #add it to the widget
-        
-        
-        #loop through each of the widget elements and give them a reference
-        """because we add these dynamically, we need a way to lookup by model id"""
-        widget_d = dict()
-        for name, widget_type in self.modelSuite_widget_type_d.items():
-            # Recursive search: findChild is recursive by default in PyQt.
-            child_widget = widget.findChild(widget_type, name)            
-            assert isinstance(child_widget, widget_type), f'failed to find widget: {name}'            
-            
-            widget_d[name] = {'name': name, 'widget': child_widget}
-            
-
-        
- 
-        #attach to the model worker
-        """not sure about this.. might make cleaning up strange"""
-        model.widget_d = widget_d
-        model.widget_suite = widget
-        
-        #set labels
-        self._update_model_widget_labels(model=model)
-        
-        #connect the buttons
-        widget.pushButton_mod_run.clicked.connect(lambda : self._run_model(category_code, modelid))
-        widget.pushButton_mod_config.clicked.connect(lambda : self._launch_config_ui(category_code, modelid))
-        widget.pushButton_mod_minus.clicked.connect(lambda : self._remove_model(category_code, modelid))
-        widget.pushButton_mod_plus.clicked.connect(lambda : self._add_model(layout, category_code))
+        model = self._add_model_widget(model, layout, logger=log)
         
  
  
@@ -1700,13 +1798,11 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         
         
         assert_projDB_fp(projDB_fp, check_consistency=True)
-        
  
-            
         #=======================================================================
         # set the ui state from the project parameters
         #=======================================================================
-        """loads dem and aoi as well"""
+        """selects dem and aoi (not hazard layers or finv)"""
         table_name='02_project_parameters'
         df_raw = self.projDB_get_tables([table_name], projDB_fp=projDB_fp)[0]
         s = df_raw.dropna(subset=['widgetName', 'value']).set_index('widgetName')['value']
@@ -1763,7 +1859,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
         #clear the model suite
         self._clear_all_models(clear_projDB=False, logger=log)
         
-        
+        #load model index from the projDB
         model_index_dx = self.projDB_get_tables(['03_model_suite_index'], projDB_fp=projDB_fp)[0]
         
         if len(model_index_dx)>0:
@@ -1775,7 +1871,8 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, M
                 params = consequence_category_d[category_code]
                 gb = getattr(self, params['boxName'])                
                 
-                self._add_model(gb.layout(), category_code, logger=log)
+                
+                self._load_model(gb.layout(), row, projDB_fp=projDB_fp, logger=log) #LOAD a model!
                 
                 #check the modelid was added
                 assert modelid in self.model_index_d[category_code], f'failed to add model {modelid}'

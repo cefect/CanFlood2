@@ -757,10 +757,13 @@ class Model(Model_run_methods, Model_table_assertions):
     #detaches on Model_config_dialog._custom_cleanup()
     Model_config_dialog=None 
     
+    widget_d=None #container for Main_dialog's run, fongi, minus, plus buttons on teh model suite tab
+    
     result_ead=None
     param_d=None
     
     compile_model_tables = [k for k,v in modelTable_params_d.items() if v['phase']=='compile'] 
+    
  
     
     def __init__(self,                  

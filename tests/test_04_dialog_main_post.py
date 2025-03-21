@@ -137,7 +137,7 @@ def test_dial_main_03_report_risk_curve(dialog_loaded, test_name,
     #===========================================================================
     # execute
     #===========================================================================
-    click(dialog.pushButton_R_riskCurve) #Main_dialog._run_selected_models()
+    click(dialog.pushButton_R_riskCurve) #Main_dialog._plot_risk_curve()
     
     
  

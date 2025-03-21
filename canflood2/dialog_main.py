@@ -26,7 +26,7 @@
 #===============================================================================
 
 
-import os, sys, re, gc, shutil, webbrowser
+import os, sys, re, gc, shutil, webbrowser, copy, hashlib, time
 import sqlite3
 import pandas as pd
 import numpy as np
@@ -47,7 +47,11 @@ from qgis.core import (
     QgsWkbTypes, QgsMapLayer, QgsLogger,
     )
 
- 
+
+#matplotlib
+import matplotlib.pyplot as plt
+import matplotlib
+
 
 from .hp.plug import (
     plugLogger, bind_layersListWidget, get_layer_info_from_combobox, bind_tableWidget,
@@ -58,6 +62,7 @@ from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value
 from .hp.sql import get_table_names
 from .hp.Q import get_unique_layer_by_name
+from .hp.plt import get_figure_hash, PltWindow
  
 
 from .parameters import (
@@ -1327,6 +1332,19 @@ class Main_dialog_modelSuite(object):
  
         log.info(f'cleared {cnt} models')
         
+    def _load_model_tables(self, models_d, table_name, projDB_fp=None):
+        """load the tables for the models"""
+        log = self.logger.getChild('_load_model_tables')
+        
+        log.debug(f'loading \'{table_name}\' table for {len(models_d)} models')
+        
+        tables_d = dict()
+        for name, model in models_d.items():
+            tables_d[name] = model.get_tables([table_name], projDB_fp=projDB_fp)[0]
+            
+ 
+        return pd.concat(tables_d, names=['model_name'])
+        
 
         
 
@@ -1465,12 +1483,199 @@ class Main_dialog_reporting(object):
         log = self.logger.getChild('_plot_risk_curve')
         projDB_fp = self.get_projDB_fp()
         
+        plot_mode = self.comboBox_R_mode.currentText()
         #=======================================================================
         # load data
         #=======================================================================
         models_d = self._get_selected_models(projDB_fp=projDB_fp)
         
-        tables_d = self._load_model_tables(models_d, projDB_fp=projDB_fp)
+        #impacts summary
+        impacts_summary_dx = self._load_model_tables(models_d, 'table_impacts_sum', projDB_fp=projDB_fp)        
+        impacts_summary_dx = impacts_summary_dx.set_index(['AEP'], append=True).droplevel(1)
+        
+        #parameter values
+        params_dx = self._load_model_tables(models_d, 'table_parameters', projDB_fp=projDB_fp)
+        params_dx = params_dx.set_index(['varName'], append=True).droplevel(1)['value'].unstack('varName')
+        
+        result_ead_s = params_dx['result_ead']
+        
+        
+        #join
+        dx = impacts_summary_dx.unstack('AEP').droplevel(0, axis=1)
+ 
+        
+        dx['EAD'] = result_ead_s
+        dx = dx.set_index('EAD', append=True)
+        
+        """
+        view(params_dx)
+        view(dx)
+        """
+        
+        #=======================================================================
+        # plot
+        #=======================================================================
+        log.info(f'plotting risk curve w/ {plot_mode} mode w/ {len(result_ead_s)} models')
+        args = (dx,)
+        skwargs = dict(logger=log)
+        
+        if plot_mode=='aggregate':
+            raise NotImplementedError(f'plot_mode: {plot_mode}')
+            fig = self._plot_risk_curve_aggregate(*args, **skwargs)
+            
+        elif plot_mode=='batch':
+            fig = self._plot_risk_curve_batch(*args, **skwargs)
+            
+        else:
+            raise NotImplementedError(f'plot_mode: {plot_mode}')
+        
+        #=======================================================================
+        # launcht he plott dialog
+        #=======================================================================
+        
+        self._fig_teardown(fig)
+        
+    def _plot_risk_curve_batch(self, dx,logger=None, 
+                               line_style_d=None,
+                               hatch_style_d=None,
+                               ):
+        """from the suite results, matrix subplot layout for each model"""
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log = logger.getChild('_plot_risk_curve_batch')
+        log.debug(f'plotting {dx.shape}')
+        
+        if line_style_d is None: 
+            line_style_d = copy.deepcopy(parameters.plot_style_lib['risk_curve']['line'])
+            
+        if hatch_style_d is None:
+            hatch_style_d = copy.deepcopy(parameters.plot_style_lib['risk_curve']['hatch'])
+        
+        #=======================================================================
+        # setup figure
+        #=======================================================================
+ 
+        
+        with matplotlib.rc_context(parameters.rcParams):
+            fig = plt.figure()
+            
+            #add title
+            fig.suptitle('Risk Curves')
+            
+            #add subplots, stacked vertically based on the number of models
+            ax_ar = np.atleast_1d(fig.subplots(nrows=1, ncols=len(dx)))
+
+            
+            for i, ((model_name, EAD), row) in enumerate(dx.iterrows()):
+                log.debug(f'plotting model \'{model_name}\' w/ EAD {EAD}')
+                
+                #===============================================================
+                # get data
+                #===============================================================
+                ax = ax_ar[i]
+                
+                x_ar, y_ar = row.index.values.astype(float), row.values
+                
+                #===============================================================
+                # add plot assets
+                #===============================================================
+                #add the line
+                ax.plot(x_ar, y_ar, label=model_name, **line_style_d)
+                
+                #add the hatch
+                ax.fill_betweenx(y_ar.astype(float), x1=x_ar, x2=0, **hatch_style_d)
+                
+                #===============================================================
+                # post format
+                #===============================================================
+                """
+                plt.show()
+                """
+                ax.set_title(f'{i}')
+                
+                ax.set_xlabel('AEP')
+                ax.set_ylabel('EAD')
+                
+                ax.legend()
+                
+                #===============================================================
+                # wrap
+                #===============================================================
+                log.debug(f'finished plotting model \'{model_name}\' w/ EAD {EAD}')
+                
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.info(f'finished plotting {dx.shape}')
+        
+        return fig
+            
+            
+            
+        
+ 
+        
+        
+    def _plot_risk_curve_aggregate(self, impacts_summary_dx, result_ead_s):
+        """plot the aggregate risk curve"""
+        log = self.logger.getChild('_plot_risk_curve_aggregate')
+        raise NotImplementedError()
+        
+
+        
+        return fig
+    
+    
+    
+    def _fig_teardown(self, fig,
+                      out_dir=None,
+                      logger=None,
+                      ):
+        """common method for handling a figure after it is generated"""
+        
+        #=======================================================================
+        # derfaults
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log = logger.getChild('_fig_teardown')
+        
+        if out_dir is None:
+            out_dir = self._get_out_dir()
+        
+        #=======================================================================
+        # if ofp is None:
+        #     hash_s =get_figure_hash(fig)
+        #=======================================================================
+            #ofp = os.path.join(self._get_out_dir(), 'risk_curve_%s.svg'%time.strftime('%Y%m%d_%H%M%S'))
+            
+        #=======================================================================
+        # launch the dialog
+        #=======================================================================
+        window = PltWindow(fig, out_dir=out_dir, parent=self.iface.mainWindow())
+        window.show()
+        log.info('launched matplotlib window on %s' % fig._suptitle.get_text())
+        window.activateWindow()
+        window.raise_()
+            
+            
+    def _get_out_dir(self):
+        """get the output directory"""
+        out_dir = self.lineEdit_R_outdir.text()
+        if out_dir=='':
+            out_dir = os.path.join(home_dir, 'output')
+            self.lineEdit_R_outdir.setText(out_dir)
+        os.makedirs(out_dir, exist_ok=True)
+        return out_dir
+    
+            
+        
+        
+        
+        
+        
         
  
     

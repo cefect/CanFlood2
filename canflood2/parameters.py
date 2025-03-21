@@ -311,4 +311,32 @@ project_db_schema_d['07_vfunc_data'] = pd.DataFrame({
 #===============================================================================
 impact_max = 1e12
  
+#===============================================================================
+# PLOTTING============
+#===============================================================================
+
+rcParams  = {
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Tahoma'],
+    'axes.titlesize': 10,
+    'figure.autolayout': False,
+    'legend.title_fontsize': 'large'
+}
+
+plot_style_lib = {
+    'risk_curve':{
+        'line':{
+            'color': 'black',
+            'linestyle': 'dashdot',
+            'linewidth': 2.0,
+            'alpha':0.75 , # 0=transparent, 1=opaque
+            'marker':'o',
+            'markersize':  4.0,
+            'fillstyle': 'none' #marker fill style
+                            },
+        'hatch':{
+            'color':'blue', 'alpha':0.1, 'hatch':None
+            },
+        }
+    }
  

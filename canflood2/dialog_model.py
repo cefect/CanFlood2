@@ -90,6 +90,8 @@ class Model_compiler(object):
         _ = self._table_expos_to_db(**skwargs)
         
         assert_projDB_fp(self.parent.get_projDB_fp())
+        
+        self.update_labels()
     
     
     
@@ -352,6 +354,10 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
                                   signal_emmiter_widget=self.comboBox_finv_vlay,
                                   fn_str=fn_str)
         
+        #bind the asset label to the update_labels such that any time it changes the function runs
+        """not sure about this... leaving this dependent on teh projDB fo rnow
+        self.labelLineEdit_AI_label.tesxtChanged(self.update_labels)
+        #self.label_mod_asset.setText(s['asset_label'])"""
         
         #=======================================================================
         # Vulnerability-----------
@@ -423,8 +429,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         df_d = load_vfunc_to_df_d(vfunc_fp)      
         
-        #set count
-        self.label_V_functionCount.setText(str(len(df_d)))
+
         
         log.debug(f'loaded {len(df_d)} vfuncs from {vfunc_fp}')
         #=======================================================================
@@ -516,6 +521,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # wrap
         #=======================================================================
+        self.update_labels()
         log.info(f'finished loading vfuncs from {os.path.basename(vfunc_fp)}')
 
         
@@ -569,7 +575,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         # update hte labels
         #=======================================================================
         model.compute_status()
-        self._update_model_labels(model=model)
+        self.update_labels(model=model)
  
         
         
@@ -577,11 +583,14 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         
         assert not self.model is None, 'failed to load model'
         
-    def _update_model_labels(self, model=None):
-        """set the labels for the model"""
-        log = self.logger.getChild('_update_model_labels')
+    def update_labels(self, model=None):
+        """update labels on this UI"""
+        log = self.logger.getChild('update_labels')
         if model is None: model = self.model
         
+        #=======================================================================
+        # top 'model' summary box
+        #=======================================================================
         #retrieve from model
         s = model.get_model_index_ser().fillna('')
         
@@ -591,6 +600,11 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
                
         self.label_category.setText(consequence_category_d[s['category_code']]['desc'])
         
+        #=======================================================================
+        # #vulnerability tool
+        #=======================================================================
+        vfunc_index_df = self.parent.projDB_get_tables(['06_vfunc_index'])[0]
+        self.label_V_functionCount.setText(str(len(vfunc_index_df)))
         
         #=======================================================================
         # status

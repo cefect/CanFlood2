@@ -894,8 +894,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>594</height>
+        <width>639</width>
+        <height>207</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1649,7 +1649,7 @@ QTabBar::tab:selected {
                  </item>
                  <item>
                   <property name="text">
-                   <string>fixed</string>
+                   <string>user</string>
                   </property>
                  </item>
                 </widget>

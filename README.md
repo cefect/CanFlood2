@@ -24,9 +24,6 @@ v2.0.0 prototype with the following features:
   
 
 
-## Known Issues
-- The project database provides a method for users to save and transport models. However, to minimize file size, no spatial data is stored in the project database. To work around this, when loading from a project database, layer names are used to link with the users QGIS canvas. Because of this, an error will be shown if: 1) the expected layer name is not found in the users canvas; or 2) duplicate names are found (this can happen if, for example, the tutorial data is loaded twice)
-- only tutorial 2 has all the necessary data.
 
 
 ## Installation Instructions 

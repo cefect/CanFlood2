@@ -25,7 +25,15 @@
    <string>CanFlood2</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton {
+   <string notr="true">QWidget { /* Targets most widgets */
+    font-size: 14px; 
+} 
+
+QDialog {
+    background-color: #99B7B3;
+}
+
+QPushButton {
   background-color: #2B403F;
   color: white;
 }
@@ -40,11 +48,8 @@ QTextEdit {
     background-color: #99B7B3; 
 }
 
-
  
-QWidget { /* Targets most widgets */
-    font-size: 14px; 
-} 
+
 
 /* For more specific elements */
 QLabel {

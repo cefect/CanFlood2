@@ -21,6 +21,7 @@ v2.0.0 prototype with the following features:
 - *Hazard*: specify metadata, select hazard events from loaded raster layers, populate event data. Eventually, support of export/import of just the hazard data will be added (for easier hazard scenario comparisons).
 - *Model Suite*: Creating template models for each of the 7 categories and launching the model config dialog.
 - *Model Configuration*: depth-dependent (L2) model setup and running. 
+- *Reporting*: Generate a **Risk Curve** from a completed model. 
   
 
 

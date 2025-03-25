@@ -125,12 +125,12 @@ Model Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Begin your model configuration by specifying the Inventory Vector Layer and its key fields:
-- **Index FieldName**: the field that uniquely identifies each feature.
-- **Elevation Type**: controls whether the values in tghe **elevation field** are absolute or relative to the DEM.
-- **tag**: the field containing the code corresponding to the damage function for that asset.
-- **scale**: the field containing the value by which the damage function result should be scaled (e.g., floor area).
-- **elevation**: the field containing the elevation or height of the asset.
-- **cap**: the field containing the maximum impact value to allow for the asset (e.g., comlete replacement cost)
+   - **Index FieldName**: the field that uniquely identifies each feature.
+   - **Elevation Type**: controls whether the values in tghe **elevation field** are absolute or relative to the DEM.
+   - **tag**: the field containing the code corresponding to the damage function for that asset.
+   - **scale**: the field containing the value by which the damage function result should be scaled (e.g., floor area).
+   - **elevation**: the field containing the elevation or height of the asset.
+   - **cap**: the field containing the maximum impact value to allow for the asset (e.g., comlete replacement cost)
 
 .. _fig-dialog-modelConfig-AssetInventory:
 
@@ -178,6 +178,21 @@ Finally, the EAD calculation parameters must be configured on the **Risk** tab.
 
 Once the model is fully configured, it can be run using the **Run** button on the **Model Suite** tab.
 
+.. _sec01-results:
+
+Reporting
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Once your model suite is configured and successfully run, the tools on the **Results** tab can be used to visualize and analyze the results.
+
+.. _fig-dialog-results:
+
+.. figure:: /assets/05-dialog-results.PNG
+   :alt: Results Tab
+   :align: center
+   :width: 900px
+
+   Results
 
 See the :ref:`User Guide <sec02-userGuide>` and the :ref:`Tutorials <sec03-tutorials>` section to learn more.
 

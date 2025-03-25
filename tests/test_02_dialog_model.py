@@ -56,8 +56,8 @@ os.makedirs(test_data_dir, exist_ok=True)
 # HELPERS----------
 #===============================================================================
 
-overwrite_testdata_plugin=True #for updating the projDB in the plugin tutorial data loader
-overwrite_testdata=True
+overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial data loader
+overwrite_testdata=False
 def write_projDB(dialog_model, test_name):
  
     projDB_fp = dialog_model.parent.get_projDB_fp()

@@ -15,7 +15,7 @@
 
 import pytest
 import os
-from PyQt5.QtWidgets import QTabWidget, QToolBox
+from PyQt5.QtWidgets import QTabWidget, QToolBox, QApplication
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtTest import QTest
 from PyQt5.Qt import Qt
@@ -30,19 +30,36 @@ from canflood2.parameters import src_dir
 
 
 def _write_dialog_screenshot(dialog, output_image):
-    # Adjust the dialog size to fit its contents and render it to a QPixmap.
-    #dialog.adjustSize()
+    """capture a screens shot of the dialog
+    
+    
+    NOTE: this doesnt render exactly the same as in QGIS
+    spent 15mins and couldn't resolve
+    """
+    # Ensure the dialog is visible and fully rendered
+    dialog.show()
+    QTest.qWaitForWindowExposed(dialog)
+    QApplication.processEvents()
+    QTest.qWait(100)  # Wait a bit for styles to be applied
+    
+    #try and get the style to set
+    dialog.repaint()
+    dialog.update()
+    
+    # Optionally, adjust the dialog size if needed
+    # dialog.adjustSize()
+
+    # Create a pixmap with the size of the dialog
     pixmap = QPixmap(dialog.size())
     dialog.render(pixmap)
     
-# Save the rendered screenshot as a PNG.
-    output_dir = os.path.join(src_dir, 'docs', 'source', 'assets') # Directory for saving images
+    # Save the rendered screenshot as a PNG.
+    output_dir = os.path.join(src_dir, 'docs', 'source', 'assets')
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, output_image)
     pixmap.save(output_path)
     
     dialog.close()
-    
     return output_path
 
 
@@ -96,7 +113,7 @@ def _write_toolbox_figure(dialog, output_image, page_name):
 
 
     
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
      ])
@@ -105,7 +122,7 @@ def _write_toolbox_figure(dialog, output_image, page_name):
     ('02-dialog-projectSetup.PNG', 'tab_02_PS'),
     ('03-dialog-hazard.PNG', 'tab_03_HZ'),
     ('04-dialog-modelSuite.PNG', 'tab_04_MS'),
-    ('05-dialog-results.PNG', 'tab_05_R'),
+    ('05-dialog-reporting.PNG', 'tab_05_R'),
  
 ], indirect=False)
 def test_capture_tab_screenshot(dialog_loaded, 
@@ -128,7 +145,7 @@ def test_capture_tab_screenshot(dialog_loaded,
 
 
  
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
      ])

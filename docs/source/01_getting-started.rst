@@ -69,7 +69,7 @@ Pressing the **Save** button will save the information you've entered so far ont
 
 .. _fig-dialog-projectSetup:
 
-.. figure:: /assets/02-dialog-projectSetup.PNG
+.. figure:: /assets/02-dialog-projectSetup.png
    :alt: Project Setup Tab
    :align: center
    :width: 900px
@@ -89,7 +89,7 @@ Finally, enter the event probabilities (and optional metadata) before again pres
 
 .. _fig-dialog-hazard:
 
-.. figure:: /assets/03-dialog-hazard.PNG
+.. figure:: /assets/03-dialog-hazard.png
    :alt: Hazard Tab
    :align: center
    :width: 900px
@@ -111,7 +111,7 @@ Each model must then be configured via its respective **Configure** button, whic
 
 .. _fig-dialog-modelSuite:
 
-.. figure:: /assets/04-dialog-modelSuite.PNG
+.. figure:: /assets/04-dialog-modelSuite.png
    :alt: Model Suite Tab
    :align: center
    :width: 900px
@@ -178,21 +178,21 @@ Finally, the EAD calculation parameters must be configured on the **Risk** tab.
 
 Once the model is fully configured, it can be run using the **Run** button on the **Model Suite** tab.
 
-.. _sec01-results:
+.. _sec01-reporting:
 
 Reporting
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Once your model suite is configured and successfully run, the tools on the **Results** tab can be used to visualize and analyze the results.
+Once your model suite is configured and successfully run, the tools on the **Reporting** tab can be used to visualize and analyze the results.
 
-.. _fig-dialog-results:
+.. _fig-dialog-reporting:
 
-.. figure:: /assets/05-dialog-results.PNG
-   :alt: Results Tab
+.. figure:: /assets/05-dialog-reporting.png
+   :alt: Reporting Tab
    :align: center
    :width: 900px
 
-   Results
+   Reporting
 
 See the :ref:`User Guide <sec02-userGuide>` and the :ref:`Tutorials <sec03-tutorials>` section to learn more.
 

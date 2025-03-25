@@ -56,7 +56,7 @@ def _write_dialog_screenshot(dialog, output_image):
     # Save the rendered screenshot as a PNG.
     output_dir = os.path.join(src_dir, 'docs', 'source', 'assets')
     os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, output_image)
+    output_path = os.path.join(output_dir, output_image+'.png')
     pixmap.save(output_path)
     
     dialog.close()
@@ -118,11 +118,11 @@ def _write_toolbox_figure(dialog, output_image, page_name):
     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
      ])
 @pytest.mark.parametrize('output_image, tab_widget_name', [
-    ('01-dialog-welcome.png', 'tab_01_welcome'),
-    ('02-dialog-projectSetup.PNG', 'tab_02_PS'),
-    ('03-dialog-hazard.PNG', 'tab_03_HZ'),
-    ('04-dialog-modelSuite.PNG', 'tab_04_MS'),
-    ('05-dialog-reporting.PNG', 'tab_05_R'),
+    ('01-dialog-welcome', 'tab_01_welcome'),
+    ('02-dialog-projectSetup', 'tab_02_PS'),
+    ('03-dialog-hazard', 'tab_03_HZ'),
+    ('04-dialog-modelSuite', 'tab_04_MS'),
+    ('05-dialog-reporting', 'tab_05_R'),
  
 ], indirect=False)
 def test_capture_tab_screenshot(dialog_loaded, 
@@ -150,10 +150,10 @@ def test_capture_tab_screenshot(dialog_loaded,
     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
      ])
 @pytest.mark.parametrize('output_image, page_widget_name', [
-    ('06-dialog-MC-AssetInventory.png', 'page_01_AI'),
-    ('07-dialog-MC-Vulnerability.PNG', 'page_02_Vuln'),
-    ('08-dialog-MC-Exposure.PNG', 'page_03_Exp'),
-    ('09-dialog-MC-Risk.PNG', 'page_04_Risk'), 
+    ('06-dialog-MC-AssetInventory', 'page_01_AI'),
+    ('07-dialog-MC-Vulnerability', 'page_02_Vuln'),
+    ('08-dialog-MC-Exposure', 'page_03_Exp'),
+    ('09-dialog-MC-Risk', 'page_04_Risk'), 
 ], indirect=False)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_capture_tab_screenshot_model(dialog_model, 

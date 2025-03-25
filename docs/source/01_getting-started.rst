@@ -28,7 +28,9 @@ If you don't see the icon, first ensure the plugin is checked on the **Installed
 
 Overviews
 -----------------------
-CanFlood2 is a platform for constructing and running flood risk models for Canada.
+CanFlood v2 is an object-based, transparent, open-source flood risk calculation tool built for Canada's Federal Guidelines for Flood Risk Assessment.
+This tool is designed to help you build, run, and evaluate a set of flood risk models from data you provide for your study area. 
+The tool assumes you have a basic understanding of flood risk modelling as described in the Federal Guidelines for Flood Risk Assessment. For more information, see the documentation (or click the help button).  
 
 
 
@@ -40,8 +42,7 @@ CanFlood2 is a platform for constructing and running flood risk models for Canad
 Quick-Start
 -----------------------
 
-
-To start working with CanFlood2, click the |CanFlood2_icon| to open the :ref:`Buildings Tool <sec02-bldgs>` dialog.
+To start working with CanFlood2, click the |CanFlood2_icon| to open the main dialog.
 
 
 .. _fig-dialog-welcome:
@@ -51,13 +52,131 @@ To start working with CanFlood2, click the |CanFlood2_icon| to open the :ref:`Bu
    :align: center
    :width: 900px
 
-   Welcome tab of the Buildings Tool.
+   Welcome message
 
 
-To use the tool to create a DDF from data for your archetypal building, first populate the **Metadata** tab with whatever information is available (see the :ref:`Tutorials <sec03-tutorials>` section for example data).
-Note only fields marked with an asterisk (*) are required, but the more information you provide, the more complete your DDF will be.
-To specify settings, the :ref:`Cost-Item Table <sec02-costItem>`, the :ref:`Depth-Replacement Factor (DRF) Database <sec02-DRF>`, and the :ref:`Fixed Costs <sec02-fixedCosts>` data, complete the **Data Input** tab.
-Finally, the four curve creation steps can be executed from the **Create Curve** tab, ending in an export of your DDF in :ref:`CanFlood format <sec02-CanFloodFormat>`.
+Once you have collected and prepared the input data summarized on the welcome tab, the remaining tabs can be used to build, run, and evaluate your flood risk models as summarized in the following sections.
+
+.. _sec01-projectSetup:
+
+Project Setup
+~~~~~~~~~~~~~~~~~~~~~~~
+
+On the Project Setup tab, begin by creating a Project Database File with the **New** button.
+Additional optional fields are provided to specify the study area and DEM layers.
+
+Pressing the **Save** button will save the information you've entered so far onto the project database file.
+
+.. _fig-dialog-projectSetup:
+
+.. figure:: /assets/02-dialog-projectSetup.PNG
+   :alt: Project Setup Tab
+   :align: center
+   :width: 900px
+
+   Project Setup
+
+
+.. _sec01-hazard:
+
+Hazard
+~~~~~~~~~~~~~~~~~~~~~~~
+
+On the Hazard tab, you can specify hazard layers and metadata to configure the hazard scenario for your models.
+Once your rasters are loaded into your QGIS project, click the **Refresh** button to populate the dialog, then select the layers you would like to include in the hazard scenario.
+Once the layers are selected in the middle pane, use the **Populate Table** button to create an Event Metadata table of the scenario.
+Finally, enter the event probabilities (and optional metadata) before again pressing **Save** to store this information in the project database file.
+
+.. _fig-dialog-hazard:
+
+.. figure:: /assets/03-dialog-hazard.PNG
+   :alt: Hazard Tab
+   :align: center
+   :width: 900px
+
+   Hazard
+
+
+
+.. _sec01-modelSuite:
+
+Model Suite
+~~~~~~~~~~~~~~~~~~~~~~~
+
+On the *Model Suite* tab, you can configure the models included in your analysis.
+The seven receptor categories described in the Federal Guidelines for Flood Risk Assessment are included in the tool to help you organize your models.
+Begin by clicking **Create Templates** to generate a model template for each receptor category.
+Additional models can be added or removed using the +/- buttons.
+Each model must then be configured via its respective **Configure** button, which launches the :ref:`Model Configuration <sec01-modelConfig>` dialog.
+
+.. _fig-dialog-modelSuite:
+
+.. figure:: /assets/04-dialog-modelSuite.PNG
+   :alt: Model Suite Tab
+   :align: center
+   :width: 900px
+
+   Model Suite
+
+
+.. _sec01-modelConfig:
+
+Model Configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Begin your model configuration by specifying the Inventory Vector Layer and its key fields:
+- **Index FieldName**: the field that uniquely identifies each feature.
+- **Elevation Type**: controls whether the values in tghe **elevation field** are absolute or relative to the DEM.
+- **tag**: the field containing the code corresponding to the damage function for that asset.
+- **scale**: the field containing the value by which the damage function result should be scaled (e.g., floor area).
+- **elevation**: the field containing the elevation or height of the asset.
+- **cap**: the field containing the maximum impact value to allow for the asset (e.g., comlete replacement cost)
+
+.. _fig-dialog-modelConfig-AssetInventory:
+
+.. figure:: /assets/06-dialog-MC-AssetInventory.png
+   :alt: Model Configuration - Asset Inventory
+   :align: center
+   :width: 900px
+
+   Model Configuration - Asset Inventory
+
+Next, the vulnerability or damage functions associated with the asset inventory can be specified on the **Vulnerability** tab by clicking **Load From File** and selecting a CanFlood format function database.
+
+.. _fig-dialog-modelConfig-Vulnerability:
+
+.. figure:: /assets/07-dialog-MC-Vulnerability.png
+   :alt: Model Configuration - Vulnerability
+   :align: center
+   :width: 900px
+
+   Model Configuration - Vulnerability
+
+
+Next the exposure parameters can be specified on the **Exposure** tab.
+
+
+.. _fig-dialog-modelConfig-Exposure:
+
+.. figure:: /assets/08-dialog-MC-Exposure.png
+   :alt: Model Configuration - Exposure
+   :align: center
+   :width: 900px
+
+   Model Configuration - Exposure
+
+Finally, the EAD calculation parameters must be configured on the **Risk** tab.
+
+.. _fig-dialog-modelConfig-Risk:
+
+.. figure:: /assets/09-dialog-MC-Risk.png
+   :alt: Model Configuration - Risk
+   :align: center
+   :width: 900px
+
+   Model Configuration - Risk
+
+Once the model is fully configured, it can be run using the **Run** button on the **Model Suite** tab.
 
 
 See the :ref:`User Guide <sec02-userGuide>` and the :ref:`Tutorials <sec03-tutorials>` section to learn more.
@@ -68,19 +187,9 @@ See the :ref:`User Guide <sec02-userGuide>` and the :ref:`Tutorials <sec03-tutor
 Frequently Asked Questions
 --------------------------
 
-**Where can I find Cost-Item data for my archetype?**
-    Typically this information is obtained from cost restoration experts using specialized software like Xactimate and a detailed model of the structure.
+**is CanFlood a flood risk model?**
 
-**How can I add entries to my Depth-Replacement-Factor (DRF) Database?**
-    You'll need to use some software that allows editing of SQLite databases. We recommend `DB Browser for SQLite <https://sqlitebrowser.org/>`_.
-
-**Where can I go to get help?**
-    The best place to get help is the `CanFlood2 GitHub Issues <https://github.com/NRCan/CanFlood2/issues>`_ page where you can read through questions posted by others or ask your own.
-
-
-**Do I really need to install an old version of QGIS to use CanFlood2?**
-      No, but we recommend it for best performance. If you have a newer version of QGIS installed, you can try CanFlood2 with it, but you may experience issues.
-      We do our best to keep CanFlood2 up-to-date with the latest version of QGIS.
+No, it is a framework for building and running flood risk models.
 
 
 

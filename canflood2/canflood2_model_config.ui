@@ -280,7 +280,7 @@ QTabBar::tab:selected {
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="page">
+     <widget class="QWidget" name="page_01_AI">
       <property name="geometry">
        <rect>
         <x>0</x>
@@ -311,7 +311,7 @@ QTabBar::tab:selected {
          <property name="currentIndex">
           <number>0</number>
          </property>
-         <widget class="QWidget" name="tab">
+         <widget class="QWidget" name="tab_AI_01_DataSeledction">
           <attribute name="title">
            <string>Data Selection</string>
           </attribute>
@@ -364,6 +364,47 @@ QTabBar::tab:selected {
               <item>
                <layout class="QHBoxLayout" name="horizontalLayout_26">
                 <item>
+                 <widget class="QLabel" name="label_2">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>50</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>99999</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Index FieldName*:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QgsFieldComboBox" name="mFieldComboBox_cid">
+                  <property name="minimumSize">
+                   <size>
+                    <width>100</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>200</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item>
                  <widget class="QLabel" name="label_8">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -385,6 +426,9 @@ QTabBar::tab:selected {
                   </property>
                   <property name="text">
                    <string>Elevation type*:</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -421,47 +465,6 @@ QTabBar::tab:selected {
                     <string>datum</string>
                    </property>
                   </item>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLabel" name="label_2">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>50</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>99999</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>         Index FieldName*:</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QgsFieldComboBox" name="mFieldComboBox_cid">
-                  <property name="minimumSize">
-                   <size>
-                    <width>100</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>200</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
                  </widget>
                 </item>
                 <item>
@@ -552,7 +555,7 @@ QTabBar::tab:selected {
                    <item>
                     <widget class="QLabel" name="label_27">
                      <property name="enabled">
-                      <bool>false</bool>
+                      <bool>true</bool>
                      </property>
                      <property name="text">
                       <string>cap</string>
@@ -565,7 +568,7 @@ QTabBar::tab:selected {
                    <item>
                     <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_cap">
                      <property name="enabled">
-                      <bool>false</bool>
+                      <bool>true</bool>
                      </property>
                     </widget>
                    </item>
@@ -661,7 +664,7 @@ QTabBar::tab:selected {
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="tab_2">
+         <widget class="QWidget" name="tab_AI_02_DataPreview">
           <attribute name="title">
            <string>Data Preview</string>
           </attribute>
@@ -685,7 +688,7 @@ QTabBar::tab:selected {
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="tab_3">
+         <widget class="QWidget" name="tab_AI_03_Advanced">
           <attribute name="title">
            <string>Advanced</string>
           </attribute>
@@ -889,13 +892,13 @@ QTabBar::tab:selected {
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="page_2">
+     <widget class="QWidget" name="page_02_Vuln">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>639</width>
-        <height>207</height>
+        <width>958</width>
+        <height>594</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1084,7 +1087,7 @@ QTabBar::tab:selected {
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="page_3">
+     <widget class="QWidget" name="page_03_Exp">
       <property name="geometry">
        <rect>
         <x>0</x>
@@ -1581,7 +1584,7 @@ QTabBar::tab:selected {
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="page_4">
+     <widget class="QWidget" name="page_04_Risk">
       <property name="geometry">
        <rect>
         <x>0</x>

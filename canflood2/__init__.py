@@ -24,7 +24,7 @@ def classFactory(iface):  # pylint: disable=invalid-name
  
 
 import importlib, warnings
-
+ 
 def check_package(package_name):
     spec = importlib.util.find_spec(package_name)
     if spec is not None:
@@ -34,5 +34,5 @@ def check_package(package_name):
         warnings.warn(f'module \'{package_name}\' not installed')
 
  
-#check_package('openpyxl')
+check_package('openpyxl')
 

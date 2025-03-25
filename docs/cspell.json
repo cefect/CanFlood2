@@ -1,0 +1,35 @@
+{
+    "language": "en-CA",
+    "dictionaries": [
+        "en-CA"
+    ],
+    "enableFiletypes": [
+        "rst"
+    ],
+    "ignoreRegExpList": [
+        "/<[^>]*>/g", // Ignore text within angle brackets
+        "/^\\.\\./", // Ignore lines that begin with ..
+        "/^../", // Ignore lines that begin with
+        "/:[^:]+:/g" // Ignore words enclosed with colons
+    ],
+    "ignorePaths": [
+        "package-lock.json",
+        "node_modules",
+        "vscode-extension",
+        ".git/objects",
+        ".vscode",
+        ".vscode-insiders",
+        ".settings"
+    ],
+    "words": [
+        "Arcadis",
+        "bldgs",
+        "costitem",
+        "DDFP",
+        "numref",
+        "operationalize",
+        "QGIS",
+        "stillwater",
+        "Xactimate"
+    ]
+}

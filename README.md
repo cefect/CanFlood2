@@ -1,5 +1,6 @@
-[![Documentation Status (dev)](https://readthedocs.org/projects/canflood2/badge/?version=dev)](https://canflood.readthedocs.io/en/dev/)
-[![Documentation Status (latest)](https://readthedocs.org/projects/canflood2/badge/?version=latest)](https://canflood.readthedocs.io/en/latest/)
+
+[![Documentation Status (latest)](https://readthedocs.org/projects/canflood2/badge/?version=latest)](https://canflood.readthedocs.io/en/latest/) (latest)
+[![Documentation Status (dev)](https://readthedocs.org/projects/canflood2/badge/?version=dev)](https://canflood.readthedocs.io/en/dev/) (dev)
 
 
 # CanFlood2

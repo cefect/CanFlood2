@@ -16,7 +16,7 @@ from .hp.sql import pd_dtype_to_sqlite_type
 # generic params-------
 #===============================================================================
 fileDialog_filter_str="CanFlood2 database files (*.canflood2)" 
-docs_url = 'https://canflood.readthedocs.io/en/latest/'
+docs_url = 'https://canflood2.readthedocs.io/en/latest/'
 
 #===============================================================================
 # directories and files-------

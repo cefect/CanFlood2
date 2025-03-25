@@ -1626,7 +1626,7 @@ class Main_dialog_reporting(object):
         
 
         
-        return fig
+        #return fig
     
     
     

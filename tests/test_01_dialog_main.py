@@ -54,7 +54,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS=========---------
 #===============================================================================
-overwrite_testdata=True
+overwrite_testdata=False
 def write_projDB(dialog_main, test_name):
  
     projDB_fp = dialog_main.get_projDB_fp()
@@ -136,17 +136,13 @@ use fixtures to parameterize in blocks
     
 @pytest.fixture(scope='function') 
 def dialog_main(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
-           #projDB_fp,
-           #widget_data_d,
-           #aoi_vlay, 
-           #dem_rlay, 
-           #haz_rlay_d, 
-           #eventMeta_df, #tutorial parameters           
+        
            ):
     """dialog_main fixture.
     
-    custom parameters should all be None if not specifeid
-    tutorial parameters are ALL returned if tutorial_name is passed
+    setup should be handled by calling fixtures from within your test
+    
+ 
         
     """
     
@@ -159,83 +155,6 @@ def dialog_main(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
                           )
  
  
-    
-
-        
-        
-    #===========================================================================
-    # # Add some default text to specific line edits.
-    #===========================================================================
-    #===========================================================================
-    # print(f"post DIALOG fixture setup\n{'=' * 80}\n\n")
-    # if widget_data_d is not None:
-    #     print('setting widget data')
-    #     for widget_name, v in widget_data_d.items():
-    #         widget = getattr(dialog, widget_name, None)
-    #         if widget is not None:
-    #             set_widget_value(widget, v)
-    #===========================================================================
-                
-    
-    #===========================================================================
-    # layers
-    #===========================================================================
-    #===========================================================================
-    # if aoi_vlay is not None:
-    #     dialog.comboBox_aoi.setLayer(aoi_vlay)
-    #===========================================================================
-        
-    #===========================================================================
-    # if dem_rlay is not None:
-    #     dialog.comboBox_dem.setLayer(dem_rlay)
-    #===========================================================================
-        
-        
-    #===========================================================================
-    # if haz_rlay_d is not None:
-    #     print(f'loading {len(haz_rlay_d)} hazard layers')
-    #     #select all of these layers in listView_HZ_hrlay
-    #     dialog.listView_HZ_hrlay.populate_layers()
-    #     dialog.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
-    #     
-    #     #load into the event metadata
-    #     click(dialog.pushButton_HZ_hrlay_load) #load_selected_rasters_to_eventMeta_widget()
-    #===========================================================================
-        
-    #===========================================================================
-    # event values in tableWidget_HZ_eventMeta
-    #===========================================================================
-#===============================================================================
-#     if eventMeta_df is not None:
-#         print(f'loading {eventMeta_df.shape} eventMeta_df')
-#         """this will overwrite click(dialog.pushButton_HZ_hrlay_load)"""
-#         assert not haz_rlay_d is None, 'must provide haz_rlay_d to load eval_d'
-#         #check the keys match
-#         assert set(eventMeta_df.iloc[:,0]) == set(haz_rlay_d.keys()), 'eval_d keys do not match haz_rlay_d keys'
-#  
-# 
-#         dialog.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)  
-#===============================================================================
-        
-        
-    #===========================================================================
-    # setup databases
-    #===========================================================================
-    """this goes last as the Load function expects the layers to be loaded"""
-    #===========================================================================
-    # if projDB_fp is not None:
-    #     print(f'copying projDB_fp \'{projDB_fp}\' to tmpdir')
-    #     projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp)))
-    #     #assert_projDB_fp(projDB_fp)
-    #     
-    #     #patch the load button
-    #     monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (projDB_fp, ''))
-    #     
-    #     #load the project database
-    #     click(dialog.pushButton_PS_projDB_load)
-    #===========================================================================
-        
- 
     print(f'\n\n{"=" * 80}\nDIALOG fixture setup complete\n{"=" * 80}\n\n')
     return dialog_main
 
@@ -245,7 +164,11 @@ def dialog_loaded(dialog_main,
                 haz_rlay_d, #load to project. _load_projDB_to_ui checks for name match
                 projDB_fp, monkeypatch,tmpdir,
                 ):
-    """setup the project and load the dialog from the projDB"""
+    """setup the project and load the dialog from the projDB
+    
+    TODO: rename this as a projDB fixture?
+    
+    """
     
     #===========================================================================
     # load maplayers onto project

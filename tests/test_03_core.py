@@ -34,7 +34,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 # helpers
 #===============================================================================
 
-overwrite_testdata=True
+overwrite_testdata=False
 def write_projDB(model, test_name):
  
     projDB_fp = model.parent.get_projDB_fp()

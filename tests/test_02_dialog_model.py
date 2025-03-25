@@ -33,8 +33,8 @@ from canflood2.assertions import assert_vfunc_fp, assert_series_match
 from canflood2.dialog_model import Model_config_dialog
 from canflood2.core import ModelNotReadyError
 
-from tests.test_01_dialog_main import widget_data_d, dialog_main
-from tests.test_01_dialog_main import dialog_loaded as dialog_main_loaded
+from tests.test_01_dialog_main import widget_data_d, dialog_main, dialog_loaded
+#from tests.test_01_dialog_main import dialog_loaded as dialog_main_loaded
  
 from tests.test_01_dialog_main import oj as oj_main
 #need to import the fixture from dialog_main
@@ -56,8 +56,8 @@ os.makedirs(test_data_dir, exist_ok=True)
 # HELPERS----------
 #===============================================================================
 
-overwrite_testdata_plugin=True #for updating the projDB in the plugin tutorial data loader
-overwrite_testdata=True
+overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial data loader
+overwrite_testdata=False
 def write_projDB(dialog_model, test_name):
  
     projDB_fp = dialog_model.parent.get_projDB_fp()
@@ -87,7 +87,7 @@ def oj_out(test_name, result):
 #===============================================================================
 interactive = False
 @pytest.fixture
-def dialog_model(dialog_main_loaded, model,
+def dialog_model(dialog_loaded, model,
            #turtorial data
            finv_vlay, 
  
@@ -116,7 +116,7 @@ def dialog_model(dialog_main_loaded, model,
         click tests seem to erase the pydev pyunit output capture
     """
     # Retrieve the model from the main dialog and the button that launches the config dialog.
-    dialog_main = dialog_main_loaded
+    dialog_main = dialog_loaded
     
     dlg = dialog_main.Model_config_dialog
 

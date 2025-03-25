@@ -25,7 +25,15 @@
    <string>CanFlood2</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton {
+   <string notr="true">QWidget { /* Targets most widgets */
+    font-size: 14px; 
+} 
+
+QDialog {
+    background-color: #99B7B3;
+}
+
+QPushButton {
   background-color: #2B403F;
   color: white;
 }
@@ -40,11 +48,8 @@ QTextEdit {
     background-color: #99B7B3; 
 }
 
-
  
-QWidget { /* Targets most widgets */
-    font-size: 14px; 
-} 
+
 
 /* For more specific elements */
 QLabel {
@@ -256,14 +261,14 @@ p, li { white-space: pre-wrap; }
        <item>
         <widget class="QLabel" name="label_2">
          <property name="text">
-          <string>Configure project and specify metadata</string>
+          <string>Basic project configuration</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_2">
          <property name="title">
-          <string>Project Database File</string>
+          <string>Project Database File*</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_9">
           <item>
@@ -313,7 +318,7 @@ p, li { white-space: pre-wrap; }
        <item>
         <widget class="QGroupBox" name="groupBox_5">
          <property name="title">
-          <string>Project Metadata</string>
+          <string>Project Metadata (optional)</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_14">
           <item>
@@ -519,6 +524,13 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item>
+        <widget class="QLabel" name="label_11">
+         <property name="text">
+          <string>*required items</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -705,6 +717,26 @@ p, li { white-space: pre-wrap; }
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_11">
               <item>
+               <widget class="QPushButton" name="pushButton_HZ_refresh">
+                <property name="text">
+                 <string>Refresh</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="verticalSpacer_4">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
                <widget class="QPushButton" name="pushButton_HZ_hrlay_selectAll">
                 <property name="text">
                  <string>Select All</string>
@@ -732,21 +764,7 @@ p, li { white-space: pre-wrap; }
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButton_HZ_hrlay_clear">
-                <property name="text">
-                 <string>Clear Selection</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButton_HZ_refresh">
-                <property name="text">
-                 <string>Refresh</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="verticalSpacer_4">
+               <spacer name="verticalSpacer_8">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
                 </property>
@@ -757,6 +775,13 @@ p, li { white-space: pre-wrap; }
                  </size>
                 </property>
                </spacer>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_HZ_hrlay_clear">
+                <property name="text">
+                 <string>Clear Selection</string>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
@@ -1158,7 +1183,7 @@ QGroupBox {
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_05_rpt">
+     <widget class="QWidget" name="tab_05_R">
       <attribute name="title">
        <string>Reporting</string>
       </attribute>

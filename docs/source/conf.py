@@ -63,3 +63,12 @@ numfig_format = {
 }
 
 
+# Enable nitpicky mode to warn about missing references
+nitpicky = True
+
+# Optionally, specify a list of references to ignore if necessary
+nitpick_ignore = [
+    # ('py:class', 'SomeClassName'),
+]
+
+

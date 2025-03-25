@@ -1,3 +1,7 @@
+[![Documentation Status (dev)](https://readthedocs.org/projects/canflood2/badge/?version=dev)](https://canflood.readthedocs.io/en/dev/)
+[![Documentation Status (latest)](https://readthedocs.org/projects/canflood2/badge/?version=latest)](https://canflood.readthedocs.io/en/latest/)
+
+
 # CanFlood2
  
 Open source flood risk modelling toolbox for Canada v2
@@ -11,7 +15,7 @@ tested against QGIS 3.34.14 and Qt 5.15.13
 
 ## Documentation
 
-TODO
+[Documentation](https://canflood2.readthedocs.io/en/latest/#) is provided in English for the latest, development, and archive versions. 
 
 ## Updates
 

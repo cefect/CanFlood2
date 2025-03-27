@@ -705,7 +705,7 @@ QTabBar::tab:selected {
               </sizepolicy>
              </property>
              <property name="title">
-              <string>Nest Fields</string>
+              <string>Additional Function Groups</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
@@ -898,7 +898,7 @@ QTabBar::tab:selected {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>594</height>
+        <height>574</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1093,7 +1093,7 @@ QTabBar::tab:selected {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>594</height>
+        <height>574</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1590,7 +1590,7 @@ QTabBar::tab:selected {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>594</height>
+        <height>574</height>
        </rect>
       </property>
       <attribute name="label">

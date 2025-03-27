@@ -41,7 +41,7 @@ from PyQt5.QtWidgets import (
  
 
 #qgis
-from qgis.gui import QgsMapLayerComboBox
+from qgis.gui import QgsMapLayerComboBox, QgisInterface
 from qgis.core import (
     QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel,
     QgsWkbTypes, QgsMapLayer, QgsLogger,
@@ -1713,12 +1713,16 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         self.parent=parent
         self.iface=iface 
         
+        if not iface is None:
+            assert 'QgisInterface' in str(type(iface)), f'bad iface type: {type(iface)}'
+
+        
         self.model_index_d = dict() #for tracking the model instances
         #{category_code:{modelid:Model}}
         
         #setup logger
         self.logger = plugLogger(
-            self.iface, parent=self, statusQlab=self.progressText,debug_logger=debug_logger,
+            iface=self.iface, parent=self, statusQlab=self.progressText,debug_logger=debug_logger,
             log_nm='MD',
             )
         

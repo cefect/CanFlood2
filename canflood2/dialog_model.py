@@ -27,7 +27,7 @@ from qgis.core import (
 
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
-from .hp.plug import bind_QgsFieldComboBox, bind_MapLayerComboBox
+from .hp.plug import bind_QgsFieldComboBox, bind_MapLayerComboBox, plugLogger
 from .hp.Q import vlay_to_df, ProcessingEnvironment
 
 from .assertions import assert_projDB_fp, assert_vfunc_fp, assert_projDB_conn
@@ -304,7 +304,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, 
                  iface, 
                  parent=None,
-                 logger=None,
+                 debug_logger=None,
 
                  ):
         """called on stawrtup"""
@@ -313,8 +313,16 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
  
         self.parent=parent
         self.iface = iface
-        self.logger=logger.getChild('model_config')
+        
         self.setupUi(self)
+        
+        
+        #setup logger
+        #self.logger=logger.getChild('model_config')
+        self.logger = plugLogger(
+            iface=self.iface, parent=self, statusQlab=self.progressText,debug_logger=debug_logger,
+            log_nm='MC',
+            )
         
         self.connect_slots()
         
@@ -749,8 +757,9 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
             self.progressBar.setValue(100)
             log.push(f'finished running model {model.name}')
         except Exception as e:
-            log.error(f'failed to run model {model.name} w/ \n     {e}')
-            log.push(f'failed to run model {model.name}')
+            log.error(f'failed to run model {model.name}')
+            log.info(f'failed to run model {model.name} w/ \n     {e}')
+            
             self.progressBar.setValue(0)
             
         

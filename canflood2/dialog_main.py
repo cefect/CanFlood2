@@ -854,7 +854,7 @@ class Main_dialog_modelSuite(object):
     def _connect_slots_modelSuite(self, log):
         
         #inint the model config dialog
-        #self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
+ 
         
         self.pushButton_MS_clear.clicked.connect(self._clear_all_models)
         
@@ -892,7 +892,8 @@ class Main_dialog_modelSuite(object):
         but should be better for user experience as this dialog is called multiple times
         need to add some logic for reseting the dialog each time it is called by the ocnfigure button
         """
-        self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
+        self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, 
+                                                       debug_logger=self.logger.debug_logger)
     
 
     def _add_model_widget(self, model, layout, 

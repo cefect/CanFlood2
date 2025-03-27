@@ -103,7 +103,7 @@ QTabBar::tab:selected {
       </font>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">
@@ -879,6 +879,9 @@ p, li { white-space: pre-wrap; }
             </item>
             <item>
              <widget class="QRadioButton" name="radioButton_ELaep">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -1030,8 +1033,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>941</width>
-            <height>618</height>
+            <width>275</width>
+            <height>356</height>
            </rect>
           </property>
           <property name="styleSheet">

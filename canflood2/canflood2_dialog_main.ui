@@ -103,7 +103,7 @@ QTabBar::tab:selected {
       </font>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_01_welcome">
       <property name="palette">
@@ -793,6 +793,12 @@ p, li { white-space: pre-wrap; }
               <property name="alternatingRowColors">
                <bool>true</bool>
               </property>
+              <property name="selectionMode">
+               <enum>QAbstractItemView::NoSelection</enum>
+              </property>
+              <property name="selectionBehavior">
+               <enum>QAbstractItemView::SelectRows</enum>
+              </property>
              </widget>
             </item>
            </layout>
@@ -928,10 +934,13 @@ p, li { white-space: pre-wrap; }
              <enum>QAbstractItemView::SingleSelection</enum>
             </property>
             <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
+             <enum>QAbstractItemView::SelectItems</enum>
             </property>
             <property name="gridStyle">
              <enum>Qt::SolidLine</enum>
+            </property>
+            <property name="sortingEnabled">
+             <bool>true</bool>
             </property>
             <property name="wordWrap">
              <bool>false</bool>
@@ -1033,8 +1042,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>275</width>
-            <height>356</height>
+            <width>941</width>
+            <height>618</height>
            </rect>
           </property>
           <property name="styleSheet">

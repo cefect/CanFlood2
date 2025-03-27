@@ -725,28 +725,35 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # trigger save        
         #=======================================================================
-        self.progressBar.setValue(5)
-        self._set_ui_to_table_parameters(**skwargs)
+        try:
+            self.progressBar.setValue(5)
+            self._set_ui_to_table_parameters(**skwargs)
+            
+    
+            #=======================================================================
+            # compiling
+            #=======================================================================
+            self.progressBar.setValue(20)
+            if compile_model:
+                self.compile_model(**skwargs)
+            
+            #=======================================================================
+            # run it
+            #=======================================================================
+            self.progressBar.setValue(50)
+            model.run_model(projDB_fp=self.parent.get_projDB_fp())
+            
+            #=======================================================================
+            # wrap
+            #=======================================================================
+            self.progressBar.setValue(100)
+            log.push(f'finished running model {model.name}')
+        except Exception as e:
+            log.error(f'failed to run model {model.name} w/ \n     {e}')
+            log.push(f'failed to run model {model.name}')
+            self.progressBar.setValue(0)
+            
         
-
-        #=======================================================================
-        # compiling
-        #=======================================================================
-        self.progressBar.setValue(20)
-        if compile_model:
-            self.compile_model(**skwargs)
-        
-        #=======================================================================
-        # run it
-        #=======================================================================
-        self.progressBar.setValue(50)
-        model.run_model(projDB_fp=self.parent.get_projDB_fp())
-        
-        #=======================================================================
-        # wrap
-        #=======================================================================
-        self.progressBar.setValue(100)
-        log.push(f'finished running model {model.name}')
 
     def _save_and_close(self):
         """save the dialog to the model parameters table"""

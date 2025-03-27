@@ -1314,6 +1314,13 @@ QGroupBox {
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_12">
           <item>
+           <widget class="QLabel" name="label_12">
+            <property name="text">
+             <string>Select the models to include, then click the result figure type under 'Generate'</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <layout class="QHBoxLayout" name="horizontalLayout">
             <item>
              <widget class="QGroupBox" name="groupBox_7">

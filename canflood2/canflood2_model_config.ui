@@ -286,7 +286,7 @@ QTabBar::tab:selected {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>594</height>
+        <height>574</height>
        </rect>
       </property>
       <attribute name="label">
@@ -316,6 +316,22 @@ QTabBar::tab:selected {
            <string>Data Selection</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_11">
+           <item>
+            <widget class="QPushButton" name="pushButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Import from Web Services</string>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QGroupBox" name="groupBox_02finv">
              <property name="sizePolicy">
@@ -705,7 +721,7 @@ QTabBar::tab:selected {
               </sizepolicy>
              </property>
              <property name="title">
-              <string>Nest Fields</string>
+              <string>Additional Function Groups</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
@@ -898,7 +914,7 @@ QTabBar::tab:selected {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>594</height>
+        <height>574</height>
        </rect>
       </property>
       <attribute name="label">
@@ -982,22 +998,6 @@ QTabBar::tab:selected {
               </property>
               <property name="text">
                <string>Select From Library</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>150</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>Load from CanCurve</string>
               </property>
              </widget>
             </item>
@@ -1093,7 +1093,7 @@ QTabBar::tab:selected {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>594</height>
+        <height>574</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1590,7 +1590,7 @@ QTabBar::tab:selected {
         <x>0</x>
         <y>0</y>
         <width>958</width>
-        <height>594</height>
+        <height>574</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1921,17 +1921,28 @@ p, li { white-space: pre-wrap; }
          <layout class="QVBoxLayout" name="verticalLayout_20">
           <item>
            <widget class="QLabel" name="progressText">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>30</height>
+              <height>50</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>15</height>
+              <height>16777215</height>
              </size>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>-1</pointsize>
+             </font>
             </property>
             <property name="text">
              <string>Waiting on User...</string>

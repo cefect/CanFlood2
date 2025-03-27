@@ -38,7 +38,7 @@ class plugLogger(object):
     log_nm_default = 'cf2' #logger name
     
     def __init__(self, 
-                 iface,
+                 iface=None,
                  statusQlab=None,                 
                  parent=None,
                  log_nm = None,
@@ -52,6 +52,11 @@ class plugLogger(object):
             workaround to capture QgsLogger
         """
         
+        if not iface is None:
+            if not 'QgisInterface' in str(type(iface)):
+                raise IOError('bad type on iface: %s'%type(iface))
+            
+            self.messageBar = iface.messageBar()
         self.iface=iface
         self.statusQlab = statusQlab
         self.parent=parent
@@ -90,10 +95,12 @@ class plugLogger(object):
             debug_logger = None
         
         #build a new logger
-        child_log = plugLogger(self.parent, 
-                           statusQlab=self.statusQlab,
-                           log_nm=log_nm,
-                           debug_logger=debug_logger)
+        child_log = plugLogger(
+            iface=self.iface,
+            statusQlab=self.statusQlab,
+            parent= self.parent,
+            log_nm=log_nm,
+            debug_logger=debug_logger)
         
 
         
@@ -145,11 +152,13 @@ class plugLogger(object):
             QgsLogger.debug('%i_%s'%(qlevel, msgDebug)) #also send to file
             
         #Qgis bar
-        if push:
+        if push and not self.iface is None:
             try:
-                self.iface.messageBar().pushMessage(self.log_tabnm, msg_raw, level=qlevel)
-            except:
-                QgsLogger.debug('failed to push to interface') #used for standalone tests
+                #self.messageBar.pushMessage(self.log_tabnm, msg_raw, level=qlevel)
+                self.messageBar.pushMessage(msg_raw, level=qlevel)
+            except Exception as e:
+                raise IOError(f'failed to push message to interface\n    {self.iface}\n    {e}')
+                #QgsLogger.debug(f'failed to push message to interface\n    {self.iface}\n    {e}') #used for standalone tests
         
         #Optional widget
         if status or push:

@@ -41,7 +41,7 @@ from PyQt5.QtWidgets import (
  
 
 #qgis
-from qgis.gui import QgsMapLayerComboBox
+from qgis.gui import QgsMapLayerComboBox, QgisInterface
 from qgis.core import (
     QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel,
     QgsWkbTypes, QgsMapLayer, QgsLogger,
@@ -854,7 +854,7 @@ class Main_dialog_modelSuite(object):
     def _connect_slots_modelSuite(self, log):
         
         #inint the model config dialog
-        #self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
+ 
         
         self.pushButton_MS_clear.clicked.connect(self._clear_all_models)
         
@@ -892,7 +892,8 @@ class Main_dialog_modelSuite(object):
         but should be better for user experience as this dialog is called multiple times
         need to add some logic for reseting the dialog each time it is called by the ocnfigure button
         """
-        self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, logger=self.logger)
+        self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, 
+                                                       debug_logger=self.logger.debug_logger)
     
 
     def _add_model_widget(self, model, layout, 
@@ -1713,12 +1714,16 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         self.parent=parent
         self.iface=iface 
         
+        if not iface is None:
+            assert 'QgisInterface' in str(type(iface)), f'bad iface type: {type(iface)}'
+
+        
         self.model_index_d = dict() #for tracking the model instances
         #{category_code:{modelid:Model}}
         
         #setup logger
         self.logger = plugLogger(
-            self.iface, parent=self, statusQlab=self.progressText,debug_logger=debug_logger,
+            iface=self.iface, parent=self, statusQlab=self.progressText,debug_logger=debug_logger,
             log_nm='MD',
             )
         

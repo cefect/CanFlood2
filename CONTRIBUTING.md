@@ -61,15 +61,15 @@ This zip file can then be distributed using a git-hub release (upload the zip fi
 
 the dev branch is where new features and fixes are collected and tested before release. The following should be executed on the dev branch in preparation for pushing to the main branch:
 
-- [ ] add/update documentation where applicable
+- [ ] add/update documentation where applicable (run `.\docs\update_ui_screenshots.py`)
 
 - [ ] backwards merge master into dev to capture any upstream changes (these should be minor and limited to documentation tweaks as all development is done on the dev branch)
 
-- [ ] ensure the version tag is updated on `.\CanFlood2\__init__.py`
+- [ ] ensure the version tag is updated on `.\canflood2\__init__.py`
 
 - [ ] update the README.md to summarize any new features for users
 
-- [ ] similarly update CanFlood2\metadata.txt
+- [ ] similarly update `.\canflood2\metadata.txt
 
 - [ ] execute all tests. investigate warnings. fix errors. 
 

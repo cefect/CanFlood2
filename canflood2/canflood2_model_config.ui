@@ -986,22 +986,6 @@ QTabBar::tab:selected {
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>150</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>Load from CanCurve</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QPushButton" name="pushButton_4">
               <property name="enabled">
                <bool>false</bool>

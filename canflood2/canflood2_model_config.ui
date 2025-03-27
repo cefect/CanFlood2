@@ -317,6 +317,22 @@ QTabBar::tab:selected {
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_11">
            <item>
+            <widget class="QPushButton" name="pushButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Import from Web Services</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QGroupBox" name="groupBox_02finv">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">

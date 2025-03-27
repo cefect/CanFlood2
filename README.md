@@ -19,7 +19,8 @@ tested against QGIS 3.34.14 and Qt 5.15.13
 [Documentation](https://canflood2.readthedocs.io/en/latest/#) is provided in English for the latest, development, and archive versions. 
 
 ## Updates
-
+[v2.0.2](https://github.com/cefect/CanFlood2/releases/tag/v2.0.2) bug fixes and ui tweaks
+[v2.0.1](https://github.com/cefect/CanFlood2/releases/tag/v2.0.1) add documentation
 v2.0.0 prototype with the following features:
 - *Welcome*: tutorial data loader. NOTE: this also loads a complete project database.
 - *Project Setup*: create/load project database file. select Study Area (not used) and DEM

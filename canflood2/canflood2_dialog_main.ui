@@ -1494,7 +1494,7 @@ QGroupBox {
                   </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>Boxplot</string>
+                  <string>Exposure Boxplot</string>
                  </property>
                 </widget>
                </item>

@@ -43,7 +43,7 @@ widget_values_lib = {
         },
     'cf1_tutorial_02b': {
         'Main_dialog':{
-            'studyAreaLineEdit': 'tutorial 2 area',
+            'studyAreaLineEdit': 'tutorial 2b area',
             'userLineEdit': 'me?',
             'scenarioNameLineEdit': 'undefended',
             'climateStateLineEdit': 'historical climate', 
@@ -74,6 +74,9 @@ widget_values_lib = {
 # functions
 #===============================================================================
 def format_fancy_tutorial_name(input_string):
+    if input_string =='cf1_tutorial_02b':
+        return 'Tutorial 2b'
+    
     # Use regex to extract the tutorial number
     match = re.search(r'tutorial_(\d+)', input_string)
     if match:

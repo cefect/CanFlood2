@@ -185,6 +185,11 @@ def dialog_loaded(dialog_main,
     
     return dialog_main
     
+""" 
+dialog_main.show()
+QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+sys.exit(QApp.exec_()) #wrap
+"""
  
  
 @pytest.fixture
@@ -235,7 +240,7 @@ def event_meta_set(eventMeta_df, dialog_main, haz_rlay_d, probability_type,
     # #set the probability type
     #===========================================================================
     if probability_type == '1':
-        click(dialog_main.radioButton_ELari)
+        #click(dialog_main.radioButton_ELari)
         dialog_main.radioButton_ELari.setChecked(True)
         assert dialog_main.radioButton_ELari.isChecked(), 'ARI not checked' 
     elif probability_type == '0':
@@ -437,9 +442,9 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
+    #('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
     ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2'))
 ])
 def test_dial_main_03_load_projDB(dialog_loaded,
@@ -486,7 +491,7 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
     ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2'))

@@ -7,9 +7,9 @@ name=CanFlood2
 qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
 description=Open source flood risk modelling toolbox for Canada v2
-version=2.0.2
+version=2.1.0
 author=Seth Bryant
-email=nicky.hastings@canada.ca
+email=bryant.seth@ceflood.com
 
 about=Open source flood risk modelling toolbox for Canada v2
 

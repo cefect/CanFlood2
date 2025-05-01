@@ -1,0 +1,5 @@
+event_name,prob,metadata
+haz_0050,0.02,
+haz_0100,0.01,this raster is completely made up
+haz_0200,0.005,maybe I should type something useful here..
+haz_1000,0.001,nope

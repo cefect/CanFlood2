@@ -266,8 +266,10 @@ def test_dial_main_00_init(dialog_main,):
     assert hasattr(dialog_main, 'logger')
     
     
-
-
+def test_dial_main_00_launch_QGIS_LOG_FILE(dialog_main):
+    """test that the QGIS log file is created"""
+    
+    click(dialog_main.pushButton_debugLog)
 
  
 def test_dial_main_01_create_new_projDB(monkeypatch, dialog_main, tmpdir, test_name):
@@ -549,10 +551,7 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     
 
  
-def test_launch_QGIS_LOG_FILE(dialog_main):
-    """test that the QGIS log file is created"""
-    
-    click(dialog_main.pushButton_debugLog)
+
     
     
 

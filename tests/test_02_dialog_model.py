@@ -277,7 +277,7 @@ def test_dial_model_02_save(dialog_model,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
     ('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2'))
@@ -331,14 +331,14 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
     write_projDB(dialog_model, test_name)
 
 
-
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     pytest.param(
         'cf1_tutorial_02',oj('test_03_save_vfunc_c1-0-c_bcb0b2', 'projDB.canflood2'),
             #doesnt work with the qt dialog
             #marks=pytest.mark.xfail(strict=True, raises=ModelNotReadyError, reason="missing ui entries")
-    )
+    ),
+        pytest.param('cf1_tutorial_02b',oj('test_03_save_vfunc_c1-0-c_5dee21', 'projDB.canflood2'),)
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_04_compile(dialog_model, model,

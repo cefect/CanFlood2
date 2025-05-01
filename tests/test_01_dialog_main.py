@@ -456,7 +456,7 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 
 
 
-@pytest.mark.dev
+ 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
 ])
@@ -519,6 +519,13 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     # post
     #===========================================================================3
     write_projDB(dialog, test_name)
+    
+
+@pytest.mark.dev
+def test_launch_QGIS_LOG_FILE(dialog_main):
+    """test that the QGIS log file is created"""
+    
+    click(dialog_main.pushButton_debugLog)
     
     
 

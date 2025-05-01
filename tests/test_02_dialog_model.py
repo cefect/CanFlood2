@@ -61,7 +61,7 @@ overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial 
 
 
 
-overwrite_testdata=True #for writing tests
+overwrite_testdata=False #for writing tests
 def write_projDB(dialog_model, test_name):
     
     
@@ -331,7 +331,7 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
     write_projDB(dialog_model, test_name)
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     pytest.param(
         'cf1_tutorial_02',oj('test_03_save_vfunc_c1-0-c_bcb0b2', 'projDB.canflood2'),
@@ -389,11 +389,10 @@ def test_dial_model_04_compile(dialog_model, model,
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    pytest.param(
-        'cf1_tutorial_02',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),
-    )
+    pytest.param('cf1_tutorial_02',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),),
+    #pytest.param('cf1_tutorial_02b',oj('test_04_compile_c1-0-cf1__d76571', 'projDB.canflood2'),)
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_05_run(dialog_model, model,

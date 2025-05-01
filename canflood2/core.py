@@ -387,11 +387,16 @@ class Model_run_methods(object):
         
         haz_events_s = haz_events_df.set_index('event_name')['prob']
         
-        #get probability type
-    
+        #get probability type    
         haz_meta_s = self.parent.projDB_get_tables(['04_haz_meta'], projDB_fp=projDB_fp)[0].set_index('varName')['value']
         
-        probability_type = 'ARI' if bool(haz_meta_s['probability_type']) else 'AEP'
+        if haz_meta_s['probability_type']=='0':
+            probability_type = 'AEP'
+        elif haz_meta_s['probability_type']=='1':
+            probability_type = 'ARI'
+        else:
+            raise KeyError(f'bad probability_type: {haz_meta_s["probability_type"]}')
+ 
 
         log.debug(f'retrieved {len(haz_events_s)} events w/ probability_type=\'{probability_type}\'')
         

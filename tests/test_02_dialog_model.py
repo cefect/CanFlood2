@@ -56,14 +56,21 @@ os.makedirs(test_data_dir, exist_ok=True)
 # HELPERS----------
 #===============================================================================
 
-overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial data loader
-overwrite_testdata=False
+overwrite_testdata_plugin=True #for updating the projDB in the plugin tutorial data loader
+
+
+
+
+overwrite_testdata=False #for writing tests
 def write_projDB(dialog_model, test_name):
+    
+    
  
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
  
     if overwrite_testdata:
+        print(f'\n\nwriting projDB to \n    {test_name}\n{"="*80}')
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
         
         #copy over the .sqlite file
@@ -211,7 +218,8 @@ def test_dial_model_01_launch_config(dialog_model,model, qtbot):
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
+    ('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_02_save(dialog_model,
@@ -269,9 +277,10 @@ def test_dial_model_02_save(dialog_model,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
+    ('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_03_save_vfunc(dialog_model, model,                                  
@@ -323,13 +332,13 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
 
 
 
-
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     pytest.param(
         'cf1_tutorial_02',oj('test_03_save_vfunc_c1-0-c_bcb0b2', 'projDB.canflood2'),
             #doesnt work with the qt dialog
             #marks=pytest.mark.xfail(strict=True, raises=ModelNotReadyError, reason="missing ui entries")
-    )
+    ),
+        pytest.param('cf1_tutorial_02b',oj('test_03_save_vfunc_c1-0-c_5dee21', 'projDB.canflood2'),)
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_04_compile(dialog_model, model,
@@ -380,11 +389,10 @@ def test_dial_model_04_compile(dialog_model, model,
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    pytest.param(
-        'cf1_tutorial_02',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),
-    )
+    #pytest.param('cf1_tutorial_02',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_02b',oj('test_04_compile_c1-0-cf1__d76571', 'projDB.canflood2'),)
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_05_run(dialog_model, model,

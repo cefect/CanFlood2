@@ -2188,6 +2188,15 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
                     raise ValueError(f'failed to set widget \'{widgetName}\' to \'{value}\': \n    {e}')
                     log.error(f'failed to set widget \'{widgetName}\' to \'{value}\': \n'+\
                                f'    {e}\nprojDB may be out of sync')
+                    
+                #specials
+                if widgetName=='radioButton_ELari':
+                    if value=='1':
+                        self.radioButton_ELari.setChecked(True)
+                    elif value=='0':
+                        self.radioButton_ELaep.setChecked(True)
+                    else:
+                        raise ValueError(f'bad value for radioButton_ELari: {value}')
                 
         else:
             log.warning(f'no project parameters found in projDB')

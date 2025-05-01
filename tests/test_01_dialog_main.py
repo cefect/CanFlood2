@@ -140,10 +140,7 @@ def dialog_main(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
            ):
     """dialog_main fixture.
     
-    setup should be handled by calling fixtures from within your test
-    
- 
-        
+    setup should be handled by calling fixtures from within your test        
     """
     
     #===========================================================================
@@ -162,7 +159,8 @@ def dialog_main(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
 def dialog_loaded(dialog_main,  
                 aoi_vlay,dem_rlay, #instancing loads to project. dialog_projDB_load loads to UI
                 haz_rlay_d, #load to project. _load_projDB_to_ui checks for name match
-                projDB_fp, monkeypatch,tmpdir,
+                projDB_fp, 
+                monkeypatch,tmpdir,
                 ):
     """setup the project and load the dialog from the projDB
     
@@ -187,6 +185,11 @@ def dialog_loaded(dialog_main,
     
     return dialog_main
     
+""" 
+dialog_main.show()
+QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+sys.exit(QApp.exec_()) #wrap
+"""
  
  
 @pytest.fixture
@@ -217,7 +220,8 @@ def dem_rlay_set(dem_rlay, dialog_main):
 
     
 @pytest.fixture
-def event_meta_set(eventMeta_df, dialog_main, haz_rlay_d):
+def event_meta_set(eventMeta_df, dialog_main, haz_rlay_d, probability_type,
+                   qtbot):
     """set the eventMeta_df onto the dialog
     
     this shortcuts selecting, loading, and entering in the values
@@ -230,7 +234,25 @@ def event_meta_set(eventMeta_df, dialog_main, haz_rlay_d):
     assert set(eventMeta_df.iloc[:,0]) == set(haz_rlay_d.keys()), 'eval_d keys do not match haz_rlay_d keys'
  
 
-    dialog_main.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)  
+    dialog_main.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)
+    
+    #===========================================================================
+    # #set the probability type
+    #===========================================================================
+    if probability_type == '1':
+        #click(dialog_main.radioButton_ELari)
+        dialog_main.radioButton_ELari.setChecked(True)
+        assert dialog_main.radioButton_ELari.isChecked(), 'ARI not checked' 
+    elif probability_type == '0':
+ 
+        dialog_main.radioButton_ELaep.setChecked(True)        
+        assert dialog_main.radioButton_ELaep.isChecked(), 'AEP not checked'
+        assert not dialog_main.radioButton_ELari.isChecked(), 'ARI checked'
+        
+    else:
+        raise ValueError(f'unknown probability type: {probability_type}')
+
+ 
     return True
  
  
@@ -249,8 +271,10 @@ def test_dial_main_00_init(dialog_main,):
     assert hasattr(dialog_main, 'logger')
     
     
-
-
+def test_dial_main_00_launch_QGIS_LOG_FILE(dialog_main):
+    """test that the QGIS log file is created"""
+    
+    click(dialog_main.pushButton_debugLog)
 
  
 def test_dial_main_01_create_new_projDB(monkeypatch, dialog_main, tmpdir, test_name):
@@ -328,7 +352,10 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
 
 
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
-@pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
+@pytest.mark.parametrize('tutorial_name', [
+    #'cf1_tutorial_02',
+    'cf1_tutorial_02b', #AEP instead of ARI
+    ])
 def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
                           widget_data_d, #widget values set during instance
                           aoi_vlay_set, dem_rlay_set, #combobox set during instance
@@ -360,6 +387,13 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
     #===========================================================================
     # #create a new projDB
     #===========================================================================
+    """ 
+    dialog_main.show()
+    QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+    sys.exit(QApp.exec_()) #wrap
+    """
+
+
     dialog_create_new_projDB(monkeypatch, dialog_main, tmpdir)
  
  
@@ -408,9 +442,10 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
+    #('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
+    ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2'))
 ])
 def test_dial_main_03_load_projDB(dialog_loaded,
                                   
@@ -456,12 +491,12 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 
 
 
- 
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
+    ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2'))
 ])
 def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
-
                                          tutorial_name,
                                          ):
     """test creation and clearing of the model suite"""
@@ -521,11 +556,8 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     write_projDB(dialog, test_name)
     
 
-@pytest.mark.dev
-def test_launch_QGIS_LOG_FILE(dialog_main):
-    """test that the QGIS log file is created"""
-    
-    click(dialog_main.pushButton_debugLog)
+ 
+
     
     
 

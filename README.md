@@ -12,7 +12,7 @@ Open source flood risk modelling toolbox for Canada v2
 ![alt text](https://github.com/cefect/CanFlood2/blob/main/canflood2/img/logo_20210510_22x22.png)
 
 
-tested against QGIS 3.34.14 and Qt 5.15.13
+tested against QGIS 3.40.6 and Qt 5.15.13
 
 ## Documentation
 

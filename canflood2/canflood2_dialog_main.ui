@@ -1647,7 +1647,7 @@ QGroupBox {
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>771</width>
+             <width>769</width>
              <height>58</height>
             </rect>
            </property>
@@ -1714,11 +1714,22 @@ QLabel {
        </layout>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_help">
-        <property name="text">
-         <string>Help</string>
-        </property>
-       </widget>
+       <layout class="QVBoxLayout" name="verticalLayout_24">
+        <item>
+         <widget class="QPushButton" name="pushButton_help">
+          <property name="text">
+           <string>Help</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_debugLog">
+          <property name="text">
+           <string>debug log</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_19">

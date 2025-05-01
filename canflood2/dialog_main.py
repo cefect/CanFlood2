@@ -1770,6 +1770,10 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         
         from canflood2 import __version__
         self.label_version.setText(f'v{__version__}')
+        
+        #QGIS_LOG_FILE
+        self.pushButton_debugLog.clicked.connect(self.launch_QGIS_LOG_FILE)
+        
         #=======================================================================
         # WELCOME======================--------------
         #=======================================================================
@@ -2265,6 +2269,23 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
             assert isinstance(rlay, QgsRasterLayer)
              
         return rlay
+    
+    
+    def launch_QGIS_LOG_FILE(self):
+        """retrive the userse QGIS_LOG_FILE environment variable, 
+        then launch with the default text application"""
+        log = self.logger.getChild('launch_QGIS_LOG_FILE')
+        log.debug('launching qgis debug log')
+        
+        #get the path
+        QGIS_LOG_FILE_fp = os.getenv('QGIS_LOG_FILE')
+        if not QGIS_LOG_FILE_fp is None:
+            if os.path.exists(QGIS_LOG_FILE_fp):
+                os.startfile(QGIS_LOG_FILE_fp)
+            else:
+                log.warning(f'QGIS_LOG_FILE file not found: {QGIS_LOG_FILE_fp}')
+        else:
+            log.warning(f'QGIS_LOG_FILE environment variable not set')
     
 
                 

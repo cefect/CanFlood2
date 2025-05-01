@@ -1,5 +1,5 @@
 pytest-qgis==2.1.*
-pytest
+pytest==8.3.*
 pytest-qt
 pb_tool
 openpyxl==3.1.*

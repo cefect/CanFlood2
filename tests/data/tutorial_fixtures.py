@@ -138,6 +138,11 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
     return df
 
 
+@pytest.fixture(scope='function')
+def probability_type(tutorial_name):
+    return widget_values_lib[tutorial_name]['Main_dialog']['radioButton_ELari']
+
+
  
 @pytest.fixture
 def widget_modelConfig_data_d(tutorial_name):
@@ -145,8 +150,7 @@ def widget_modelConfig_data_d(tutorial_name):
     return widget_values_lib[tutorial_name]['Model_config_dialog']
 
 @pytest.fixture
-def widget_Main_dialog_data_d(tutorial_name):
- 
+def widget_Main_dialog_data_d(tutorial_name): 
     return widget_values_lib[tutorial_name]['Main_dialog']
 
 

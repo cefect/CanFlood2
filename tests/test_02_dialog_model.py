@@ -57,13 +57,20 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 
 overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial data loader
-overwrite_testdata=False
+
+
+
+
+overwrite_testdata=True #for writing tests
 def write_projDB(dialog_model, test_name):
+    
+    
  
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
  
     if overwrite_testdata:
+        print(f'\n\nwriting projDB to \n    {test_name}\n{"="*80}')
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
         
         #copy over the .sqlite file
@@ -209,9 +216,10 @@ def test_dial_model_01_launch_config(dialog_model,model, qtbot):
     qtbot.mouseClick(dialog_model.pushButton_close, Qt.LeftButton)
     
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
+    ('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_02_save(dialog_model,
@@ -269,7 +277,7 @@ def test_dial_model_02_save(dialog_model,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
 ])

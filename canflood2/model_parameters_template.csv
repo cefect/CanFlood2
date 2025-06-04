@@ -8,7 +8,7 @@ finv_elevType,comboBox_AI_elevType,,TRUE,FALSE,just the layer nam e
 finv_indexField,mFieldComboBox_cid,,TRUE,FALSE,
 f01_scale,mFieldComboBox_AI_01_scale,,TRUE,FALSE,netid 1 (basic)
 f01_elev,mFieldComboBox_AI_01_elev,,TRUE,FALSE,netid 1 (basic)
-f01_tag,mFieldComboBox_AI_01_tag,,TRUE,FALSE,netid 1 (basic)
+f01_tag,mFieldComboBox_AI_01_tag,,FALSE,FALSE,netid 1 (basic)
 f01_cap,mFieldComboBox_AI_01_cap,,FALSE,FALSE,netid 1 (basic)
 finv_dataSource,dataSourceLineEdit_AI,,FALSE,FALSE,
 asset_label,labelLineEdit_AI_label,,TRUE,TRUE,used for UI updates

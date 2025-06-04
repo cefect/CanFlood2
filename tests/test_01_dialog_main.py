@@ -350,10 +350,10 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
  
 
 
-
+@pytest.mark.dev
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 @pytest.mark.parametrize('tutorial_name', [
-    #'cf1_tutorial_02',
+    'cf1_tutorial_01',
     'cf1_tutorial_02b', #AEP instead of ARI
     ])
 def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
@@ -442,7 +442,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     #('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
     ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2'))

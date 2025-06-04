@@ -391,7 +391,7 @@ def test_dial_model_04_compile(dialog_model, model,
 
 @pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    #pytest.param('cf1_tutorial_02',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_01',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),),
     pytest.param('cf1_tutorial_02b',oj('test_04_compile_c1-0-cf1__d76571', 'projDB.canflood2'),)
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))

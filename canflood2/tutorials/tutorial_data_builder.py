@@ -16,6 +16,32 @@ assert os.path.exists(test_data_dir)
 
 widget_values_lib = {
     #model config dialog widget data related to specific tutorials
+    'cf1_tutorial_01': {
+        'Main_dialog':{
+            'studyAreaLineEdit': 'tutorial 1 area',
+            'userLineEdit': 'me?',
+            'scenarioNameLineEdit': 'undefended',
+            'climateStateLineEdit': 'historical climate', 
+            'hazardTypeLineEdit': 'fluvial',
+            'radioButton_ELari': '1', #0=False=AEP (not ARI)
+            },
+        'Model_config_dialog':{
+            'comboBox_expoLevel':'binary (L1)',
+            'comboBox_AI_elevType':'datum',
+            'mFieldComboBox_cid':'xid',
+            'mFieldComboBox_AI_01_scale':'f0_scale',
+            'mFieldComboBox_AI_01_elev':'f0_elv',
+            'mFieldComboBox_AI_01_tag':None,
+            'mFieldComboBox_AI_01_cap':None,  
+            'labelLineEdit_AI_label':'my inventory',
+            'consequenceLineEdit_V':'some consequence',
+            'comboBox_R_highPtail': 'none',
+            'comboBox_R_lowPtail': 'extrapolate',
+            'doubleSpinBox_R_lowPtail': 1e9,   
+            'doubleSpinBox_R_highPtail': 0.1,
+            },
+     
+        },
     'cf1_tutorial_02': {
         'Main_dialog':{
             'studyAreaLineEdit': 'tutorial 2 area',

@@ -54,7 +54,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS=========---------
 #===============================================================================
-overwrite_testdata=True #udpate test pickles
+overwrite_testdata=False #udpate test pickles
 def write_projDB(dialog_main, test_name):
  
     projDB_fp = dialog_main.get_projDB_fp()

@@ -93,6 +93,29 @@ widget_values_lib = {
             },
      
         },
+    'cf1_tutorial_02c': {
+        'Main_dialog':{
+            'studyAreaLineEdit': 'tutorial 2c',
+            'userLineEdit': 'me?',
+            'radioButton_ELari': '1', #0=False=AEP (not ARI)
+            },
+        'Model_config_dialog':{
+            'comboBox_expoLevel':'depth-dependent (L2)',
+            'comboBox_AI_elevType':'datum',
+            'mFieldComboBox_cid':'xid',
+            'mFieldComboBox_AI_01_scale':'f0_scale',
+            'mFieldComboBox_AI_01_elev':'f0_elv',
+            'mFieldComboBox_AI_01_tag':'f0_tag',
+            'mFieldComboBox_AI_01_cap':'f0_cap',  
+            'labelLineEdit_AI_label':'my inventory',
+            'consequenceLineEdit_V':'some consequence',
+            'comboBox_R_highPtail': 'none',
+            'comboBox_R_lowPtail': 'extrapolate',
+            'doubleSpinBox_R_lowPtail': 1e9,   
+            'doubleSpinBox_R_highPtail': 0.1,
+            },
+     
+        },
     }
 
 
@@ -113,7 +136,7 @@ def format_fancy_tutorial_name(input_string):
     
     
 def get_test_data_filepaths_for_tutorials(
-        search_dirs = ['cf1_tutorial_01', 'cf1_tutorial_02', 'cf1_tutorial_02b'],
+        search_dirs = ['cf1_tutorial_01', 'cf1_tutorial_02', 'cf1_tutorial_02b', 'cf1_tutorial_02c'],
         ):
     """for each tutorial, build a hierarchiceal dicationary of filepaths
     search the contents and assign based on filename"""

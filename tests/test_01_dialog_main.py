@@ -54,7 +54,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS=========---------
 #===============================================================================
-overwrite_testdata=False #udpate test pickles
+overwrite_testdata=True #udpate test pickles
 def write_projDB(dialog_main, test_name):
  
     projDB_fp = dialog_main.get_projDB_fp()
@@ -349,11 +349,12 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
  
 
 
-@pytest.mark.dev
+
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 @pytest.mark.parametrize('tutorial_name', [
-    'cf1_tutorial_01',
+    #'cf1_tutorial_01',
     #'cf1_tutorial_02b', #AEP instead of ARI
+    'cf1_tutorial_02c', #datum
     ])
 def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
                           widget_data_d, #widget values set during instance
@@ -494,7 +495,8 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     #('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
     #('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2')),
-    ('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
+    #('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
+    ('cf1_tutorial_02c', oj('02_save_ui_to_project_dat_7b3a19', 'projDB.canflood2')),
 ])
 def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
                                          tutorial_name,

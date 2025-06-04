@@ -65,20 +65,40 @@ class Model_run_methods(object):
     
     def run_model(self,
                   projDB_fp=None,
+                  progressBar=None,
+                  logger=None,
                   ):
         """run the model"""
  
         #=======================================================================
         # defaults
         #=======================================================================
-        log = self.logger.getChild('run_model')
-        start_time= datetime.now()
-        
-        self.assert_is_ready(logger=log)
+        if logger is None: logger=self.logger
+        log = logger.getChild('run_model')
+        start_time= datetime.now()        
  
-        
+                
+        def add_to_prog(increment):
+            """helper for adding to the progress bar"""
+            if progressBar is not None:
+                current_value = progressBar.value()
+                if current_value<100:
+                    progressBar.setValue(current_value + increment)
+                
+        add_to_prog(5)
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
+            
+        
+ 
+        
+
+            
+            
+        #=======================================================================
+        # prechecks
+        #=======================================================================
+        self.assert_is_ready(logger=log)
         
         assert_projDB_fp(projDB_fp, check_consistency=True)
         log.info(f'running model from {os.path.basename(projDB_fp)}')
@@ -89,7 +109,7 @@ class Model_run_methods(object):
         
             assert_projDB_conn(conn, check_consistency=True)
         """
-            
+        add_to_prog(5)
         #=======================================================================
         # run sequence
         #=======================================================================
@@ -97,15 +117,19 @@ class Model_run_methods(object):
         
         #compute damages 
         self._table_impacts_to_db(**skwargs)
+        add_to_prog(10)
         
         #simplify and add EAD to clumns
         self._table_impacts_prob_to_db(**skwargs)
+        add_to_prog(10)
         
         #row-wise EAD
         self._table_ead_to_db(**skwargs)
+        add_to_prog(10)
         
         #model-wide EAD
         result = self._set_ead_total(**skwargs)
+        add_to_prog(10)
         
  
         
@@ -907,10 +931,7 @@ class Model(Model_run_methods, Model_table_assertions):
         assert isinstance(table_names_l, list), type(table_names_l)
         names_d = self.get_table_names(table_names_l, result_as_dict=True)
         
-        full_names = list(names_d.values())
-        
- 
-             
+        full_names = list(names_d.values())             
         
                 
         tables =  self.parent.projDB_get_tables(full_names,template_prefix=self.template_prefix_str, **kwargs)
@@ -922,6 +943,7 @@ class Model(Model_run_methods, Model_table_assertions):
         
     
     def get_table_parameters(self, **kwargs):
+        """special loader for the parameters"""
         df_raw = self.get_tables(['table_parameters'], **kwargs)[0]
         
         return format_table_parameters(df_raw)
@@ -977,8 +999,7 @@ class Model(Model_run_methods, Model_table_assertions):
         #recase the names
 
         # Get the table names
-        table_names = self.get_table_names(list(df_d.keys()))
-        
+        table_names = self.get_table_names(list(df_d.keys()))       
  
         
         # Recast the DataFrame dictionary with the correct table names
@@ -1053,7 +1074,10 @@ class Model(Model_run_methods, Model_table_assertions):
             
         """
         if param_df is None:
-            param_df = self.get_table_parameters()
+            #load the model parameter table from the projDB
+            #WARNING: this may be coming from some test pickle
+            param_df = self.get_table_parameters() 
+            
             
         self.update_parameter_d()
             
@@ -1125,9 +1149,6 @@ class Model(Model_run_methods, Model_table_assertions):
 
     def compute_status(self, logger=None):
         """load info from the projDB and use to determine status
-        
-
-        
         
         """
         #=======================================================================

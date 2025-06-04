@@ -77,8 +77,18 @@ class Model_compiler(object):
     def compile_model(self, **skwargs):
         """wrapper around compilation sequence"""
         
+        #=======================================================================
+        # prechecks
+        #=======================================================================
         assert not self.model.param_d is None, 'failed to load model parameters'
+        
+        if not 'finv_elevType' in self.model.param_d.keys():
+            raise AssertionError(f'must set the \'Elevation Type\' on the \'Asset Inventory\' tab before compiling the model')
  
+ 
+        #=======================================================================
+        # compile sequence
+        #=======================================================================
         #asset inventory
         _ = self._table_finv_to_db(**skwargs)
         
@@ -117,7 +127,7 @@ class Model_compiler(object):
             'scale':'f01_scale','elev':'f01_elev','tag':'f01_tag','cap':'f01_cap',
             }
         
-        field_value_d = {k:model.param_d[v] for k,v in names_d.items()}
+        field_value_d = {k:model.param_d[v] for k,v in names_d.items() if v in model.param_d.keys()}
  
         
         #get the vector layer
@@ -132,10 +142,19 @@ class Model_compiler(object):
         #=======================================================================
         #check that all the field names are in the columns
         #redundant as these come from the FieldBox?
-        assert set(field_value_d.values()).issubset(df_raw.columns), 'field not found'
+
+        # Ensure all values in the dictionary are present in the dataframe's column names
+        assert all(value in df_raw.columns for value in field_value_d.values()), 'Some fields are not found in the dataframe columns'
+
         
         #standaraize the column names
         df = df_raw.rename(columns={v:k for k,v in field_value_d.items()}).loc[:, field_value_d.keys()]
+        
+        #add empty columns for any field_value_d.keys() that are missing from the dataframe
+        #makes data consistency checks easier
+        for k in names_d.keys():
+            if k not in df.columns:
+                df[k] = pd.NA
         
         #add the nestID
         df['nestID'] = 0
@@ -369,6 +388,11 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
             bind_QgsFieldComboBox(comboBox, 
                                   signal_emmiter_widget=self.comboBox_finv_vlay,
                                   fn_str=fn_str)
+            
+        #set the optionals
+        for cbox in [ self.mFieldComboBox_AI_01_tag, self.mFieldComboBox_AI_01_cap]:
+            cbox.setAllowEmptyFieldName(True)
+            cbox.setCurrentIndex(-1)
         
         #bind the asset label to the update_labels such that any time it changes the function runs
         """not sure about this... leaving this dependent on teh projDB fo rnow
@@ -662,6 +686,14 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
             widget = getattr(self, widgetName)
             d[i] = get_widget_value(widget)
             
+        #=======================================================================
+        # precheck
+        #=======================================================================
+        """mostly for not-implemented things"""
+        if not d['expo_level']== 'depth-dependent (L2)':
+            raise AssertionError(f'only depth-dependent (L2) exposure level is supported at this time')
+        
+            
 
         
         #=======================================================================
@@ -748,8 +780,9 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
             #=======================================================================
             # run it
             #=======================================================================
-            self.progressBar.setValue(50)
-            model.run_model(projDB_fp=self.parent.get_projDB_fp())
+            #self.progressBar.setValue(50)
+            model.run_model(projDB_fp=self.parent.get_projDB_fp(),
+                            progressBar=self.progressBar)
             
             #=======================================================================
             # wrap
@@ -810,13 +843,14 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         self.progressBar.setValue(50) 
         
         self.compile_model(model=model, logger=log) 
-        self.progressBar.setValue(95)        
+        self.progressBar.setValue(100)        
         
  
         #=======================================================================
         # wrap
         #=======================================================================
         log.info(f'finished saving model {model.name}')
+        self.progressBar.setValue(0)
         
     def _close(self):
         """close the dialog without saving

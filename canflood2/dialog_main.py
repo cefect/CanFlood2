@@ -85,6 +85,10 @@ from .dialog_model import Model_config_dialog
 #tutorial dev loaders
 from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d, widget_values_lib
 
+
+import tempfile
+temp_dir = tempfile.gettempdir()
+
 #===============================================================================
 # load UI and resources
 #===============================================================================
@@ -310,11 +314,7 @@ class Main_dialog_dev(object):
         
         assert not tut_name_fancy == '', 'no tutorial selected'
         
-        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]
-        
-        
-        
-        
+        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]        
         
         log.debug(f'loading tutorial \'{tutorial_name}\'')
         
@@ -354,8 +354,17 @@ class Main_dialog_dev(object):
             try:
                 if not data_key in data_d:
                     raise KeyError(f'failed to find data key \'{data_key}\'')
+                
+                #copy over the data to a temporary directory
+
+                fp_raw = data_d[data_key]
+                fp = shutil.copyfile(fp_raw, os.path.join(temp_dir, os.path.basename(fp_raw)))
+                assert os.path.exists(fp), f'failed to copy file to temp dir: {fp}'
+
+                
+                
                 #load the layer
-                layer = Constructor(data_d[data_key], tutorial_name+'_'+data_key)
+                layer = Constructor(fp, tutorial_name+'_'+data_key)
                 
                 # Check if the layer is valid before adding it to the project.
                 if not layer.isValid():
@@ -385,11 +394,11 @@ class Main_dialog_dev(object):
         #=======================================================================
         # from parametesr
         #=======================================================================
+        log.debug(f'loading w/ \n    {data_d}')
         """note... these layer names need to match what was set when teh projDB test was done
         see tests.data.tutorial_fixtures
         
         NOTE: order matters for legend
-        
         
         TODO: add styles
         """
@@ -397,7 +406,8 @@ class Main_dialog_dev(object):
         
         
         #aoi
-        add_layer('aoi', 'aoi_vlay_name', vlayConstructor)
+        if 'aoi' in data_d:
+            add_layer('aoi', 'aoi_vlay_name', vlayConstructor)
         
         #FINV
         add_layer('finv', 'finv_rlay_name', vlayConstructor,
@@ -405,7 +415,8 @@ class Main_dialog_dev(object):
                   )
  
         #DEM
-        add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
+        if 'dem' in data_d:
+            add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
         
  
         #=======================================================================
@@ -1020,6 +1031,8 @@ class Main_dialog_modelSuite(object):
         #=======================================================================
         model = self._add_model_widget(model, layout, logger=log) 
  
+        #activate the Run button (disabled by default)
+        model.widget_suite.pushButton_mod_run.setEnabled(True)
         
         #=======================================================================
         # #add to the container
@@ -1210,16 +1223,46 @@ class Main_dialog_modelSuite(object):
  
         
         #launch teh dialog modally
-        result = dial.exec_()
+        #result = dial.exec_()
+        
+        #non modal
+        dial.show()
         
         #enable the Main dialog run button
         model.widget_suite.pushButton_mod_run.setEnabled(True)
         
         
-    #===========================================================================
-    # def _run_model(self, category_code, modelid):
-    #     raise NotImplementedError('need to add the run logic')
-    #===========================================================================
+    def _run_model(self, category_code, modelid):
+        """ run the model next to the button
+        
+        see also dialog_model.Model_config_dialog._run_model()
+        """
+ 
+        log = self.logger.getChild('_run_model')
+        
+        log.info(f'running {category_code} {modelid}')
+        #=======================================================================
+        # retrival
+        #=======================================================================
+        #check ther eis a project database
+        projDB_fp = self.get_projDB_fp()
+        assert not projDB_fp is None, 'must set a project database file'
+ 
+        #get this model
+        model = self.model_index_d[category_code][modelid]
+        assert not model is None, 'no model loaded'
+        
+        progressBar = model.widget_d['progressBar_mod']['widget']
+        progressBar.setValue(5)  # Reset progress bar to 0
+        #=======================================================================
+        # execution
+        #=======================================================================
+        model.run_model(projDB_fp=projDB_fp, progressBar=progressBar, logger=log)
+        progressBar.setValue(100)  # Set progress bar to 100 after completion
+        
+    
+    
+    
         
     def _remove_model(self, category_code, modelid, 
                       clear_projDB=True,

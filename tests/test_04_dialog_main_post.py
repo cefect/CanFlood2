@@ -103,6 +103,8 @@ def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, 
         - aoi, dem, haz layers
     """
     
+
+    
     #===========================================================================
     # execute
     #===========================================================================
@@ -111,11 +113,47 @@ def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, 
     click(dialog.pushButton_save) #Main_dialog._save_ui_to_projDB()
 
 
+
+
 @pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
      ])
-def test_dial_main_03_report_risk_curve(dialog_loaded, test_name,
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
+                                consequence_category, modelid,
+                                ):
+    """test the run model button on the model widget (not to be confused with the model config dialog)
+    """
+    #===========================================================================
+    # setup
+    #===========================================================================
+    dialog = dialog_loaded
+    
+    
+    
+    #===========================================================================
+    # #get a pointer to the run button    
+    #===========================================================================
+    #check the model exists
+    model = dialog.model_index_d[consequence_category][modelid]
+    
+    
+    button = model.widget_suite.pushButton_mod_run
+    
+    #===========================================================================
+    # execute
+    #===========================================================================
+    click(button)
+
+
+
+
+
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
+     ])
+def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
                                 ):
     """run the model"""
     dialog = dialog_loaded

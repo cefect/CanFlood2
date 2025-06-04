@@ -890,7 +890,7 @@ class Main_dialog_modelSuite(object):
         """initlizing this once when the parent starts
         this slows down the parent startup, 
         but should be better for user experience as this dialog is called multiple times
-        need to add some logic for reseting the dialog each time it is called by the ocnfigure button
+        need to add some logic for reseting the dialog each time it is called by the configure button
         """
         self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, 
                                                        debug_logger=self.logger.debug_logger)
@@ -898,7 +898,10 @@ class Main_dialog_modelSuite(object):
 
     def _add_model_widget(self, model, layout, 
                           logger=None):
-        """add the widget for the model to the model suite tab"""
+        """add the widget for the model to the model suite tab
+        
+        called by self._add_model
+        """
         #=======================================================================
         # defaults
         #=======================================================================
@@ -945,7 +948,7 @@ class Main_dialog_modelSuite(object):
         self._update_model_widget_labels(model=model)
         
         #connect the buttons
-        widget.pushButton_mod_run.clicked.connect(lambda:self._run_model(category_code, modelid))
+        widget.pushButton_mod_run.clicked.connect(lambda:self._run_model(category_code, modelid)) #disabled
         widget.pushButton_mod_config.clicked.connect(lambda:self._launch_config_ui(category_code, modelid))
         widget.pushButton_mod_minus.clicked.connect(lambda:self._remove_model(category_code, modelid))
         widget.pushButton_mod_plus.clicked.connect(lambda:self._add_model(layout, category_code))
@@ -1124,19 +1127,14 @@ class Main_dialog_modelSuite(object):
         self.update_model_index_dx(model, projDB_fp=projDB_fp, logger=log)
  
             
-        #check it
- 
+        #check it 
         if check_projDB:
-            assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly'
- 
- 
+            assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly' 
         
         #=======================================================================
         # #setup the UI        
         #=======================================================================
         model = self._add_model_widget(model, layout, logger=log)
-        
- 
  
         
         #=======================================================================
@@ -1183,7 +1181,7 @@ class Main_dialog_modelSuite(object):
         
         
     def _launch_config_ui(self, category_code, modelid):
-        """launch the configuration dialog"""
+        """launch the configuration dialog for the model"""
         log = self.logger.getChild('launch_config_ui')
         
         log.debug(f'user pushed model config for {category_code} {modelid}')
@@ -1214,8 +1212,9 @@ class Main_dialog_modelSuite(object):
         #launch teh dialog modally
         result = dial.exec_()
         
-        #move teardown onto the child dialog for cleaner testing
-        #dial.model=None #clear the model
+        #enable the Main dialog run button
+        model.widget_suite.pushButton_mod_run.setEnabled(True)
+        
         
     #===========================================================================
     # def _run_model(self, category_code, modelid):

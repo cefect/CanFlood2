@@ -30,7 +30,7 @@
 } 
 
 QDialog {
-    background-color: #99B7B3;
+    background-color: #DFECEB;
 }
 
 QPushButton {
@@ -83,24 +83,52 @@ QMainWindow {
 
  
  
+/* ----------------------------------------
+   Generic tab look
+   ---------------------------------------- */
 QTabBar::tab {
-    background-color: #2B403F;
-    color: white;
-    border: 1px solid gray; 
-    box-sizing: border-box;
-    padding: 5px;
-    margin-bottom: 2px; /* slight separation from the tab bar */
+    background: #DFECEB;                 /* unselected fill  */
+    color: black;                        /* legible on light bg */
+
+    border: 1px solid #99B7B3;           /* subtle outline   */
+    border-bottom: 1px solid #799793;    /* slight contrast  */
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+
+    min-height: 24px;                    /* tweak as needed  */
+    padding: 4px 12px;                   /* top/bottom  left/right */
 }
 
+/* ----------------------------------------
+   Hover (optional, just a small cue)
+   ---------------------------------------- */
+QTabBar::tab:hover {
+    background: #CFE4E2;                 /* a hint darker    */
+}
+
+/* ----------------------------------------
+   Selected (popped-out) tab
+   ---------------------------------------- */
 QTabBar::tab:selected {
-    background-color: #507A78; 
-    color: white;
-    border: 1px solid gray; /* thicker border for emphasis */
-    border-bottom: none;     /* remove the bottom border to simulate being raised */
-    margin-bottom: 0;        /* pull the selected tab closer to the tab bar */
-    /* Optionally add border-radius to differentiate the shape */
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+    background: #99B7B3;                 /* requested colour */
+    color: black;                        /* better contrast  */
+
+    border: 1px solid #4E6F6D;           /* stronger outline */
+    border-bottom: none;                 /* merge with page  */
+
+    /* Pull it 1 px down so its bottom edge sits flush with
+       the QTabWidget pane, giving a raised effect */
+    margin-bottom: -1px;
+}
+
+/* ----------------------------------------
+   Frame around the tab-pages (optional but
+   often necessary so the gap under the
+   selected tab isn’t obvious)
+   ---------------------------------------- */
+QTabWidget::pane {
+    border: 1px solid #4E6F6D;
+    top: -1px;                           /* pull up to hide seam */
 }
 
  
@@ -139,7 +167,7 @@ p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:14px; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt; Welcome to CanFlood v2!    &lt;/span&gt;&lt;/p&gt;
 &lt;p align=&quot;center&quot; style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;    &lt;/span&gt;&lt;img src=&quot;:/canflood2/img/logo_20210510_22x22.png&quot; /&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;    &lt;/span&gt;&lt;/p&gt;
-&lt;p align=&quot;center&quot; style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:26pt; font-weight:600; color:#ff0000;&quot;&gt;PROTOTYPE&lt;/span&gt;&lt;/p&gt;
+&lt;p align=&quot;center&quot; style=&quot;-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:12pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;CanFlood v2 is an object-based, transparent, open-source flood risk calculation tool built for Canada's Federal Guidelines for Flood Risk Assessment.&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;This tool is designed to help you build, run, and evaluate a set of flood risk models from data you provide for your study area. &lt;/span&gt;&lt;/p&gt;
@@ -304,6 +332,18 @@ p, li { white-space: pre-wrap; }
             </item>
             <item>
              <widget class="QPushButton" name="pushButton_PS_projDB_new">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
                <string>New</string>
               </property>
@@ -314,6 +354,18 @@ p, li { white-space: pre-wrap; }
               <property name="enabled">
                <bool>true</bool>
               </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
                <string>Load</string>
               </property>
@@ -323,6 +375,18 @@ p, li { white-space: pre-wrap; }
              <widget class="QPushButton" name="pushButton_PS_projDB_export">
               <property name="enabled">
                <bool>false</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>0</height>
+               </size>
               </property>
               <property name="text">
                <string>Export</string>
@@ -849,6 +913,12 @@ p, li { white-space: pre-wrap; }
          <layout class="QHBoxLayout" name="horizontalLayout_6">
           <item>
            <widget class="QPushButton" name="pushButton_HZ_hrlay_load">
+            <property name="minimumSize">
+             <size>
+              <width>140</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>↓ Populate Table ↓</string>
             </property>
@@ -858,6 +928,12 @@ p, li { white-space: pre-wrap; }
            <widget class="QPushButton" name="pushButton_HZ_populate_clear">
             <property name="enabled">
              <bool>true</bool>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>140</width>
+              <height>0</height>
+             </size>
             </property>
             <property name="text">
              <string>Clear</string>
@@ -1032,6 +1108,12 @@ p, li { white-space: pre-wrap; }
          <layout class="QHBoxLayout" name="horizontalLayout_10">
           <item>
            <widget class="QPushButton" name="pushButton_MS_clear">
+            <property name="minimumSize">
+             <size>
+              <width>130</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Clear</string>
             </property>
@@ -1039,6 +1121,12 @@ p, li { white-space: pre-wrap; }
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_MS_createTemplates">
+            <property name="minimumSize">
+             <size>
+              <width>130</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Create Templates</string>
             </property>
@@ -1048,6 +1136,12 @@ p, li { white-space: pre-wrap; }
            <widget class="QPushButton" name="pushButton_18">
             <property name="enabled">
              <bool>false</bool>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>130</width>
+              <height>0</height>
+             </size>
             </property>
             <property name="text">
              <string>Run All</string>
@@ -1077,8 +1171,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>962</width>
-            <height>599</height>
+            <width>960</width>
+            <height>595</height>
            </rect>
           </property>
           <property name="styleSheet">
@@ -1266,6 +1360,12 @@ QGroupBox {
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_R_browse">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Browse</string>
             </property>
@@ -1273,6 +1373,12 @@ QGroupBox {
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_R_open">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Open</string>
             </property>

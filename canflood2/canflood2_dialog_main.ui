@@ -34,13 +34,19 @@ QDialog {
 }
 
 QPushButton {
-  background-color: #2B403F;
-  color: white;
+    background-color: #2B403F;          /* deep green-teal */
+    color: white;
+
+    /* “Pop-out” frame */
+    border: 2px solid #4E6F6D;          /* a shade lighter than the fill */
+    border-radius: 4px;                 /* gentle rounding */
+    padding: 4px 8px;                   /* keeps text from kissing the frame */
 }
 
-QPushButton:disabled { 
-    background-color: #99B7B3; /* Example: Gray background for disabled state */
-	color:#DDDDDD
+QPushButton:disabled {
+    background-color: rgba(43, 64, 63, 0.50);   /* same hue, 50 % opacity  */
+    color: rgba(255, 255, 255, 0.60);           /* soft-faded text          */
+    border: 2px solid rgba(78, 111, 109, 0.50); /* outline still visible    */
 }
 
  
@@ -1058,8 +1064,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>275</width>
-            <height>356</height>
+            <width>941</width>
+            <height>614</height>
            </rect>
           </property>
           <property name="styleSheet">
@@ -1647,7 +1653,7 @@ QGroupBox {
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>769</width>
+             <width>758</width>
              <height>58</height>
             </rect>
            </property>
@@ -1743,6 +1749,12 @@ QLabel {
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Close</string>
             </property>
@@ -1752,6 +1764,18 @@ QLabel {
            <widget class="QPushButton" name="pushButton_save">
             <property name="enabled">
              <bool>false</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
             </property>
             <property name="text">
              <string>Save</string>

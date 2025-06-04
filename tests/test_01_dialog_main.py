@@ -54,7 +54,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS=========---------
 #===============================================================================
-overwrite_testdata=False
+overwrite_testdata=False #udpate test pickles
 def write_projDB(dialog_main, test_name):
  
     projDB_fp = dialog_main.get_projDB_fp()
@@ -64,8 +64,7 @@ def write_projDB(dialog_main, test_name):
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
         
         #copy over the .sqlite file
-        shutil.copyfile(projDB_fp, ofp) 
- 
+        shutil.copyfile(projDB_fp, ofp)  
         conftest_logger.info(f'wrote result to \n    {ofp}')
         
 
@@ -350,7 +349,7 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
  
 
 
-@pytest.mark.dev
+
 #@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
 @pytest.mark.parametrize('tutorial_name', [
     'cf1_tutorial_01',
@@ -494,7 +493,8 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
-    ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2'))
+    ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2')),
+    ('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
 ])
 def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
                                          tutorial_name,

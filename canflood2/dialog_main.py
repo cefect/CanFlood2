@@ -85,6 +85,10 @@ from .dialog_model import Model_config_dialog
 #tutorial dev loaders
 from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d, widget_values_lib
 
+
+import tempfile
+temp_dir = tempfile.gettempdir()
+
 #===============================================================================
 # load UI and resources
 #===============================================================================
@@ -310,11 +314,7 @@ class Main_dialog_dev(object):
         
         assert not tut_name_fancy == '', 'no tutorial selected'
         
-        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]
-        
-        
-        
-        
+        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]        
         
         log.debug(f'loading tutorial \'{tutorial_name}\'')
         
@@ -354,8 +354,17 @@ class Main_dialog_dev(object):
             try:
                 if not data_key in data_d:
                     raise KeyError(f'failed to find data key \'{data_key}\'')
+                
+                #copy over the data to a temporary directory
+
+                fp_raw = data_d[data_key]
+                fp = shutil.copyfile(fp_raw, os.path.join(temp_dir, os.path.basename(fp_raw)))
+                assert os.path.exists(fp), f'failed to copy file to temp dir: {fp}'
+
+                
+                
                 #load the layer
-                layer = Constructor(data_d[data_key], tutorial_name+'_'+data_key)
+                layer = Constructor(fp, tutorial_name+'_'+data_key)
                 
                 # Check if the layer is valid before adding it to the project.
                 if not layer.isValid():
@@ -385,11 +394,11 @@ class Main_dialog_dev(object):
         #=======================================================================
         # from parametesr
         #=======================================================================
+        log.debug(f'loading w/ \n    {data_d}')
         """note... these layer names need to match what was set when teh projDB test was done
         see tests.data.tutorial_fixtures
         
         NOTE: order matters for legend
-        
         
         TODO: add styles
         """
@@ -397,7 +406,8 @@ class Main_dialog_dev(object):
         
         
         #aoi
-        add_layer('aoi', 'aoi_vlay_name', vlayConstructor)
+        if 'aoi' in data_d:
+            add_layer('aoi', 'aoi_vlay_name', vlayConstructor)
         
         #FINV
         add_layer('finv', 'finv_rlay_name', vlayConstructor,
@@ -405,7 +415,8 @@ class Main_dialog_dev(object):
                   )
  
         #DEM
-        add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
+        if 'dem' in data_d:
+            add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
         
  
         #=======================================================================
@@ -852,11 +863,14 @@ class Main_dialog_modelSuite(object):
     }
     
     def _connect_slots_modelSuite(self, log):
+        """slot connection for the Model Suite tab"""
         
-        #inint the model config dialog
+        #=======================================================================
+        # Control
+        #=======================================================================
  
-        
         self.pushButton_MS_clear.clicked.connect(self._clear_all_models)
+        self.pushButton_MS_runAll.clicked.connect(self._run_all_models)
         
         
         #=======================================================================
@@ -890,7 +904,7 @@ class Main_dialog_modelSuite(object):
         """initlizing this once when the parent starts
         this slows down the parent startup, 
         but should be better for user experience as this dialog is called multiple times
-        need to add some logic for reseting the dialog each time it is called by the ocnfigure button
+        need to add some logic for reseting the dialog each time it is called by the configure button
         """
         self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, 
                                                        debug_logger=self.logger.debug_logger)
@@ -898,7 +912,10 @@ class Main_dialog_modelSuite(object):
 
     def _add_model_widget(self, model, layout, 
                           logger=None):
-        """add the widget for the model to the model suite tab"""
+        """add the widget for the model to the model suite tab
+        
+        called by self._add_model
+        """
         #=======================================================================
         # defaults
         #=======================================================================
@@ -945,7 +962,7 @@ class Main_dialog_modelSuite(object):
         self._update_model_widget_labels(model=model)
         
         #connect the buttons
-        widget.pushButton_mod_run.clicked.connect(lambda:self._run_model(category_code, modelid))
+        widget.pushButton_mod_run.clicked.connect(lambda:self._run_model(category_code, modelid)) #disabled
         widget.pushButton_mod_config.clicked.connect(lambda:self._launch_config_ui(category_code, modelid))
         widget.pushButton_mod_minus.clicked.connect(lambda:self._remove_model(category_code, modelid))
         widget.pushButton_mod_plus.clicked.connect(lambda:self._add_model(layout, category_code))
@@ -1017,6 +1034,9 @@ class Main_dialog_modelSuite(object):
         #=======================================================================
         model = self._add_model_widget(model, layout, logger=log) 
  
+        #activate the Run button (disabled by default)
+        model.widget_suite.pushButton_mod_run.setEnabled(True)
+        self.pushButton_MS_runAll.setEnabled(True)
         
         #=======================================================================
         # #add to the container
@@ -1124,19 +1144,14 @@ class Main_dialog_modelSuite(object):
         self.update_model_index_dx(model, projDB_fp=projDB_fp, logger=log)
  
             
-        #check it
- 
+        #check it 
         if check_projDB:
-            assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly'
- 
- 
+            assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly' 
         
         #=======================================================================
         # #setup the UI        
         #=======================================================================
         model = self._add_model_widget(model, layout, logger=log)
-        
- 
  
         
         #=======================================================================
@@ -1183,7 +1198,7 @@ class Main_dialog_modelSuite(object):
         
         
     def _launch_config_ui(self, category_code, modelid):
-        """launch the configuration dialog"""
+        """launch the configuration dialog for the model"""
         log = self.logger.getChild('launch_config_ui')
         
         log.debug(f'user pushed model config for {category_code} {modelid}')
@@ -1212,15 +1227,81 @@ class Main_dialog_modelSuite(object):
  
         
         #launch teh dialog modally
-        result = dial.exec_()
+        #result = dial.exec_()
         
-        #move teardown onto the child dialog for cleaner testing
-        #dial.model=None #clear the model
+        #non modal
+        dial.show()
         
-    #===========================================================================
-    # def _run_model(self, category_code, modelid):
-    #     raise NotImplementedError('need to add the run logic')
-    #===========================================================================
+        #enable the Main dialog run button
+        model.widget_suite.pushButton_mod_run.setEnabled(True)
+        self.pushButton_MS_runAll.setEnabled(True)
+        
+        
+    def _run_model(self, category_code, modelid):
+        """ run the model next to the button
+        
+        see also dialog_model.Model_config_dialog._run_model()
+        """
+ 
+        log = self.logger.getChild('_run_model')
+        
+        log.info(f'running {category_code} {modelid}')
+        #=======================================================================
+        # retrival
+        #=======================================================================
+        #check ther eis a project database
+        projDB_fp = self.get_projDB_fp()
+        assert not projDB_fp is None, 'must set a project database file'
+ 
+        #get this model
+        model = self.model_index_d[category_code][modelid]
+        assert not model is None, 'no model loaded'
+        
+        progressBar = model.widget_d['progressBar_mod']['widget']
+        progressBar.setValue(5)  # Reset progress bar to 0
+        #=======================================================================
+        # execution
+        #=======================================================================
+        model.run_model(projDB_fp=projDB_fp, progressBar=progressBar, logger=log)
+        progressBar.setValue(100)  # Set progress bar to 100 after completion
+        
+    def _run_all_models(self):
+        """run all models in the index"""
+        log = self.logger.getChild('_run_all_models')
+        log.info('running all models')
+        
+        #=======================================================================
+        # check the project database
+        #=======================================================================
+        projDB_fp = self.get_projDB_fp()
+        assert not projDB_fp is None, 'must set a project database file'
+        
+        #=======================================================================
+        # loop through each model and run it
+        #=======================================================================
+        cnt=0
+        for category_code, d in self.model_index_d.items():
+            for modelid, model in d.items():
+                log.debug(f'running model {category_code}_{modelid}')
+                progressBar = model.widget_d['progressBar_mod']['widget']
+                progressBar.setValue(0)
+                try:
+                    #could use self._run_model instead.. but more elegent to call the model directoly
+                    model.run_model(projDB_fp=projDB_fp, progressBar=progressBar, logger=log)
+                    cnt+=1
+                    progressBar.setValue(100)
+                except Exception as e:
+                    log.error(f'failed to run model {category_code}_{modelid} w/ error:\n    {e}')
+                    progressBar.setValue(0)
+                    
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.info(f'ran {cnt} models')
+        
+    
+    
+    
         
     def _remove_model(self, category_code, modelid, 
                       clear_projDB=True,

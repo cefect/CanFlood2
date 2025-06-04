@@ -56,7 +56,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 # HELPERS----------
 #===============================================================================
 
-overwrite_testdata_plugin=True #for updating the projDB in the plugin tutorial data loader
+overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial data loader
 
 
 
@@ -238,8 +238,8 @@ def test_dial_model_02_save(dialog_model,
     #===========================================================================
     # resolve dialog
     #===========================================================================
-    #click(dialog.pushButton_ok)
-    qtbot.mouseClick(dialog_model.pushButton_ok, Qt.LeftButton)
+ 
+    qtbot.mouseClick(dialog_model.pushButton_save, Qt.LeftButton)
     
     #===========================================================================
     # check---------
@@ -304,8 +304,8 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
     #===========================================================================
     # resolve dialog
     #===========================================================================
-    click(dialog_model.pushButton_ok)
-    #qtbot.mouseClick(dialog.pushButton_ok, Qt.LeftButton) #Model_config_dialog._save_and_close()
+    click(dialog_model.pushButton_save)
+ 
     
     #===========================================================================
     # check---------
@@ -391,7 +391,7 @@ def test_dial_model_04_compile(dialog_model, model,
 
 @pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    #pytest.param('cf1_tutorial_02',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),),
+    #pytest.param('cf1_tutorial_01',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),), #not setup for L1 yet
     pytest.param('cf1_tutorial_02b',oj('test_04_compile_c1-0-cf1__d76571', 'projDB.canflood2'),)
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))

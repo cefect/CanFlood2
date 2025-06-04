@@ -186,8 +186,8 @@ modelTable_params_d = {
             #'indexField': pd.Series(dtype=int),
             'scale': pd.Series(dtype=float),
             'elev': pd.Series(dtype=float),
-            'tag': pd.Series(dtype=str),
-            'cap': pd.Series(dtype=float)
+            'tag': pd.Series(dtype=str), # optional
+            'cap': pd.Series(dtype=float)# optional
         },
             index=finv_multiIndex),
         'phase': 'compile',

@@ -6,81 +6,189 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>978</width>
-    <height>991</height>
+    <width>1000</width>
+    <height>1000</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Model Configuration</string>
+   <string>CanFlood Model Configuration</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton {
-  background-color: #2B403F;
-  color: white;
+   <string notr="true">QDialog {
+    background-color: #DFECEB;
 }
 
-QPushButton:disabled { 
-    background-color: #99B7B3; /* Example: Gray background for disabled state */
-	color:#DDDDDD
-}
-
- 
-QTextEdit {
-    background-color: #99B7B3; 
-}
-
-
- 
 QWidget { /* Targets most widgets */
     font-size: 14px;  
 } 
 
-/* For more specific elements */
+QTextEdit {
+    background-color:  #DFECEB; 
+}
+
 QLabel {
     font-size: 14px; 
 }
 
+QMainWindow {
+    background-color: #99B7B3;
+}
+
+
+QGroupBox{
+/* too much background-color: #99B7B3 */
+background-color: #DFECEB
+}
+
+/*ToolBox====================*/
+
+
+/*tiny bit of background between teh bars*/
 QToolBox {
-    background-color: #99B7B3;
+    background-color: #DFECEB;
 }
-QDialog {
+
+ 
+/* does nothing
+QToolBox::pane {
     background-color: #99B7B3;
-}
+}*/
+
+/* does nothing
+QToolBox &gt; QWidget QGroupBox,
+QToolBox &gt; QWidget QTabWidget    
+    background: #99B7B3;
+}*/
+
+
+/* changes too much
+QToolBox QWidget {
+  background-color: #99B7B3;
+}*/
+
+/* does nothing
 QToolBox &gt; QWidget {
-    background-color: #99B7B3;
+  background-color: #99B7B3;
 }
+*/
+
+/* too much
+QToolBox QGroupBox {
+  background-color: #99B7B3;
+}*/
+
+
+
+/*ToolBox Tab Display*/
 QToolBox::tab:selected {
-  background-color: #507A78;
-  color:white;
+  background-color: #99B7B3;
+  color:black;
  border: 2px solid gray; /* thicker border for emphasis */
  
 }
 
 
 QToolBox::tab {
-  background-color: #2B403F;
-  color: white;
+  background-color: #DFECEB;
+  color: black;
+border: 2px solid gray; /* thicker border for emphasis */
+padding: 4px 8px;      
 }
 
+
+/*PUSH BUTTONS====================*/
+
+QPushButton {
+    background-color: #2B403F;          /* deep green-teal */
+    color: white;
+
+    /* “Pop-out” frame */
+    border: 2px solid #4E6F6D;          /* a shade lighter than the fill */
+    border-radius: 4px;                 /* gentle rounding */
+    padding: 4px 8px;                   /* keeps text from kissing the frame */
+}
+
+QPushButton:pressed {
+    background-color: #1E2F2F;                    /* darker shade */
+    border: 2px inset #3A5554;                    /* subtle inset look */
+    padding-top: 5px; padding-left: 11px;         /* shift content down/right slightly */
+    padding-bottom: 3px; padding-right: 9px;      /* keep overall size the same */
+}
+
+QPushButton:disabled {
+    background-color: rgba(43, 64, 63, 0.50);   /* same hue, 50 % opacity  */
+    color: rgba(255, 255, 255, 0.60);           /* soft-faded text          */
+    border: 2px solid rgba(78, 111, 109, 0.50); /* outline still visible    */
+}
+
+ 
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+/* ----------------------------------------
+   Generic tab look
+   ---------------------------------------- */
 QTabBar::tab {
-    background-color: #2B403F;
-    color: white;
-    border: 1px solid gray; 
-    box-sizing: border-box;
-    padding: 5px;
-    margin-bottom: 2px; /* slight separation from the tab bar */
+    background: #DFECEB;                 /* unselected fill  */
+    color: black;                        /* legible on light bg */
+
+    border: 1px solid #99B7B3;           /* subtle outline   */
+    border-bottom: 1px solid #799793;    /* slight contrast  */
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+
+    min-height: 24px;                    /* tweak as needed  */
+    padding: 4px 12px;                   /* top/bottom  left/right */
 }
 
+/* ----------------------------------------
+   Hover (optional, just a small cue)
+   ---------------------------------------- */
+QTabBar::tab:hover {
+    background: #CFE4E2;                 /* a hint darker    */
+}
+
+/* ----------------------------------------
+   Selected (popped-out) tab
+   ---------------------------------------- */
 QTabBar::tab:selected {
-    background-color: #507A78; 
-    color: white;
-    border: 1px solid gray; /* thicker border for emphasis */
-    border-bottom: none;     /* remove the bottom border to simulate being raised */
-    margin-bottom: 0;        /* pull the selected tab closer to the tab bar */
-    /* Optionally add border-radius to differentiate the shape */
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-}</string>
+    background: #99B7B3;                 /* requested colour */
+    color: black;                        /* better contrast  */
+
+    border: 1px solid #4E6F6D;           /* stronger outline */
+    border-bottom: none;                 /* merge with page  */
+
+    /* Pull it 1 px down so its bottom edge sits flush with
+       the QTabWidget pane, giving a raised effect */
+    margin-bottom: -1px;
+}
+
+/* ----------------------------------------
+   Frame around the tab-pages (optional but
+   often necessary so the gap under the
+   selected tab isn’t obvious)
+   ---------------------------------------- */
+ QTabWidget { /* Targets the background of the tab widget's content area */
+    background-color: #99B7B3;  
+}
+
+ QTabWidget::pane { /* Targets the background of the tab widget's content area */
+    background-color: #99B7B3;  
+    border: 1px solid #4E6F6D;
+    top: -1px;                           /* pull up to hide seam */
+}
+
+ </string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -98,16 +206,6 @@ QTabBar::tab:selected {
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>-1</pointsize>
-            <weight>75</weight>
-            <bold>true</bold>
-           </font>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
           </property>
           <property name="text">
            <string> Category:</string>
@@ -272,7 +370,7 @@ QTabBar::tab:selected {
    <item>
     <widget class="QToolBox" name="toolBox">
      <property name="frameShape">
-      <enum>QFrame::Panel</enum>
+      <enum>QFrame::Box</enum>
      </property>
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
@@ -280,13 +378,16 @@ QTabBar::tab:selected {
      <property name="currentIndex">
       <number>0</number>
      </property>
+     <property name="tabSpacing">
+      <number>6</number>
+     </property>
      <widget class="QWidget" name="page_01_AI">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>574</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
       </property>
       <attribute name="label">
@@ -308,10 +409,16 @@ QTabBar::tab:selected {
            <height>0</height>
           </size>
          </property>
+         <property name="autoFillBackground">
+          <bool>false</bool>
+         </property>
          <property name="currentIndex">
           <number>0</number>
          </property>
          <widget class="QWidget" name="tab_AI_01_DataSeledction">
+          <property name="autoFillBackground">
+           <bool>false</bool>
+          </property>
           <attribute name="title">
            <string>Data Selection</string>
           </attribute>
@@ -339,6 +446,9 @@ QTabBar::tab:selected {
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="autoFillBackground">
+              <bool>false</bool>
              </property>
              <property name="title">
               <string>Data Selection</string>
@@ -913,8 +1023,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>574</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1092,9 +1202,12 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>574</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
+      </property>
+      <property name="autoFillBackground">
+       <bool>true</bool>
       </property>
       <attribute name="label">
        <string>3) Exposure</string>
@@ -1589,9 +1702,12 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>574</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
+      </property>
+      <property name="autoFillBackground">
+       <bool>true</bool>
       </property>
       <attribute name="label">
        <string>4) Risk</string>
@@ -1887,14 +2003,14 @@ p, li { white-space: pre-wrap; }
    <item>
     <widget class="QGroupBox" name="groupBox_MainBottom">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
      <property name="minimumSize">
       <size>
-       <width>600</width>
+       <width>0</width>
        <height>80</height>
       </size>
      </property>
@@ -1912,6 +2028,18 @@ p, li { white-space: pre-wrap; }
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
          <widget class="QPushButton" name="pushButton_run">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>80</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="text">
            <string>Run</string>
           </property>
@@ -1964,9 +2092,21 @@ p, li { white-space: pre-wrap; }
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_10">
           <item>
-           <widget class="QPushButton" name="pushButton_ok">
+           <widget class="QPushButton" name="pushButton_save">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
-             <string>OK</string>
+             <string>Save</string>
             </property>
            </widget>
           </item>
@@ -1976,6 +2116,19 @@ p, li { white-space: pre-wrap; }
              <string>Close</string>
             </property>
            </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_9">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </item>

@@ -38,11 +38,15 @@ def tutorial_name(request):
 def dem_fp(tutorial_name):
     if tutorial_name is None:
         return None
+    if 'dem' not in tutorial_data_lib[tutorial_name]:
+        return None
     return tutorial_data_lib[tutorial_name]['dem']
 
 @pytest.fixture
 def aoi_fp(tutorial_name):
     if tutorial_name is None:
+        return None
+    if 'aoi' not in tutorial_data_lib[tutorial_name]:
         return None
     return tutorial_data_lib[tutorial_name]['aoi']
 
@@ -80,7 +84,8 @@ def vfunc_fp(tutorial_name, tmpdir):
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def dem_rlay(dem_fp, tutorial_name):
-    #if dem_fp is None:return None
+    
+    if dem_fp is None:return None
     layer = QgsRasterLayer(dem_fp, tutorial_name+'_dem')
     QgsProject.instance().addMapLayer(layer)
     print(f'dem_rlay fixture instantiated from {dem_fp}')
@@ -89,7 +94,8 @@ def dem_rlay(dem_fp, tutorial_name):
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def aoi_vlay(aoi_fp, tutorial_name):
-    #if aoi_fp is None:return None
+    if aoi_fp is None: return None
+ 
     assert os.path.exists(aoi_fp), f'bad filepath on aoi_vlay fixture:\n    {aoi_fp}'
     layer = QgsVectorLayer(aoi_fp, tutorial_name+'_aoi', 'ogr')
     assert isinstance(layer, QgsVectorLayer)

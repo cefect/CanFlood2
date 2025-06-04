@@ -6,20 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>868</width>
-    <height>43</height>
+    <width>900</width>
+    <height>50</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
-  <property name="maximumSize">
+  <property name="minimumSize">
    <size>
-    <width>1000</width>
-    <height>43</height>
+    <width>900</width>
+    <height>50</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -27,13 +27,26 @@
   </property>
   <property name="styleSheet">
    <string notr="true">QPushButton {
-  background-color: #2B403F;
-  color: white;
+    background-color: #2B403F;          /* deep green-teal */
+    color: white;
+
+    /* “Pop-out” frame */
+    border: 2px solid #4E6F6D;          /* a shade lighter than the fill */
+    border-radius: 4px;                 /* gentle rounding */
+    padding: 4px 8px;                   /* keeps text from kissing the frame */
 }
 
-QPushButton:disabled { 
-    background-color: #99B7B3; /* Example: Gray background for disabled state */
-	color:#DDDDDD
+QPushButton:pressed {
+    background-color: #1E2F2F;                    /* darker shade */
+    border: 2px inset #3A5554;                    /* subtle inset look */
+    padding-top: 5px; padding-left: 11px;         /* shift content down/right slightly */
+    padding-bottom: 3px; padding-right: 9px;      /* keep overall size the same */
+}
+
+QPushButton:disabled {
+    background-color: rgba(43, 64, 63, 0.50);   /* same hue, 50 % opacity  */
+    color: rgba(255, 255, 255, 0.60);           /* soft-faded text          */
+    border: 2px solid rgba(78, 111, 109, 0.50); /* outline still visible    */
 }
 
  
@@ -238,10 +251,16 @@ QLabel {
       <bool>false</bool>
      </property>
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>50</width>
+       <height>0</height>
+      </size>
      </property>
      <property name="maximumSize">
       <size>
@@ -257,14 +276,14 @@ QLabel {
    <item>
     <widget class="QPushButton" name="pushButton_mod_config">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
      <property name="maximumSize">
       <size>
-       <width>75</width>
+       <width>80</width>
        <height>16777215</height>
       </size>
      </property>
@@ -306,10 +325,10 @@ QLabel {
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
-     <property name="maximumSize">
+     <property name="minimumSize">
       <size>
-       <width>25</width>
-       <height>16777215</height>
+       <width>30</width>
+       <height>30</height>
       </size>
      </property>
      <property name="text">
@@ -325,10 +344,16 @@ QLabel {
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="minimumSize">
+      <size>
+       <width>30</width>
+       <height>30</height>
+      </size>
+     </property>
      <property name="maximumSize">
       <size>
-       <width>25</width>
-       <height>16777215</height>
+       <width>30</width>
+       <height>30</height>
       </size>
      </property>
      <property name="text">

@@ -115,7 +115,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, 
 
 
 
-@pytest.mark.dev
+ 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
      ])
@@ -147,6 +147,25 @@ def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
     click(button)
 
 
+@pytest.mark.dev
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
+     ])
+def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
+                                ):
+    """test the run model button on the model widget (not to be confused with the model config dialog)
+    """
+    #===========================================================================
+    # setup
+    #===========================================================================
+    dialog = dialog_loaded
+    
+    
+ 
+    #===========================================================================
+    # execute
+    #===========================================================================
+    click(dialog.pushButton_MS_runAll)
 
 
 

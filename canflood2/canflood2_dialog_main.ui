@@ -1133,7 +1133,7 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_18">
+           <widget class="QPushButton" name="pushButton_MS_runAll">
             <property name="enabled">
              <bool>false</bool>
             </property>

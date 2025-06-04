@@ -863,11 +863,14 @@ class Main_dialog_modelSuite(object):
     }
     
     def _connect_slots_modelSuite(self, log):
+        """slot connection for the Model Suite tab"""
         
-        #inint the model config dialog
+        #=======================================================================
+        # Control
+        #=======================================================================
  
-        
         self.pushButton_MS_clear.clicked.connect(self._clear_all_models)
+        self.pushButton_MS_runAll.clicked.connect(self._run_all_models)
         
         
         #=======================================================================
@@ -1033,6 +1036,7 @@ class Main_dialog_modelSuite(object):
  
         #activate the Run button (disabled by default)
         model.widget_suite.pushButton_mod_run.setEnabled(True)
+        self.pushButton_MS_runAll.setEnabled(True)
         
         #=======================================================================
         # #add to the container
@@ -1230,6 +1234,7 @@ class Main_dialog_modelSuite(object):
         
         #enable the Main dialog run button
         model.widget_suite.pushButton_mod_run.setEnabled(True)
+        self.pushButton_MS_runAll.setEnabled(True)
         
         
     def _run_model(self, category_code, modelid):
@@ -1259,6 +1264,40 @@ class Main_dialog_modelSuite(object):
         #=======================================================================
         model.run_model(projDB_fp=projDB_fp, progressBar=progressBar, logger=log)
         progressBar.setValue(100)  # Set progress bar to 100 after completion
+        
+    def _run_all_models(self):
+        """run all models in the index"""
+        log = self.logger.getChild('_run_all_models')
+        log.info('running all models')
+        
+        #=======================================================================
+        # check the project database
+        #=======================================================================
+        projDB_fp = self.get_projDB_fp()
+        assert not projDB_fp is None, 'must set a project database file'
+        
+        #=======================================================================
+        # loop through each model and run it
+        #=======================================================================
+        cnt=0
+        for category_code, d in self.model_index_d.items():
+            for modelid, model in d.items():
+                log.debug(f'running model {category_code}_{modelid}')
+                progressBar = model.widget_d['progressBar_mod']['widget']
+                progressBar.setValue(0)
+                try:
+                    #could use self._run_model instead.. but more elegent to call the model directoly
+                    model.run_model(projDB_fp=projDB_fp, progressBar=progressBar, logger=log)
+                    cnt+=1
+                    progressBar.setValue(100)
+                except Exception as e:
+                    log.error(f'failed to run model {category_code}_{modelid} w/ error:\n    {e}')
+                    progressBar.setValue(0)
+                    
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.info(f'ran {cnt} models')
         
     
     

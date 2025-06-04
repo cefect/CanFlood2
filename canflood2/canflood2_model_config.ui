@@ -1207,7 +1207,7 @@ QTabBar::tab:selected {
        </rect>
       </property>
       <property name="autoFillBackground">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <attribute name="label">
        <string>3) Exposure</string>
@@ -1707,7 +1707,7 @@ QTabBar::tab:selected {
        </rect>
       </property>
       <property name="autoFillBackground">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <attribute name="label">
        <string>4) Risk</string>
@@ -2092,7 +2092,7 @@ p, li { white-space: pre-wrap; }
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_10">
           <item>
-           <widget class="QPushButton" name="pushButton_ok">
+           <widget class="QPushButton" name="pushButton_save">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
               <horstretch>0</horstretch>
@@ -2106,7 +2106,7 @@ p, li { white-space: pre-wrap; }
              </size>
             </property>
             <property name="text">
-             <string>OK</string>
+             <string>Save</string>
             </property>
            </widget>
           </item>

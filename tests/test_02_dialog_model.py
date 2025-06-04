@@ -56,7 +56,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 # HELPERS----------
 #===============================================================================
 
-overwrite_testdata_plugin=True #for updating the projDB in the plugin tutorial data loader
+overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial data loader
 
 
 
@@ -238,8 +238,8 @@ def test_dial_model_02_save(dialog_model,
     #===========================================================================
     # resolve dialog
     #===========================================================================
-    #click(dialog.pushButton_ok)
-    qtbot.mouseClick(dialog_model.pushButton_ok, Qt.LeftButton)
+ 
+    qtbot.mouseClick(dialog_model.pushButton_save, Qt.LeftButton)
     
     #===========================================================================
     # check---------
@@ -304,8 +304,8 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
     #===========================================================================
     # resolve dialog
     #===========================================================================
-    click(dialog_model.pushButton_ok)
-    #qtbot.mouseClick(dialog.pushButton_ok, Qt.LeftButton) #Model_config_dialog._save_and_close()
+    click(dialog_model.pushButton_save)
+ 
     
     #===========================================================================
     # check---------

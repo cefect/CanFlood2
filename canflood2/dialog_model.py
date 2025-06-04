@@ -78,7 +78,7 @@ class Model_compiler(object):
         """wrapper around compilation sequence"""
         
         assert not self.model.param_d is None, 'failed to load model parameters'
-        """run compilation sequence"""
+ 
         #asset inventory
         _ = self._table_finv_to_db(**skwargs)
         
@@ -108,8 +108,7 @@ class Model_compiler(object):
         #=======================================================================
         # load the data
         #=======================================================================
-        #load field names from parameters table
- 
+        #load field names from parameters table 
         
         """only one nest for now
         using this names_d as a lazy conversion from the model_parameters to the finv table names"""
@@ -166,8 +165,7 @@ class Model_compiler(object):
         if logger is None: logger = self.logger
         if model is None: model = self.model
         
-        log = self.logger.getChild('_table_gels_to_db')
-        
+        log = self.logger.getChild('_table_gels_to_db')        
         
         #=======================================================================
         # precheck
@@ -337,7 +335,8 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # generic-------
         #=======================================================================
-        self.pushButton_ok.clicked.connect(self._save_and_close)
+        self.pushButton_save.clicked.connect(self._save)
+        
         self.pushButton_close.clicked.connect(self._close)
         self.pushButton_run.clicked.connect(self._run_model)
         
@@ -707,6 +706,9 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
     def _run_model(self, *args, compile_model=True):
         """run the model
         
+        no longer saves... user must save first
+            should probably add a 'have you saved yet' check/dialog
+        
         Params
         ------
         compile_model: bool
@@ -723,27 +725,25 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         model = self.model        
         assert not model is None, 'no model loaded'
         
-        skwargs = dict(logger=log, model=model)
+        skwargs = dict(logger=log, model=model) 
+        
+        log.info(f'running model {model.name}')        
         
  
-        
-        log.info(f'running model {model.name}')
-        
-        
-        #=======================================================================
-        # trigger save        
-        #=======================================================================
         try:
+            #store the UI state
             self.progressBar.setValue(5)
-            self._set_ui_to_table_parameters(**skwargs)
-            
-    
-            #=======================================================================
-            # compiling
-            #=======================================================================
-            self.progressBar.setValue(20)
-            if compile_model:
-                self.compile_model(**skwargs)
+    #===========================================================================
+    #         self._set_ui_to_table_parameters(**skwargs)
+    #         
+    # 
+    #         #=======================================================================
+    #         # compiling
+    #         #=======================================================================
+    #         self.progressBar.setValue(20)
+    #         if compile_model:
+    #             self.compile_model(**skwargs)
+    #===========================================================================
             
             #=======================================================================
             # run it
@@ -764,8 +764,10 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
             
         
 
-    def _save_and_close(self):
-        """save the dialog to the model parameters table"""
+    def xxx_save_and_close(self):
+        """save the dialog to the model parameters table
+        removed the OK button and replaced with save
+        """
  
         log = self.logger.getChild('_save_and_close')
         log.debug('closing')
@@ -777,16 +779,49 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         self.model.compute_status()
         
-        self._set_ui_to_table_parameters(model, logger=log)
+        self._set_ui_to_table_parameters(model, logger=log)     
+        
         
  
- 
+        #=======================================================================
+        # close
+        #=======================================================================
         self._custom_cleanup()
         log.info(f'finished saving model {model.name}')
         self.accept()
         
+    def _save(self):
+        """save the paramterse and compile the model"""
+ 
+ 
+        log = self.logger.getChild('_save')
+        log.info('saving model to ProjDB')
+        
+        model = self.model
+        self.progressBar.setValue(5)
+        
+        #=======================================================================
+        # retrieve, set, and save the paramter table
+        #=======================================================================
+        self.model.compute_status()
+        self.progressBar.setValue(30)
+        
+        self._set_ui_to_table_parameters(model=model, logger=log)
+        self.progressBar.setValue(50) 
+        
+        self.compile_model(model=model, logger=log) 
+        self.progressBar.setValue(95)        
+        
+ 
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.info(f'finished saving model {model.name}')
+        
     def _close(self):
-        """close the dialog without saving"""
+        """close the dialog without saving
+        
+        TODO: save check with dialog"""
  
         self._custom_cleanup()
         self.reject()

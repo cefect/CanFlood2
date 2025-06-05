@@ -1163,7 +1163,10 @@ class Model(Model_run_methods, Model_table_assertions):
         #=======================================================================
         status, msg = self._get_status()
             
-        log.debug(f'status={status}\n    {msg}')
+        if not msg is None:
+            log.debug(f'status={status}\n    {msg}')
+        else:
+            log.debug(f'status={status}')
             
             
         #=======================================================================

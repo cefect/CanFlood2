@@ -93,14 +93,18 @@ class Model_compiler(object):
         _ = self._table_finv_to_db(**skwargs)
         
         #ground elevations
-        k = self.model.param_d['finv_elevType']
-        if k == 'height':
-            _ = self._table_gels_to_db(**skwargs)
-        elif k == 'elevation':
-            #no ground elevations for elevation type
-            pass
-        else:
-            raise KeyError(f'unknown finv_elevType: {k}')
+        #decided to build a blank table if k==elevation
+        #=======================================================================
+        # k = self.model.param_d['finv_elevType']
+        # if k == 'height':
+        #     _ = self._table_gels_to_db(**skwargs)
+        # elif k == 'elevation':
+        #     #no ground elevations for elevation type
+        #     pass
+        # else:
+        #     raise KeyError(f'unknown finv_elevType: {k}')
+        #=======================================================================
+        _ = self._table_gels_to_db(**skwargs)
             
         #asset exposures
         _ = self._table_expos_to_db(**skwargs)
@@ -195,19 +199,13 @@ class Model_compiler(object):
         
         log = self.logger.getChild('_table_gels_to_db')        
         
-        #=======================================================================
-        # precheck
-        #=======================================================================
-        assert model.param_d['finv_elevType'] == 'height', 'bad elevation type'
+        finv_elevType = model.param_d['finv_elevType']
+ 
+        
+        log.debug(f'building table_gels for finv_elevType={finv_elevType}')
         
         
-        #=======================================================================
-        # load DEM
-        #=======================================================================
-        dem_rlay = self.parent.get_dem_vlay()
-        assert dem_rlay is not None, 'must select a DEM for finv_elevType=\'ground\''
-        log.debug(f'loaded dem {dem_rlay.name()}')
-        
+                    
         #=======================================================================
         # load finv
         #=======================================================================
@@ -217,21 +215,49 @@ class Model_compiler(object):
         assert finv_indexField in finv_vlay.fields().names(), 'bad finv_indexField'
         
         #=======================================================================
-        # sample
+        # build from DEM
         #=======================================================================
-        with ProcessingEnvironment(logger=log) as pe: 
-            result = pe.run("qgis:rastersampling",
-                        { 'COLUMN_PREFIX' : 'dem_', 
-                        'INPUT' : finv_vlay, 
-                        'OUTPUT' : os.path.join(pe.temp_dir, 'rastersampling_table_gels_to_db.gpkg'), 
-                        'RASTERCOPY' : dem_rlay }
-                                   )
+        if finv_elevType == 'height':
+            #=======================================================================
+            # load DEM
+            #=======================================================================
+            dem_rlay = self.parent.get_dem_vlay()
+            assert dem_rlay is not None, 'must select a DEM for finv_elevType=\'ground\''
+            log.debug(f'loaded dem {dem_rlay.name()}')
+
             
-            samples_fp = result['OUTPUT']
+            #=======================================================================
+            # sample
+            #=======================================================================
+            with ProcessingEnvironment(logger=log) as pe: 
+                result = pe.run("qgis:rastersampling",
+                            { 'COLUMN_PREFIX' : 'dem_', 
+                            'INPUT' : finv_vlay, 
+                            'OUTPUT' : os.path.join(pe.temp_dir, 'rastersampling_table_gels_to_db.gpkg'), 
+                            'RASTERCOPY' : dem_rlay }
+                                       )
+                
+                samples_fp = result['OUTPUT']
+                
+            #retrieve values
+            samples_s = vlay_to_df(QgsVectorLayer(samples_fp, 'samples')).set_index(finv_indexField
+                                                                    )['dem_1'].rename('dem_samples')
+            samples_s.index.name = finv_index.name
             
-        #retrieve values
-        samples_s = vlay_to_df(QgsVectorLayer(samples_fp, 'samples')).set_index(finv_indexField)['dem_1'].rename('dem_samples')
-        samples_s.index.name = finv_index.name
+        else:
+            log.debug(f'building blank table_gels for finv_elevType={finv_elevType}')
+            #===================================================================
+            # blank dummy table
+            #===================================================================
+            #extract a series from the vector layer
+            #df_raw = vlay_to_df(finv_vlay)
+            
+            #load the finv table from the databawse
+            #note: table_finv is multindex, but table_gels is not
+            index = model.get_tables(['table_finv'])[0].index.get_level_values('indexField')
+ 
+            samples_s = pd.Series(pd.NA,index=index, name='dem_samples')
+            
         #=======================================================================
         # write resulting table
         #=======================================================================

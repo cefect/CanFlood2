@@ -6,7 +6,7 @@ Created on Mar 11, 2025
 helper functions for working with tutorial data in the tests
 '''
 
-import os, logging, sys, hashlib, shutil
+import os, logging, sys, hashlib, shutil, copy
 import pytest
 import pandas as pd
 
@@ -20,7 +20,18 @@ from pytest_qgis.utils import clean_qgis_layer
  
 from canflood2.assertions import assert_df_matches_projDB_schema
 from canflood2.parameters import src_dir, project_db_schema_d
-from canflood2.tutorials.tutorial_data_builder import tutorial_data_lib, widget_values_lib
+from canflood2.tutorials.tutorial_data_builder import tutorial_lib
+
+#===============================================================================
+# helpers
+#===============================================================================
+# Define the common helper function
+def _get_data_fp(tutorial_name, data_key):
+    if tutorial_name is None:
+        return None
+    if data_key not in tutorial_lib[tutorial_name]['data']:
+        return None
+    return tutorial_lib[tutorial_name]['data'][data_key]
 
 
 #===============================================================================
@@ -34,49 +45,38 @@ def tutorial_name(request):
 # FIXTURES:FILEPATHS------------
 #===============================================================================
 
+
+
+
+# Refactored fixtures
 @pytest.fixture
 def dem_fp(tutorial_name):
-    if tutorial_name is None:
-        return None
-    if 'dem' not in tutorial_data_lib[tutorial_name]:
-        return None
-    return tutorial_data_lib[tutorial_name]['dem']
+    return _get_data_fp(tutorial_name, 'dem')
 
 @pytest.fixture
 def aoi_fp(tutorial_name):
-    if tutorial_name is None:
-        return None
-    if 'aoi' not in tutorial_data_lib[tutorial_name]:
-        return None
-    return tutorial_data_lib[tutorial_name]['aoi']
+    return _get_data_fp(tutorial_name, 'aoi')
 
 @pytest.fixture
 def finv_fp(tutorial_name):
-    if tutorial_name is None:
-        return None
-    return tutorial_data_lib[tutorial_name]['finv']
+    return _get_data_fp(tutorial_name, 'finv')
 
 @pytest.fixture
 def haz_fp_d(tutorial_name):
-    if tutorial_name is None:
-        return None
-    return tutorial_data_lib[tutorial_name]['haz']
+    return _get_data_fp(tutorial_name, 'haz')
 
 @pytest.fixture
 def eventMeta_fp(tutorial_name):
-    if tutorial_name is None:
-        return None
-    return tutorial_data_lib[tutorial_name]['eventMeta']
+    return _get_data_fp(tutorial_name, 'eventMeta')
 
 @pytest.fixture
 def vfunc_fp(tutorial_name, tmpdir):
-    if tutorial_name is None:
+    fp = _get_data_fp(tutorial_name, 'vfunc')
+    if fp is None:
         return None
-    
-    #copy over to the testin directory for relative pathing
-    fp = tutorial_data_lib[tutorial_name]['vfunc']
-
+    # Copy over to the testing directory for relative pathing
     return shutil.copyfile(fp, os.path.join(tmpdir, os.path.basename(fp)))
+
 
 #===============================================================================
 # FIXTURES:OBJECTS------------
@@ -146,18 +146,18 @@ def eventMeta_df(eventMeta_fp, haz_rlay_d):
 
 @pytest.fixture(scope='function')
 def probability_type(tutorial_name):
-    return widget_values_lib[tutorial_name]['Main_dialog']['radioButton_ELari']
+    return tutorial_lib[tutorial_name]['widget']['Main_dialog']['radioButton_ELari']
 
 
  
 @pytest.fixture
 def widget_modelConfig_data_d(tutorial_name):
     #if tutorial_name is None:        return None
-    return widget_values_lib[tutorial_name]['Model_config_dialog']
+    return copy.deepcopy(tutorial_lib[tutorial_name]['widget']['Model_config_dialog'])
 
 @pytest.fixture
 def widget_Main_dialog_data_d(tutorial_name): 
-    return widget_values_lib[tutorial_name]['Main_dialog']
+    return copy.deepcopy(tutorial_lib[tutorial_name]['widget']['Main_dialog'])
 
 
 

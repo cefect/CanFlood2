@@ -93,12 +93,21 @@ class Model_compiler(object):
         _ = self._table_finv_to_db(**skwargs)
         
         #ground elevations
-        if self.model.param_d['finv_elevType'] == 'ground':
+        k = self.model.param_d['finv_elevType']
+        if k == 'height':
             _ = self._table_gels_to_db(**skwargs)
+        elif k == 'elevation':
+            #no ground elevations for elevation type
+            pass
+        else:
+            raise KeyError(f'unknown finv_elevType: {k}')
             
         #asset exposures
         _ = self._table_expos_to_db(**skwargs)
         
+        #=======================================================================
+        # wrap
+        #=======================================================================
         assert_projDB_fp(self.parent.get_projDB_fp())
         
         self.update_labels()
@@ -189,7 +198,7 @@ class Model_compiler(object):
         #=======================================================================
         # precheck
         #=======================================================================
-        assert model.param_d['finv_elevType'] == 'ground', 'bad elevation type'
+        assert model.param_d['finv_elevType'] == 'height', 'bad elevation type'
         
         
         #=======================================================================
@@ -823,20 +832,24 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         log.info(f'finished saving model {model.name}')
         self.accept()
         
-    def _save(self):
+    def _save(self, *args, model=None, logger=None):
         """save the paramterse and compile the model"""
  
- 
-        log = self.logger.getChild('_save')
+        #defaults
+        if logger is None: logger = self.logger
+        
+        log = logger.getChild('_save')
         log.info('saving model to ProjDB')
         
-        model = self.model
+        if model is None: model = self.model
+        assert isinstance(model, Model)
+ 
         self.progressBar.setValue(5)
         
         #=======================================================================
         # retrieve, set, and save the paramter table
         #=======================================================================
-        self.model.compute_status()
+        model.compute_status()
         self.progressBar.setValue(30)
         
         self._set_ui_to_table_parameters(model=model, logger=log)

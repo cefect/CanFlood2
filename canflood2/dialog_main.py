@@ -83,7 +83,8 @@ from .dialog_model import Model_config_dialog
 
 
 #tutorial dev loaders
-from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d, widget_values_lib
+#from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d, widget_values_lib
+from .tutorials.tutorial_data_builder import tutorial_lib, tutorial_fancy_names_d
 
 
 import tempfile
@@ -314,7 +315,8 @@ class Main_dialog_dev(object):
         
         assert not tut_name_fancy == '', 'no tutorial selected'
         
-        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]        
+        tutorial_name = tutorial_fancy_names_d[tut_name_fancy]
+ 
         
         log.debug(f'loading tutorial \'{tutorial_name}\'')
         
@@ -345,7 +347,7 @@ class Main_dialog_dev(object):
         #=======================================================================
         """here we load from the tutorial file data onto the QgisProject
         loading the projDB will attempt to popuolate the ui by selecting from loaded layers"""
-        data_d = tutorial_data_lib[tutorial_name]
+        data_d = tutorial_lib[tutorial_name]['data'].copy()
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
         
@@ -1864,9 +1866,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         
         
         #populate the comboBox
-        self.comboBox_tut_names.addItems(
-            [tutorial_fancy_names_d[k] for k in tutorial_data_lib.keys()]
-            )
+        self.comboBox_tut_names.addItems(list(tutorial_fancy_names_d.keys()))
         #reverr to index -1
         self.comboBox_tut_names.setCurrentIndex(-1)
         

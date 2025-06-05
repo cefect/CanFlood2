@@ -113,7 +113,7 @@ def model(dialog,
 # tests---
 #===============================================================================
 
-@pytest.mark.parametrize("projDB_fp", [oj_dModel('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2')])
+@pytest.mark.parametrize("projDB_fp", [oj_dModel('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2')])
 def test_core_01_init(model):
     """simple init test"""
     assert isinstance(model.parent, Main_dialog_projDB) 
@@ -122,7 +122,7 @@ def test_core_01_init(model):
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_dModel('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj_dModel('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2'))
 ])
 def test_core_02_table_impacts_to_db(model,
                      tutorial_name, #dont really need this

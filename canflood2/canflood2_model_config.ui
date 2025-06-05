@@ -578,17 +578,20 @@ QTabBar::tab:selected {
                     <height>16777215</height>
                    </size>
                   </property>
+                  <property name="toolTip">
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies the information type of the elevation fields. 'heights' means the values are relative to the provided DEM while 'elevations' means values are relative to some datum.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
                   <property name="currentIndex">
-                   <number>-1</number>
+                   <number>0</number>
                   </property>
                   <item>
                    <property name="text">
-                    <string>ground</string>
+                    <string>height</string>
                    </property>
                   </item>
                   <item>
                    <property name="text">
-                    <string>datum</string>
+                    <string>elevation</string>
                    </property>
                   </item>
                  </widget>

@@ -196,12 +196,15 @@ def vfunc(dialog_model, vfunc_fp, monkeypatch):
 #===============================================================================
 # TESTS------
 #===============================================================================
-
-
-
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2'))
+_04_MS_args = ("tutorial_name, projDB_fp", [
+    #('cf1_tutorial_01', oj_main('04_MS_createTemplates_cf1_4b9cc3', 'projDB.canflood2')), #L1 not implemented
+    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
+    ('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2')),
+    ('cf1_tutorial_02c', oj_main('04_MS_createTemplates_cf1_1ae7e8', 'projDB.canflood2')),
 ])
+
+
+@pytest.mark.parametrize(*_04_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_01_launch_config(dialog_model,model, qtbot):
     """simple launching and closing of the model configuration dialog
@@ -217,10 +220,13 @@ def test_dial_model_01_launch_config(dialog_model,model, qtbot):
     
 
 
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
-    ('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2'))
-])
+#===============================================================================
+# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
+#     ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
+#     ('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2'))
+# ])
+#===============================================================================
+@pytest.mark.parametrize(*_04_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_02_save(dialog_model,
                             model, 
@@ -278,11 +284,14 @@ def test_dial_model_02_save(dialog_model,
 
 
 
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    #('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
-    #('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2')),
-    ('cf1_tutorial_02c', oj_main('04_MS_createTemplates_cf1_1ae7e8', 'projDB.canflood2')),
-])
+#===============================================================================
+# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
+#     #('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
+#     #('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2')),
+#     ('cf1_tutorial_02c', oj_main('04_MS_createTemplates_cf1_1ae7e8', 'projDB.canflood2')),
+# ])
+#===============================================================================
+@pytest.mark.parametrize(*_04_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_03_save_vfunc(dialog_model, model,                                  
                             vfunc,
@@ -332,14 +341,14 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
     write_projDB(dialog_model, test_name)
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     pytest.param('cf1_tutorial_02',oj('test_03_save_vfunc_c1-0-c_bcb0b2', 'projDB.canflood2'),),
-    #pytest.param('cf1_tutorial_02b',oj('test_03_save_vfunc_c1-0-c_5dee21', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02c',oj('test_03_save_vfunc_c1-0-c_2a2788', 'projDB.canflood2'),), #stopped here
+    pytest.param('cf1_tutorial_02b',oj('test_03_save_vfunc_c1-0-c_5dee21', 'projDB.canflood2'),),
+    #pytest.param('cf1_tutorial_02c',oj('test_03_save_vfunc_c1-0-c_2a2788', 'projDB.canflood2'),), #stopped here
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_04_compile(dialog_model, model,
+def test_dial_model_04_save(dialog_model, model,
                            test_name,
                            
                            #load data onto project
@@ -359,11 +368,13 @@ def test_dial_model_04_compile(dialog_model, model,
     #===========================================================================
     # execute
     #===========================================================================
-    """this is part of the run call"""
+    """this is part of the save"""
     skwargs = dict(logger=dialog_model.logger, model=model)
     
-    dialog_model._set_ui_to_table_parameters(**skwargs)
-    dialog_model.compile_model(**skwargs)
+    #dialog_model._set_ui_to_table_parameters(**skwargs)
+    #dialog_model.compile_model(**skwargs)
+    
+    dialog_model._save(**skwargs)
  
     
     
@@ -387,10 +398,11 @@ def test_dial_model_04_compile(dialog_model, model,
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     #pytest.param('cf1_tutorial_01',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),), #not setup for L1 yet
-    pytest.param('cf1_tutorial_02b',oj('test_04_compile_c1-0-cf1__d76571', 'projDB.canflood2'),)
+    pytest.param('cf1_tutorial_02',oj('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_02b',oj('test_04_save_c1-0-cf1_tut_d27079', 'projDB.canflood2'),)
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_05_run(dialog_model, model,
@@ -450,8 +462,8 @@ def test_dial_model_05_run(dialog_model, model,
     if overwrite_testdata_plugin:
         from canflood2.tutorials.tutorial_data_builder import test_data_dir as plugin_test_data_dir
         
-        ofp = os.path.join(plugin_test_data_dir, tutorial_name, 'projDB.canflood2')
-        assert os.path.exists(ofp), f'expected to find a projDB file at \n    {ofp}'
+        ofp = os.path.join(plugin_test_data_dir, 'projDBs', tutorial_name+'.canflood2')
+        #assert os.path.exists(ofp), f'expected to find a projDB file at \n    {ofp}'
         
         #copy over the .sqlite file
         projDB_fp = dialog_model.parent.get_projDB_fp()

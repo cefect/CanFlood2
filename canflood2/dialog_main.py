@@ -269,29 +269,47 @@ class Main_dialog_projDB(object):
         
 
     def update_model_index_dx(self, model, **kwargs):
-        """update the model index table with the model"""
+        """Update the model-suite index table for a single model."""
+        # ------------------------------------------------------------------
+        # 1. Load the table and enforce the reference dtypes up front
+        # ------------------------------------------------------------------
         dx = self.projDB_get_tables(['03_model_suite_index'])[0]
- 
- 
-        #retrieve the parameters from teh models parameter table
-        s = model.get_model_index_ser()
- 
-        
+    
+        # Expected dtypes from your schema definition
+        schema_dtypes = (
+            parameters.project_db_schema_d['03_model_suite_index']
+            .dtypes
+            .to_dict()
+        )
+        dx = dx.astype(schema_dtypes)
+    
+        # ------------------------------------------------------------------
+        # 2. Build a 1-row DataFrame for the incoming model record
+        # ------------------------------------------------------------------
+        s = model.get_model_index_ser()            # original Series
+    
+        # Promote to DataFrame (keeps column order) …
+        row_df = pd.DataFrame([s])
+    
+        # … give it the correct MultiIndex (category_code, modelid)
+        row_df.index = pd.MultiIndex.from_tuples(
+            [(model.category_code, model.modelid)],
+            names=dx.index.names
+        )
+    
+        # ------------------------------------------------------------------
+        # 3. Match dtypes **before** inserting → no FutureWarning
+        # ------------------------------------------------------------------
+        row_df = row_df.astype(schema_dtypes, copy=False)
+    
+        # If the row already exists, overwrite; if not, this inserts it
+        dx.update(row_df)                       # preserves dtypes
+    
+        # ------------------------------------------------------------------
+        # 4. Persist
+        # ------------------------------------------------------------------
+        self.projDB_set_tables({'03_model_suite_index': dx}, **kwargs)
 
-        # Update the dx DataFrame where the MultiIndex names match the model's category_code and modelid
-        dx.loc[pd.IndexSlice[model.category_code, model.modelid], :] = s
-        
-        #recast types from template
-        """necessary when we set a single row like the above"""
-        dx = dx.astype(parameters.project_db_schema_d['03_model_suite_index'].dtypes.to_dict())
-  
-        
-        """
-        dx.dtypes
-        dx.index.dtypes
-        """
-        #self.set_model_index_dx(dx, **kwargs)
-        self.projDB_set_tables({'03_model_suite_index':dx}, **kwargs) 
         
  
 

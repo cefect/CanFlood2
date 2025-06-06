@@ -360,6 +360,7 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
 #     'cf1_tutorial_02c', #datum
 #     ])
 #===============================================================================
+
 @pytest.mark.parametrize("tutorial_name", tut_names)
 def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
                           widget_data_d, #widget values set during instance
@@ -500,9 +501,9 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 @pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
-    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
-    ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2')), 
-    ('cf1_tutorial_02c', oj('02_save_ui_to_project_dat_7b3a19', 'projDB.canflood2')),
+   ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
+   ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2')), 
+   ('cf1_tutorial_02c', oj('02_save_ui_to_project_dat_7b3a19', 'projDB.canflood2')),
 ])
 def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
                                          tutorial_name,
@@ -528,7 +529,7 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     # #create the model suite templates
     #===========================================================================
     dialog=dialog_loaded
-    click(dialog.pushButton_MS_createTemplates)
+    click(dialog.pushButton_MS_createTemplates) #Main_dialog._connect_slots_modelSuite()
  
     
     #check they have been added to the dialog index

@@ -134,7 +134,7 @@ project_db_schema_d['02_project_parameters'] = pd.concat(
 #===============================================================================
 #03_model_suite_index
 """TODO: switch this to use a schema index"""
-index = pd.MultiIndex.from_arrays(
+ms_MultiIndex = pd.MultiIndex.from_arrays(
     [pd.Series([], dtype='str'), pd.Series([], dtype='int64')], 
     names=['category_code', 'modelid']
 )
@@ -146,7 +146,7 @@ project_db_schema_d['03_model_suite_index'] = pd.DataFrame({
                 'asset_label': pd.Series(dtype='str'),
                 'consq_label': pd.Series(dtype='str'),
                 'result_ead': pd.Series(dtype='float')
-                            },index=index)
+                            },index=ms_MultiIndex)
                             #.set_index(['modelid', 'category_code'] #doesnt seem like sqlite can handle multindex
                                         
 

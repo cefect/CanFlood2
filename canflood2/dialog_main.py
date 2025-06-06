@@ -289,22 +289,33 @@ class Main_dialog_projDB(object):
         s = model.get_model_index_ser()            # original Series
     
         # Promote to DataFrame (keeps column order) …
-        row_df = pd.DataFrame([s])
-    
-        # … give it the correct MultiIndex (category_code, modelid)
-        row_df.index = pd.MultiIndex.from_tuples(
-            [(model.category_code, model.modelid)],
-            names=dx.index.names
-        )
-    
-        # ------------------------------------------------------------------
-        # 3. Match dtypes **before** inserting → no FutureWarning
-        # ------------------------------------------------------------------
-        row_df = row_df.astype(schema_dtypes, copy=False)
-    
-        # If the row already exists, overwrite; if not, this inserts it
-        dx.update(row_df)                       # preserves dtypes
-    
+        
+        row_df = pd.DataFrame([s]).set_index(project_db_schema_d['03_model_suite_index'].index.names).astype(schema_dtypes)
+        
+        #make the MultiIndex types match the expectation
+        """dont know why this is so complicated...."""
+        for i, target_type in enumerate(parameters.ms_MultiIndex.dtypes):
+            row_df.index = row_df.index.set_levels(row_df.index.levels[i].astype(target_type),level=i)
+        
+        
+        # Ensure the data types of the MultiIndex levels match the expected types
+        for i, (actual_dtype, expected_dtype) in enumerate(zip(row_df.index.levels, parameters.ms_MultiIndex.dtypes)):
+            assert actual_dtype.dtype == expected_dtype, f"Mismatch in level {i}: {actual_dtype.dtype} != {expected_dtype}"
+
+        #=======================================================================
+        # add
+        #=======================================================================
+        #add the indexer
+        dx = dx.reindex(dx.index.union(row_df.index)) 
+ 
+        dx.loc[row_df.index] = row_df.values  
+ 
+
+        #check the new indexer made it in there
+        assert row_df.index.isin(dx.index).all(), f'Failed to add model indexer {row_df.index} to the model suite index table'
+        
+        #check there are no duplicate indexes
+        assert dx.index.is_unique, f'Duplicate indexes found in model suite index table: {dx.index}'
         # ------------------------------------------------------------------
         # 4. Persist
         # ------------------------------------------------------------------
@@ -911,6 +922,7 @@ class Main_dialog_modelSuite(object):
                     gb.setLayout(QtWidgets.QVBoxLayout())
             
                 # Add the loaded widget to the group box's layout
+
                 self._add_model(gb.layout(), category_code, logger=log)
      
      
@@ -1363,7 +1375,14 @@ class Main_dialog_modelSuite(object):
             self.projDB_drop_tables(*model_table_names_l, logger=log)
             
             #remove entry from model index table
-            dx = self.projDB_get_tables(['03_model_suite_index'] )[0].drop(index=(category_code, modelid))
+            dx = self.projDB_get_tables(['03_model_suite_index'])[0]
+            if len(dx)==0:
+                raise AssertionError('model index table is empty')
+            
+            try:
+                dx = dx.drop(index=(category_code, modelid))
+            except Exception as e:
+                raise IOError(f'failed to remove model from index table: {e}')
  
             self.projDB_set_tables({'03_model_suite_index':dx}, logger=log)
         
@@ -2238,6 +2257,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
             #===================================================================
             # write all the tables
             #===================================================================
+            log.debug(f'wrigin {df_d.keys()} to project database')
             for k, df in df_d.items():
                 assert k in project_db_schema_d.keys(), k
                 df_to_sql(df, k, conn, if_exists='replace')

@@ -163,6 +163,7 @@ def df_to_sql(df, table_name, conn, template_prefix=None,if_exists='replace', **
     #===========================================================================
     if len(df)==0:
         warnings.warn(f'attempting to write empty dataframe to table \'{table_name}\'')
+        pass #do this alot w/ L1
         
     if df.isin(['nan']).any().any():
         raise AssertionError(f'found nan in {table_name}')

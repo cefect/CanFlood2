@@ -57,7 +57,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 # HELPERS----------
 #===============================================================================
 
-overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial data loader
+overwrite_testdata_plugin=True #for updating the projDB in the plugin tutorial data loader
 
 
 
@@ -408,8 +408,8 @@ def test_dial_model_04_save(dialog_model, model,
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     #pytest.param('cf1_tutorial_01',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),), #not setup for L1 yet
     pytest.param('cf1_tutorial_02',oj('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2'),),
-    #pytest.param('cf1_tutorial_02b',oj('test_04_save_c1-0-cf1_tut_d27079', 'projDB.canflood2'),)
-    #pytest.param('cf1_tutorial_02c',oj('test_04_save_c1-0-cf1_tut_2fe1b3', 'projDB.canflood2'),),  
+    pytest.param('cf1_tutorial_02b',oj('test_04_save_c1-0-cf1_tut_d27079', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_02c',oj('test_04_save_c1-0-cf1_tut_2fe1b3', 'projDB.canflood2'),),  
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_05_run(dialog_model, model,

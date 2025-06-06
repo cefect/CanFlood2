@@ -342,11 +342,11 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
     write_projDB(dialog_model, test_name)
 
 
-@pytest.mark.dev
+ 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     #pytest.param('cf1_tutorial_02',oj('test_03_save_vfunc_c1-0-c_bcb0b2', 'projDB.canflood2'),),
     #pytest.param('cf1_tutorial_02b',oj('test_03_save_vfunc_c1-0-c_5dee21', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02c',oj('test_03_save_vfunc_c1-0-c_2a2788', 'projDB.canflood2'),), #stopped here
+    pytest.param('cf1_tutorial_02c',oj('test_03_save_vfunc_c1-0-c_2a2788', 'projDB.canflood2'),),  
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_04_save(dialog_model, model,
@@ -404,11 +404,12 @@ def test_dial_model_04_save(dialog_model, model,
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     #pytest.param('cf1_tutorial_01',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),), #not setup for L1 yet
     pytest.param('cf1_tutorial_02',oj('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02b',oj('test_04_save_c1-0-cf1_tut_d27079', 'projDB.canflood2'),)
+    #pytest.param('cf1_tutorial_02b',oj('test_04_save_c1-0-cf1_tut_d27079', 'projDB.canflood2'),)
+    #pytest.param('cf1_tutorial_02c',oj('test_04_save_c1-0-cf1_tut_2fe1b3', 'projDB.canflood2'),),  
 ])
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_05_run(dialog_model, model,
@@ -437,7 +438,7 @@ def test_dial_model_05_run(dialog_model, model,
     #===========================================================================
     # compile model tables
     #===========================================================================
-    """included in projDB"""
+    """included in projDB... just checking"""
     df_d = model.get_tables(model.compile_model_tables, result_as_dict=True)
     for table_name, df in df_d.items(): 
         assert len(df)>0, f'got empty table \'{table_name}\''

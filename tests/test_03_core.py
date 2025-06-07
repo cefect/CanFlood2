@@ -36,7 +36,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 # helpers
 #===============================================================================
 
-overwrite_testdata=False
+overwrite_testdata=True
 def write_projDB(model, test_name):
  
     projDB_fp = model.parent.get_projDB_fp()
@@ -137,11 +137,11 @@ def test_core_02_table_impacts_to_db(model,
     
     write_projDB(model, test_name)
     
-    
-    
+
+ 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_dc5192', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_06e268', 'projDB.canflood2'))
 ])
 def test_core_03_table_impacts_prob_to_db(model,
                      tutorial_name, #dont really need this
@@ -163,7 +163,7 @@ def test_core_03_table_impacts_prob_to_db(model,
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('03_table_impacts_prob_to__543fe7', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('03_table_impacts_prob_to__d92998', 'projDB.canflood2'))
 ]
 )
 def test_core_04_table_ead_to_db(model,
@@ -185,9 +185,9 @@ def test_core_04_table_ead_to_db(model,
 
 
 
-@pytest.mark.dev 
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('04_table_ead_to_db_cf1_tu_1d95fe', 'projDB.canflood2'))
+    ('cf1_tutorial_02', oj('04_table_ead_to_db_cf1_tu_2c4681', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("ead_lowPtail, ead_highPtail, ead_lowPtail_user, ead_highPtail_user", [
     (None, None, None, None), #pull from parameters

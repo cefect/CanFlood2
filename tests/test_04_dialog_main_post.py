@@ -10,7 +10,7 @@ main dialog, post model config/run tests
 #===============================================================================
 # IMPORTS----------
 #===============================================================================
-import pytest, time, sys, inspect, os, shutil, hashlib, copy
+import pytest, time, sys, inspect, os, shutil, hashlib, copy, pprint
 
 from pandas.testing import assert_frame_equal
 from PyQt5.Qt import Qt, QApplication
@@ -41,8 +41,10 @@ from canflood2.hp.qt import set_widget_value
 #===============================================================================
 @pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name", [
+    #'cf1_tutorial_01',
     'cf1_tutorial_02', 
-    'cf1_tutorial_02b'
+    'cf1_tutorial_02b',
+    'cf1_tutorial_02c',
        #========================================================================
        # pytest.param('cf1_tutorial_01', 
        #              marks=pytest.mark.xfail(raises=IOError, reason='this tutorial is not setup yet'),
@@ -52,7 +54,10 @@ from canflood2.hp.qt import set_widget_value
 def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_name,
  
                                            ):
-    """test loading tutorial data"""
+    """test loading tutorial data
+    
+    NOTE: for major changes, need to rebuild the tutorials/data/projDBs
+        with test_02_dialog_model.overwrite_testdata_plugin """
     dialog = dialog_main
     #set the combo box
     set_widget_value(dialog.comboBox_tut_names, 
@@ -66,10 +71,19 @@ def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_
     # check
     #===========================================================================
     print(f'\n\n{"=" * 80}\nchecking loaded data\n{"=" * 80}\n\n')
-    result = dialog.get_projDB_fp()
-    if result is None:
-        raise IOError(f'failed to load any projDB_fp')
-    assert_projDB_fp(result, check_consistency=True)
+    
+    tut_data = tutorial_lib[tutorial_name]['data']
+    """
+    pprint.pprint(tut_data)
+    """
+    
+    #projfDB
+    #not all tutorials have a projDB
+    if 'projDB' in tut_data.keys():
+        result = dialog.get_projDB_fp()
+        if result is None:
+            raise IOError(f'failed to load any projDB_fp')
+        assert_projDB_fp(result, check_consistency=True)
     
     #check that the aoi_vlay is on comboBox_aoi
     assert not dialog.comboBox_aoi.currentLayer() is None, 'failed to set aoi_vlay' 
@@ -192,7 +206,7 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
 #     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
 #      ])
 #===============================================================================
-@pytest.mark.dev
+ 
 @pytest.mark.parametrize(*DM_04_run_args)
 def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
                                 ):

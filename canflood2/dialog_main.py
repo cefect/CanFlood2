@@ -376,7 +376,7 @@ class Main_dialog_dev(object):
         #=======================================================================
         """here we load from the tutorial file data onto the QgisProject
         loading the projDB will attempt to popuolate the ui by selecting from loaded layers"""
-        data_d = tutorial_lib[tutorial_name]['data'].copy()
+        data_d = copy.deepcopy(tutorial_lib[tutorial_name]['data'])
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
         
@@ -386,8 +386,19 @@ class Main_dialog_dev(object):
                 if not data_key in data_d:
                     raise KeyError(f'failed to find data key \'{data_key}\'')
                 
-                #copy over the data to a temporary directory
+                #create a temporary, unique directory
+                
 
+
+                # Generate a unique temporary directory path using tutorial name, data key, and current time
+                temp_dir = os.path.join(
+                    tempfile.gettempdir(),
+                    hashlib.md5(f'{tutorial_name}_{data_key}_{int(time.time())}'.encode()).hexdigest()
+                )
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                
+                #copy over the data to a temporary directory
                 fp_raw = data_d[data_key]
                 fp = shutil.copyfile(fp_raw, os.path.join(temp_dir, os.path.basename(fp_raw)))
                 assert os.path.exists(fp), f'failed to copy file to temp dir: {fp}'

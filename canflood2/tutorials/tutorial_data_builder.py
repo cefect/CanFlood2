@@ -106,12 +106,9 @@ tutorial_lib = {
 tName = 'cf1_tutorial_02b'
 tutorial_lib[tName] = copy.deepcopy(tutorial_lib['cf1_tutorial_02'])
 tutorial_lib[tName]['fancy_name'] = 'Tutorial 2b (AEP)'
-tutorial_lib[tName]['data'].update(
-    {'eventMeta': 'eventMeta_df_aep.csv'}
-    )
-tutorial_lib[tName]['widget']['Main_dialog'].update(
-    {'radioButton_ELari': '0'}
-    )
+tutorial_lib[tName]['data']['eventMeta']= 'eventMeta_df_aep.csv'
+tutorial_lib[tName]['widget']['Main_dialog']['radioButton_ELari']= '0'
+ 
 
 #===============================================================================
 # Tutorial 2C (finv heights)

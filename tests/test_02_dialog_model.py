@@ -56,8 +56,9 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 # HELPERS----------
 #===============================================================================
-
-overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial data loader
+#for updating the projDB in the plugin tutorial data loader
+#see test_dial_model_05_run
+overwrite_testdata_plugin=False 
 
 
 

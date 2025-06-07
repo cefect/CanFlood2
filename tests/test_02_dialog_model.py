@@ -62,11 +62,8 @@ overwrite_testdata_plugin=False #for updating the projDB in the plugin tutorial 
 
 
 
-overwrite_testdata=True #for writing tests
-def write_projDB(dialog_model, test_name):
-    
-    
- 
+overwrite_testdata=False #for writing tests
+def write_projDB(dialog_model, test_name): 
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
  

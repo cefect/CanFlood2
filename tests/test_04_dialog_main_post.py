@@ -23,6 +23,8 @@ from tests.conftest import (
 
 from tests.test_01_dialog_main import dialog_main, dialog_loaded #get the main dialog tests
 from tests.test_02_dialog_model import oj as oj_model #get the core
+from tests.test_02_dialog_model import _04_run_args as DM_04_run_args 
+from tests.test_02_dialog_model import _03_saveV_args as DM_02_saveV_args
 
 
 from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp, assert_series_match
@@ -90,9 +92,12 @@ def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_
     
 
 
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
-     ])
+#===============================================================================
+# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
+#     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
+#      ])
+#===============================================================================
+@pytest.mark.parametrize(*DM_04_run_args)
 def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, test_name,
                                                   ):
     """load the built main dialog, save it to a new project database
@@ -121,10 +126,13 @@ def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, 
 
 
 
- 
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
-     ])
+
+#===============================================================================
+# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
+#     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
+#      ])
+#===============================================================================
+@pytest.mark.parametrize(*DM_02_saveV_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
                                 consequence_category, modelid,
@@ -153,10 +161,14 @@ def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
     click(button)
 
 
-@pytest.mark.dev
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
-     ])
+
+#===============================================================================
+# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
+#     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
+#      ])
+#===============================================================================
+
+@pytest.mark.parametrize(*DM_02_saveV_args)
 def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
                                 ):
     """test the run model button on the model widget (not to be confused with the model config dialog)
@@ -175,9 +187,13 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
 
 
 
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
-     ])
+#===============================================================================
+# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
+#     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
+#      ])
+#===============================================================================
+@pytest.mark.dev
+@pytest.mark.parametrize(*DM_04_run_args)
 def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
                                 ):
     """run the model"""

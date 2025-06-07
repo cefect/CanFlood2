@@ -716,9 +716,11 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # precheck
         #=======================================================================
-        """mostly for not-implemented things"""
-        if not d['expo_level']== 'depth-dependent (L2)':
-            raise AssertionError(f'only depth-dependent (L2) exposure level is supported at this time')
+        #=======================================================================
+        # """mostly for not-implemented things"""
+        # if not d['expo_level']== 'depth-dependent (L2)':
+        #     raise AssertionError(f'only depth-dependent (L2) exposure level is supported at this time')
+        #=======================================================================
         
             
 

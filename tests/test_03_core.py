@@ -21,7 +21,9 @@ from .conftest import (
 
 from canflood2.parameters import modelTable_params_d
 
-modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed']) 
+modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed'])
+
+from .test_02_dialog_model import _02_save_args as DM_02_save_args, _03_saveV_args
 #===============================================================================
 # DATA--------
 #===============================================================================
@@ -113,17 +115,18 @@ def model(dialog,
 # tests---
 #===============================================================================
 
-@pytest.mark.parametrize("projDB_fp", [oj_dModel('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2')])
-def test_core_01_init(model):
+#@pytest.mark.parametrize("projDB_fp", [oj_dModel('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2')])
+@pytest.mark.parametrize(*_03_saveV_args)
+def test_core_01_init(model,
+                      tutorial_name, #ddummy for args
+                      ):
     """simple init test"""
     assert isinstance(model.parent, Main_dialog_projDB) 
     print(model.get_index_d())
 
 
 
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_dModel('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2'))
-])
+@pytest.mark.parametrize(*_03_saveV_args)
 def test_core_02_table_impacts_to_db(model,
                      tutorial_name, #dont really need this
                      test_name,

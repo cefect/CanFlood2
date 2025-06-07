@@ -586,12 +586,12 @@ QTabBar::tab:selected {
                   </property>
                   <item>
                    <property name="text">
-                    <string>height</string>
+                    <string>relative</string>
                    </property>
                   </item>
                   <item>
                    <property name="text">
-                    <string>elevation</string>
+                    <string>absolute</string>
                    </property>
                   </item>
                  </widget>

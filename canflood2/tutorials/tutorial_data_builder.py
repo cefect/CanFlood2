@@ -49,7 +49,7 @@ tutorial_lib = {
             },
             'Model_config_dialog': {
                 'comboBox_expoLevel': 'binary (L1)',
-                'comboBox_AI_elevType': 'height',
+                'comboBox_AI_elevType': 'relative',
                 'mFieldComboBox_cid': 'xid',
                 'mFieldComboBox_AI_01_scale': 'f0_scale',
                 'mFieldComboBox_AI_01_elev': 'f0_elv',
@@ -83,7 +83,7 @@ tutorial_lib = {
             },
             'Model_config_dialog': {
                 'comboBox_expoLevel': 'depth-dependent (L2)',
-                'comboBox_AI_elevType': 'height',
+                'comboBox_AI_elevType': 'relative',
                 'mFieldComboBox_cid': 'xid',
                 'mFieldComboBox_AI_01_scale': 'f0_scale',
                 'mFieldComboBox_AI_01_elev': 'f0_elv',
@@ -104,9 +104,6 @@ tutorial_lib = {
 #===============================================================================
 # Copy the base tutorial 2 data to create a new tutorial 2b
 tName = 'cf1_tutorial_02b'
-
-
-
 tutorial_lib[tName] = copy.deepcopy(tutorial_lib['cf1_tutorial_02'])
 tutorial_lib[tName]['fancy_name'] = 'Tutorial 2b (AEP)'
 tutorial_lib[tName]['data'].update(
@@ -126,7 +123,7 @@ tutorial_lib[tName]['data'].update(
     {'finv': 'finv_tut2_elev.geojson'}
     )
 tutorial_lib[tName]['widget']['Model_config_dialog'].update(
-    {'comboBox_AI_elevType': 'elevation'}
+    {'comboBox_AI_elevType': 'absolute'}
     )
 
 

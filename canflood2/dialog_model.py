@@ -92,18 +92,7 @@ class Model_compiler(object):
         #asset inventory
         _ = self._table_finv_to_db(**skwargs)
         
-        #ground elevations
-        #decided to build a blank table if k==elevation
-        #=======================================================================
-        # k = self.model.param_d['finv_elevType']
-        # if k == 'height':
-        #     _ = self._table_gels_to_db(**skwargs)
-        # elif k == 'elevation':
-        #     #no ground elevations for elevation type
-        #     pass
-        # else:
-        #     raise KeyError(f'unknown finv_elevType: {k}')
-        #=======================================================================
+        #sample DEM
         _ = self._table_gels_to_db(**skwargs)
             
         #asset exposures
@@ -217,7 +206,7 @@ class Model_compiler(object):
         #=======================================================================
         # build from DEM
         #=======================================================================
-        if finv_elevType == 'height':
+        if finv_elevType == 'relative':
             #=======================================================================
             # load DEM
             #=======================================================================
@@ -244,7 +233,7 @@ class Model_compiler(object):
                                                                     )['dem_1'].rename('dem_samples')
             samples_s.index.name = finv_index.name
             
-        else:
+        elif finv_elevType == 'absolute':
             log.debug(f'building blank table_gels for finv_elevType={finv_elevType}')
             #===================================================================
             # blank dummy table
@@ -257,6 +246,9 @@ class Model_compiler(object):
             index = model.get_tables(['table_finv'])[0].index.get_level_values('indexField')
  
             samples_s = pd.Series(pd.NA,index=index, name='dem_samples')
+            
+        else:
+            raise KeyError(f'unknown finv_elevType: {finv_elevType}')
             
         #=======================================================================
         # write resulting table
@@ -816,7 +808,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
             # run it
             #=======================================================================
             #self.progressBar.setValue(50)
-            model.run_model(projDB_fp=self.parent.get_projDB_fp(),
+            result = model.run_model(projDB_fp=self.parent.get_projDB_fp(),
                             progressBar=self.progressBar)
             
             #=======================================================================
@@ -829,6 +821,8 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
             log.info(f'failed to run model {model.name} w/ \n     {e}')
             
             self.progressBar.setValue(0)
+            
+            raise
             
         
 

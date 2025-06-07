@@ -83,7 +83,8 @@ from .dialog_model import Model_config_dialog
 
 
 #tutorial dev loaders
-from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d, widget_values_lib
+#from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d, widget_values_lib
+from .tutorials.tutorial_data_builder import tutorial_lib, tutorial_fancy_names_d
 
 
 import tempfile
@@ -268,29 +269,58 @@ class Main_dialog_projDB(object):
         
 
     def update_model_index_dx(self, model, **kwargs):
-        """update the model index table with the model"""
+        """Update the model-suite index table for a single model."""
+        # ------------------------------------------------------------------
+        # 1. Load the table and enforce the reference dtypes up front
+        # ------------------------------------------------------------------
         dx = self.projDB_get_tables(['03_model_suite_index'])[0]
- 
- 
-        #retrieve the parameters from teh models parameter table
-        s = model.get_model_index_ser()
- 
+    
+        # Expected dtypes from your schema definition
+        schema_dtypes = (
+            parameters.project_db_schema_d['03_model_suite_index']
+            .dtypes
+            .to_dict()
+        )
+        dx = dx.astype(schema_dtypes)
+    
+        # ------------------------------------------------------------------
+        # 2. Build a 1-row DataFrame for the incoming model record
+        # ------------------------------------------------------------------
+        s = model.get_model_index_ser()            # original Series
+    
+        # Promote to DataFrame (keeps column order) …
         
+        row_df = pd.DataFrame([s]).set_index(project_db_schema_d['03_model_suite_index'].index.names).astype(schema_dtypes)
+        
+        #make the MultiIndex types match the expectation
+        """dont know why this is so complicated...."""
+        for i, target_type in enumerate(parameters.ms_MultiIndex.dtypes):
+            row_df.index = row_df.index.set_levels(row_df.index.levels[i].astype(target_type),level=i)
+        
+        
+        # Ensure the data types of the MultiIndex levels match the expected types
+        for i, (actual_dtype, expected_dtype) in enumerate(zip(row_df.index.levels, parameters.ms_MultiIndex.dtypes)):
+            assert actual_dtype.dtype == expected_dtype, f"Mismatch in level {i}: {actual_dtype.dtype} != {expected_dtype}"
 
-        # Update the dx DataFrame where the MultiIndex names match the model's category_code and modelid
-        dx.loc[pd.IndexSlice[model.category_code, model.modelid], :] = s
+        #=======================================================================
+        # add
+        #=======================================================================
+        #add the indexer
+        dx = dx.reindex(dx.index.union(row_df.index)) 
+ 
+        dx.loc[row_df.index] = row_df.values  
+ 
+
+        #check the new indexer made it in there
+        assert row_df.index.isin(dx.index).all(), f'Failed to add model indexer {row_df.index} to the model suite index table'
         
-        #recast types from template
-        """necessary when we set a single row like the above"""
-        dx = dx.astype(parameters.project_db_schema_d['03_model_suite_index'].dtypes.to_dict())
-  
-        
-        """
-        dx.dtypes
-        dx.index.dtypes
-        """
-        #self.set_model_index_dx(dx, **kwargs)
-        self.projDB_set_tables({'03_model_suite_index':dx}, **kwargs) 
+        #check there are no duplicate indexes
+        assert dx.index.is_unique, f'Duplicate indexes found in model suite index table: {dx.index}'
+        # ------------------------------------------------------------------
+        # 4. Persist
+        # ------------------------------------------------------------------
+        self.projDB_set_tables({'03_model_suite_index': dx}, **kwargs)
+
         
  
 
@@ -314,7 +344,8 @@ class Main_dialog_dev(object):
         
         assert not tut_name_fancy == '', 'no tutorial selected'
         
-        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]        
+        tutorial_name = tutorial_fancy_names_d[tut_name_fancy]
+ 
         
         log.debug(f'loading tutorial \'{tutorial_name}\'')
         
@@ -345,7 +376,7 @@ class Main_dialog_dev(object):
         #=======================================================================
         """here we load from the tutorial file data onto the QgisProject
         loading the projDB will attempt to popuolate the ui by selecting from loaded layers"""
-        data_d = tutorial_data_lib[tutorial_name]
+        data_d = copy.deepcopy(tutorial_lib[tutorial_name]['data'])
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
         
@@ -355,8 +386,19 @@ class Main_dialog_dev(object):
                 if not data_key in data_d:
                     raise KeyError(f'failed to find data key \'{data_key}\'')
                 
-                #copy over the data to a temporary directory
+                #create a temporary, unique directory
+                
 
+
+                # Generate a unique temporary directory path using tutorial name, data key, and current time
+                temp_dir = os.path.join(
+                    tempfile.gettempdir(),
+                    hashlib.md5(f'{tutorial_name}_{data_key}_{int(time.time())}'.encode()).hexdigest()
+                )
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                
+                #copy over the data to a temporary directory
                 fp_raw = data_d[data_key]
                 fp = shutil.copyfile(fp_raw, os.path.join(temp_dir, os.path.basename(fp_raw)))
                 assert os.path.exists(fp), f'failed to copy file to temp dir: {fp}'
@@ -891,6 +933,7 @@ class Main_dialog_modelSuite(object):
                     gb.setLayout(QtWidgets.QVBoxLayout())
             
                 # Add the loaded widget to the group box's layout
+
                 self._add_model(gb.layout(), category_code, logger=log)
      
      
@@ -1343,7 +1386,14 @@ class Main_dialog_modelSuite(object):
             self.projDB_drop_tables(*model_table_names_l, logger=log)
             
             #remove entry from model index table
-            dx = self.projDB_get_tables(['03_model_suite_index'] )[0].drop(index=(category_code, modelid))
+            dx = self.projDB_get_tables(['03_model_suite_index'])[0]
+            if len(dx)==0:
+                raise AssertionError('model index table is empty')
+            
+            try:
+                dx = dx.drop(index=(category_code, modelid))
+            except Exception as e:
+                raise IOError(f'failed to remove model from index table: {e}')
  
             self.projDB_set_tables({'03_model_suite_index':dx}, logger=log)
         
@@ -1822,15 +1872,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         # GEN=======================----------------
         #=======================================================================
         
-        
-        def close_dialog():
-            self.logger.push(f'dialog reset')
-            if not self.parent is None:
-                self.parent.dlg=None
-                self.parent.first_start=True #not ideal
-            self.close()
-        
-        self.pushButton_close.clicked.connect(close_dialog)
+        self.pushButton_close.clicked.connect(self._close)
         
         
         self.pushButton_save.clicked.connect(self._save_ui_to_projDB)
@@ -1864,9 +1906,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         
         
         #populate the comboBox
-        self.comboBox_tut_names.addItems(
-            [tutorial_fancy_names_d[k] for k in tutorial_data_lib.keys()]
-            )
+        self.comboBox_tut_names.addItems(list(tutorial_fancy_names_d.keys()))
         #reverr to index -1
         self.comboBox_tut_names.setCurrentIndex(-1)
         
@@ -2220,6 +2260,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
             #===================================================================
             # write all the tables
             #===================================================================
+            log.debug(f'wrigin {df_d.keys()} to project database')
             for k, df in df_d.items():
                 assert k in project_db_schema_d.keys(), k
                 df_to_sql(df, k, conn, if_exists='replace')
@@ -2376,6 +2417,18 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
                 log.warning(f'QGIS_LOG_FILE file not found: {QGIS_LOG_FILE_fp}')
         else:
             log.warning(f'QGIS_LOG_FILE environment variable not set')
+            
+    def _close(self):
+        log = self.logger.getChild('_close')
+        
+        self.listView_HZ_hrlay.clear_view() #clear the hazard raster listview
+        
+        
+        log.push(f'dialog reset')
+        if not self.parent is None:
+            self.parent.dlg=None
+            self.parent.first_start=True #not ideal
+        self.close()
     
 
                 

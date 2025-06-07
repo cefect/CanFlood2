@@ -168,12 +168,18 @@ class Model_run_methods(object):
         #=======================================================================
         # #DEM
         #=======================================================================
-        if self.param_d['finv_elevType']=='ground':
+        finv_elevType = self.get_parameter_value('finv_elevType', projDB_fp=projDB_fp)
+        if finv_elevType=='relative':
             dem_df = self.get_tables(['table_gels'], projDB_fp=projDB_fp)[0]
             assert_finv_match(dem_df.index)
- 
+        elif finv_elevType=='absolute':
+            #table may still exist.. but should be all nulls
+            dem_df = None 
         else:
-            dem_df = None
+            raise KeyError(f'bad finv_elevType: {finv_elevType}')
+        
+        log.debug(f'finv_elevType=\'{finv_elevType}\' got dem_df: {dem_df.shape if dem_df is not None else None}')
+            
         
         #=======================================================================
         # #dfuncs
@@ -182,6 +188,8 @@ class Model_run_methods(object):
             raise NotImplementedError(f'expo_level=\'{self.param_d["expo_level"]}\'')
  
         vfunc_index_df, vfunc_data_df = self.parent.projDB_get_tables(['06_vfunc_index', '07_vfunc_data'], projDB_fp=projDB_fp)
+        
+        assert len(vfunc_index_df)>0, 'no Vulnerability Functions found'
         
         assert set(finv_dx['tag']).issubset(vfunc_index_df.index), 'missing tags'
         
@@ -222,6 +230,7 @@ class Model_run_methods(object):
             #===================================================================
             # #adjust for asset height (elv)            
             #===================================================================
+            """ TODO: support WSH"""
             #join the exposures onto the assets
             dep_elev_df = gdf['elev'].to_frame().join(deps_df, on='indexField')
             
@@ -1163,7 +1172,10 @@ class Model(Model_run_methods, Model_table_assertions):
         #=======================================================================
         status, msg = self._get_status()
             
-        log.debug(f'status={status}\n    {msg}')
+        if not msg is None:
+            log.debug(f'status={status}\n    {msg}')
+        else:
+            log.debug(f'status={status}')
             
             
         #=======================================================================

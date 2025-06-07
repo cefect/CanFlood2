@@ -513,6 +513,15 @@ def bind_layersListWidget(widget, #instanced widget
     def check_byName(self, layName_l):
         self.model().set_checked_byVal(layName_l)
         
+    def clear_view(self):
+        """
+        Remove **all** rows from the model so the QListView appears blank.
+        Useful when you switch projects or want to reset the UI.
+        """
+        self.model().clear()
+        # Optional: force an immediate repaint
+        self.viewport().update()
+        
  
     def get_selected_layers(self):
         """get the selected layers from the list widget"""
@@ -555,7 +564,7 @@ def bind_layersListWidget(widget, #instanced widget
     # bind them
     #===========================================================================
     for fName in ['populate_layers', '_apply_filter', 'select_visible', 'select_canvas', 
-                  'get_selected_layers', 'clear_checks','check_all', 'check_byName']:
+                  'get_selected_layers', 'clear_checks','check_all', 'check_byName', 'clear_view']:
         setattr(widget, fName, types.MethodType(eval(fName), widget)) 
         
         

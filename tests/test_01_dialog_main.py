@@ -49,7 +49,9 @@ from canflood2.hp.qt import set_widget_value
 test_data_dir = os.path.join(conftest.test_data_dir, 'dialog_main')
 os.makedirs(test_data_dir, exist_ok=True)
 
- 
+from canflood2.tutorials.tutorial_data_builder import tutorial_lib
+
+tut_names = list(tutorial_lib.keys())
 
 #===============================================================================
 # HELPERS=========---------
@@ -290,13 +292,13 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog_main, tmpdir, test_n
     result = dialog_main.get_projDB_fp()
     assert_projDB_fp(result, check_consistency=True)
     
-    write_projDB(dialog_main, test_name)
+    #write_projDB(dialog_main, test_name)
      
      
     
  
 
-@pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
+@pytest.mark.parametrize('tutorial_name', tut_names)
 def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_name,
                                                haz_rlay_d, #loads to project
                                                #eventMeta_df,
@@ -349,12 +351,17 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
  
 
 
-@pytest.mark.dev
-#@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
-@pytest.mark.parametrize('tutorial_name', [
-    'cf1_tutorial_01',
-    #'cf1_tutorial_02b', #AEP instead of ARI
-    ])
+
+ 
+#===============================================================================
+# @pytest.mark.parametrize('tutorial_name', [
+#     #'cf1_tutorial_01',
+#     #'cf1_tutorial_02b', #AEP instead of ARI
+#     'cf1_tutorial_02c', #datum
+#     ])
+#===============================================================================
+
+@pytest.mark.parametrize("tutorial_name", tut_names)
 def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
                           widget_data_d, #widget values set during instance
                           aoi_vlay_set, dem_rlay_set, #combobox set during instance
@@ -443,6 +450,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
     #('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
     ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2'))
 ])
@@ -492,9 +500,10 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 
 @pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    #('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
-    #('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2')),
     ('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
+   ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
+   ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2')), 
+   ('cf1_tutorial_02c', oj('02_save_ui_to_project_dat_7b3a19', 'projDB.canflood2')),
 ])
 def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
                                          tutorial_name,
@@ -520,7 +529,7 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     # #create the model suite templates
     #===========================================================================
     dialog=dialog_loaded
-    click(dialog.pushButton_MS_createTemplates)
+    click(dialog.pushButton_MS_createTemplates) #Main_dialog._connect_slots_modelSuite()
  
     
     #check they have been added to the dialog index

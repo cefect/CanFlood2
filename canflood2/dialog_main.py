@@ -1872,15 +1872,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         # GEN=======================----------------
         #=======================================================================
         
-        
-        def close_dialog():
-            self.logger.push(f'dialog reset')
-            if not self.parent is None:
-                self.parent.dlg=None
-                self.parent.first_start=True #not ideal
-            self.close()
-        
-        self.pushButton_close.clicked.connect(close_dialog)
+        self.pushButton_close.clicked.connect(self._close)
         
         
         self.pushButton_save.clicked.connect(self._save_ui_to_projDB)
@@ -2425,6 +2417,18 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
                 log.warning(f'QGIS_LOG_FILE file not found: {QGIS_LOG_FILE_fp}')
         else:
             log.warning(f'QGIS_LOG_FILE environment variable not set')
+            
+    def _close(self):
+        log = self.logger.getChild('_close')
+        
+        self.listView_HZ_hrlay.clear_view() #clear the hazard raster listview
+        
+        
+        log.push(f'dialog reset')
+        if not self.parent is None:
+            self.parent.dlg=None
+            self.parent.first_start=True #not ideal
+        self.close()
     
 
                 

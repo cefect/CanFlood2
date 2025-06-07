@@ -341,7 +341,7 @@ QTabBar::tab:selected {
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Exposure Level</string>
+           <string>Exposure Mode</string>
           </property>
          </widget>
         </item>
@@ -1026,8 +1026,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>978</width>
-        <height>554</height>
+        <width>545</width>
+        <height>211</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1205,8 +1205,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>978</width>
-        <height>554</height>
+        <width>621</width>
+        <height>265</height>
        </rect>
       </property>
       <property name="autoFillBackground">
@@ -1705,8 +1705,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>978</width>
-        <height>554</height>
+        <width>925</width>
+        <height>518</height>
        </rect>
       </property>
       <property name="autoFillBackground">

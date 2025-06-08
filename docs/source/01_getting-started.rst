@@ -30,7 +30,7 @@ Overviews
 -----------------------
 CanFlood v2 is an object-based, transparent, open-source flood risk calculation tool built for Canada's Federal Guidelines for Flood Risk Assessment.
 This tool is designed to help you build, run, and evaluate a set of flood risk models from data you provide for your study area. 
-The tool assumes you have a basic understanding of flood risk modelling as described in the Federal Guidelines for Flood Risk Assessment. For more information, see the documentation (or click the help button).  
+The tool assumes you have a basic understanding of flood risk modelling as described in the Federal Guidelines for Flood Risk Assessment.
 
 
 
@@ -65,7 +65,7 @@ Project Setup
 On the Project Setup tab, begin by creating a Project Database File with the **New** button.
 Additional optional fields are provided to specify the study area and DEM layers.
 
-Pressing the **Save** button will save the information you've entered so far onto the project database file.
+Pressing the **Save** button will save the information you've entered so far onto the :ref:`project database <sec02-projDB>` file.
 
 .. _fig-dialog-projectSetup:
 
@@ -103,7 +103,7 @@ Finally, enter the event probabilities (and optional metadata) before again pres
 Model Suite
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-On the *Model Suite* tab, you can configure the models included in your analysis.
+On the **Model Suite** tab, you can configure the models included in your analysis.
 The seven receptor categories described in the Federal Guidelines for Flood Risk Assessment are included in the tool to help you organize your models.
 Begin by clicking **Create Templates** to generate a model template for each receptor category.
 Additional models can be added or removed using the +/- buttons.
@@ -129,7 +129,7 @@ Begin your model configuration by specifying the Inventory Vector Layer and its 
    - **Elevation Type**: controls whether the values in tghe **elevation field** are absolute or relative to the DEM.
    - **tag**: the field containing the code corresponding to the damage function for that asset.
    - **scale**: the field containing the value by which the damage function result should be scaled (e.g., floor area).
-   - **elevation**: the field containing the elevation or height of the asset.
+   - **elevation**: the field containing the elevation or height values of the asset.
    - **cap**: the field containing the maximum impact value to allow for the asset (e.g., comlete replacement cost)
 
 .. _fig-dialog-modelConfig-AssetInventory:
@@ -194,7 +194,7 @@ Once your model suite is configured and successfully run, the tools on the **Rep
 
    Reporting
 
-See the :ref:`User Guide <sec02-userGuide>` and the :ref:`Tutorials <sec03-tutorials>` section to learn more.
+See the :ref:`User Guide <sec02-userGuide>` and the :ref:`Tutorials <sec03-tutorials>` sections to learn more.
 
 
 .. _sec01-faq:
@@ -205,6 +205,11 @@ Frequently Asked Questions
 **is CanFlood a flood risk model?**
 
 No, it is a framework for building and running flood risk models.
+
+**What vulnerability functions should I use?**
+
+CanFlood2 does not include any vulnerability functions yet, but it can use any vulnerability function that is in the CanFlood format.
+See our sister project `CanCurve <https://github.com/NRCan/CanCurve>`_ for a tool to create CanFlood vulnerability functions.
 
 
 

@@ -1026,8 +1026,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>545</width>
-        <height>211</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1077,7 +1077,7 @@ QTabBar::tab:selected {
        <item>
         <widget class="QGroupBox" name="groupBox_26">
          <property name="title">
-          <string>Vulnerability Functions</string>
+          <string>Vulnerability Functions (L2 models only)</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
@@ -1085,7 +1085,7 @@ QTabBar::tab:selected {
             <item>
              <widget class="QPushButton" name="pushButton_V_vfunc_load">
               <property name="enabled">
-               <bool>true</bool>
+               <bool>false</bool>
               </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1205,8 +1205,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>621</width>
-        <height>265</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
       </property>
       <property name="autoFillBackground">
@@ -1705,8 +1705,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>925</width>
-        <height>518</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
       </property>
       <property name="autoFillBackground">

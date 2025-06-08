@@ -443,6 +443,11 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
              
         self.pushButton_V_vfunc_load.clicked.connect(load_vfunc_fp)
         
+        #set the pushButton_V_vfunc_load button to enable when comboBox_expoLevel='L2'
+        self.pushButton_V_vfunc_load.setEnabled(False)
+        self.comboBox_expoLevel.currentIndexChanged.connect(
+            lambda: self.pushButton_V_vfunc_load.setEnabled('L2' in self.comboBox_expoLevel.currentText())
+            )
         
         #=======================================================================
         # risk-------
@@ -716,9 +721,11 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # precheck
         #=======================================================================
-        """mostly for not-implemented things"""
-        if not d['expo_level']== 'depth-dependent (L2)':
-            raise AssertionError(f'only depth-dependent (L2) exposure level is supported at this time')
+        #=======================================================================
+        # """mostly for not-implemented things"""
+        # if not d['expo_level']== 'depth-dependent (L2)':
+        #     raise AssertionError(f'only depth-dependent (L2) exposure level is supported at this time')
+        #=======================================================================
         
             
 

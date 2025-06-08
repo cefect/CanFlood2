@@ -146,6 +146,8 @@ class Model_run_methods(object):
         if logger is None: logger = self.logger
         log = logger.getChild('_table_impacts_to_db')
         
+        
+        
         #=======================================================================
         # load data-------
         #=======================================================================
@@ -184,14 +186,28 @@ class Model_run_methods(object):
         #=======================================================================
         # #dfuncs
         #=======================================================================
-        if not 'L2' in self.param_d['expo_level']:
-            raise NotImplementedError(f'expo_level=\'{self.param_d["expo_level"]}\'')
+        
+        if 'L2' in self.param_d['expo_level']:             
  
-        vfunc_index_df, vfunc_data_df = self.parent.projDB_get_tables(['06_vfunc_index', '07_vfunc_data'], projDB_fp=projDB_fp)
+            vfunc_index_df, vfunc_data_df = self.parent.projDB_get_tables(['06_vfunc_index', '07_vfunc_data'], projDB_fp=projDB_fp)
         
-        assert len(vfunc_index_df)>0, 'no Vulnerability Functions found'
+            assert len(vfunc_index_df)>0, 'no Vulnerability Functions found'
         
-        assert set(finv_dx['tag']).issubset(vfunc_index_df.index), 'missing tags'
+            assert set(finv_dx['tag']).issubset(vfunc_index_df.index), 'missing tags'
+            
+            #get grouper for vfuncs
+            g_vfunc = vfunc_data_df.round(precision).groupby('tag')
+            
+        elif 'L1' in self.param_d['expo_level']:
+            log.debug(f'L1 model vfunc patching')
+            
+            assert len(finv_dx['tag'].unique())==1, 'L1 models must have a single dummy tag'
+            
+            finv_dx['tag'] = 'L1_dummy'
+ 
+        
+        else:
+            raise KeyError(f'unrecognized expo_level: {self.param_d["expo_level"]}')
         
  
         #=======================================================================
@@ -199,7 +215,7 @@ class Model_run_methods(object):
         #=======================================================================
         #loop on each tag (unique damage function)
         result_d = dict()
-        g_vfunc = vfunc_data_df.round(precision).groupby('tag')
+        
         g = finv_dx.groupby('tag')
         log.info(f'computing damages for {len(g)} ftags')
         for i, (tag, gdf) in enumerate(g):
@@ -212,9 +228,7 @@ class Model_run_methods(object):
             #get these depths
             expoi_df = expos_df.loc[expos_df.index.isin(gdf.index.unique('indexField')), :]
  
-
-
-            
+ 
             #===================================================================
             # #adjust for DEM
             #===================================================================
@@ -238,7 +252,7 @@ class Model_run_methods(object):
             deps_df = dep_elev_df.drop(columns='elev').subtract(dep_elev_df['elev'], axis=0)
             deps_df.columns.name = 'event_names'
 
-            negative_bx = deps_df<0
+            negative_bx = deps_df<0 #does not count nulls
             if negative_bx.any().any():
                 log.warning(f'got {negative_bx.sum().sum()}/{deps_df.size} negative depths for tag \'{tag}\'')
             #===================================================================
@@ -247,49 +261,57 @@ class Model_run_methods(object):
             #stack into a series
             deps_s = deps_df.round(precision).stack().rename('exposure')
  
-            #get unique
-            deps_ar = np.unique(deps_s.dropna().values) #not sorting
-
- 
             #===================================================================
-            # prep dfunc----------
+            # L2 
             #===================================================================
-            dd_ar = g_vfunc.get_group(tag).sort_values('exposure').loc[:, ['exposure', 'impact']].astype(float).T.values
-            
-            #check monotonocity
-            assert np.all(np.diff(dd_ar[0])>0), 'exposure values must be increasing' #redundant with sort_values?
-            assert np.all(np.diff(dd_ar[1])>=0), 'impact values must be non-decreasing'
-            
-            #===================================================================
-            # compute damages
-            #===================================================================
-            #===================================================================
-            # get_dmg = lambda depth: np.interp(depth, #depth find damage on
-            #                                 dd_ar[0], #depths (xcoords)
-            #                                 dd_ar[1], #damages (ycoords)
-            #                                 left=0, #depth below range
-            #                                 right=max(dd_ar[1]), #depth above range
-            #                                 )
-            # get_dmg(deps_ar)
-            # e_impacts_d = {dep:get_dmg(dep) for dep in deps_ar}
-            #===================================================================
-            expo_ar = np.interp(deps_ar, #depth find damage on
-                    dd_ar[0], #depths (xcoords)
-                    dd_ar[1], #damages (ycoords)
-                    left=0, #depth below range
-                    right=max(dd_ar[1]), #depth above range
-                    )
-            
-            """
-            plot_line_from_array(dd_ar, deps_ar)
-            """
-            
-            #join back onto the depths
-            result_dx = deps_s.to_frame().join(pd.Series(expo_ar, index=deps_ar, name='impact'), on='exposure')
-            
-
+            if 'L2' in self.param_d['expo_level']: 
+                #get unique
+                deps_ar = np.unique(deps_s.dropna().values) #not sorting
+    
+     
+                #===================================================================
+                # prep dfunc----------
+                #===================================================================
+                dd_ar = g_vfunc.get_group(tag).sort_values('exposure').loc[:, ['exposure', 'impact']].astype(float).T.values
                 
+                #check monotonocity
+                assert np.all(np.diff(dd_ar[0])>0), 'exposure values must be increasing' #redundant with sort_values?
+                assert np.all(np.diff(dd_ar[1])>=0), 'impact values must be non-decreasing'
+                
+                #===================================================================
+                # compute damages
+                #===================================================================
+     
+                expo_ar = np.interp(deps_ar, #depth find damage on
+                        dd_ar[0], #depths (xcoords)
+                        dd_ar[1], #damages (ycoords)
+                        left=0, #depth below range
+                        right=max(dd_ar[1]), #depth above range
+                        )
+                
+                """
+                plot_line_from_array(dd_ar, deps_ar)
+                """
+                
+                #join back onto the depths
+                result_dx = deps_s.to_frame().join(pd.Series(expo_ar, index=deps_ar, name='impact'), on='exposure')
+                """
+                                               exposure      impact
+                indexField nestID event_names                      
+                14879      0      haz_0050       -1.572  263.775000
+                                  haz_0100       -1.029  311.968000
+                  """
             
+            #===================================================================
+            # L1
+            #===================================================================
+            else:
+                log.debug(f'computing L1 exposure as floats')
+                expoB_s = (deps_s>0.0).rename('impact').astype(float)
+                result_dx = deps_s.to_frame().join(expoB_s)
+ 
+                
+                            
                 
             
             #===================================================================
@@ -303,7 +325,7 @@ class Model_run_methods(object):
             # cap
             #===================================================================
             dx = result_dx.join(gdf['cap'], on=gdf.index.names).loc[:, ['impact_scaled', 'cap']]
-            result_dx['impact_capped'] = dx.min(axis=1)
+            result_dx['impact_capped'] = dx.min(axis=1) #ignores nans
             
             #===================================================================
             # #add any missing entries that were all null
@@ -350,14 +372,19 @@ class Model_run_methods(object):
  
         # Drop the 'tag' level from the index
         mresult_dx = mresult_dx.droplevel('tag').reorder_levels(['indexField', 'nestID', 'event_names']).sort_index()
+        """
+                                       exposure  ...  impact_capped
+        indexField nestID event_names            ...               
+        14879      0      haz_0050       -1.572  ...   31122.812250
+ 
+        
+        Index(['exposure', 'impact', 'impact_scaled', 'impact_capped'], dtype='object')
+        """
  
         #=======================================================================
         # #check
-        #=======================================================================
-
-        
-        #check the index matches the finv_dx
-        
+        #=======================================================================        
+        #check the index matches the finv_dx        
         mresult_dx_index_check = mresult_dx.index.droplevel('event_names').drop_duplicates().sort_values()
         assert_finv_match(mresult_dx_index_check)
         #assert mresult_dx_index_check.equals(finv_dx.index.sort_values()), 'Index mismatch'
@@ -1064,10 +1091,9 @@ class Model(Model_run_methods, Model_table_assertions):
         """
         self.param_d = df.set_index('varName')['value'].dropna().to_dict()
         
-    
-    
-    
-
+ 
+        
+ 
     def _get_status(self, param_df=None):
         """determine the status of the model
         

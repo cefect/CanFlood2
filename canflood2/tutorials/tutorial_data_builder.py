@@ -16,7 +16,7 @@ assert os.path.exists(test_data_dir)
 
 
 #default tutorial 1 and 2 data
-defaultt_data_d = {
+default_data_d = {
     'haz': {        
         50: 'haz_0050.tif',
         100: 'haz_0100.tif',
@@ -37,7 +37,7 @@ defaultt_data_d = {
 tutorial_lib = {
     'cf1_tutorial_01': { #L1 basic
         'fancy_name': 'Tutorial 1',
-        'data': defaultt_data_d,
+        'data': {k:v for k,v in default_data_d.items() if not k in 'dem'},
         'widget': {
             'Main_dialog': {
                 #'studyAreaLineEdit': 'tutorial 1 area',
@@ -49,7 +49,7 @@ tutorial_lib = {
             },
             'Model_config_dialog': {
                 'comboBox_expoLevel': 'binary (L1)',
-                'comboBox_AI_elevType': 'relative',
+                'comboBox_AI_elevType': 'absolute',
                 'mFieldComboBox_cid': 'xid',
                 'mFieldComboBox_AI_01_scale': 'f0_scale',
                 'mFieldComboBox_AI_01_elev': 'f0_elv',
@@ -67,7 +67,7 @@ tutorial_lib = {
     
     'cf1_tutorial_02': { #L2 ARI
         'fancy_name': 'Tutorial 2a',
-        'data': {**defaultt_data_d, **{
+        'data': {**default_data_d, **{
             'finv':'finv_tut2.geojson',
             'vfunc': 'vfunc.xls',
             }},

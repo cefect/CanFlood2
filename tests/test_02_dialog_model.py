@@ -38,6 +38,7 @@ from tests.test_01_dialog_main import widget_data_d, dialog_main, dialog_loaded
 #from tests.test_01_dialog_main import dialog_loaded as dialog_main_loaded
  
 from tests.test_01_dialog_main import oj as oj_main
+from tests.test_01_dialog_main import _04_MS_args
 #need to import the fixture from dialog_main
 
 
@@ -58,7 +59,7 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 #for updating the projDB in the plugin tutorial data loader
 #see test_dial_model_05_run
-overwrite_testdata_plugin=False 
+overwrite_testdata_plugin=True 
 
 
 
@@ -187,27 +188,31 @@ def model(dialog_main, consequence_category, modelid):
 @pytest.fixture
 def vfunc(dialog_model, vfunc_fp, monkeypatch):
     
-    assert_vfunc_fp(vfunc_fp)
+    #===========================================================================
+    # L2 models
+    #===========================================================================
+    if not vfunc_fp is None:
+        assert_vfunc_fp(vfunc_fp)
+        
+        #patch the file dialog
+        """over-writes the monkeypatch from teh main dialog test?"""
+        monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (vfunc_fp, ''))
+        
+        click(dialog_model.pushButton_V_vfunc_load) #Model_config_dialog._vfunc_load_from_file()
+        
+        return vfunc_fp
     
-    #patch the file dialog
-    """over-writes the monkeypatch from teh main dialog test?"""
-    monkeypatch.setattr(QFileDialog,"getOpenFileName",lambda *args, **kwargs: (vfunc_fp, ''))
-    
-    click(dialog_model.pushButton_V_vfunc_load) #Model_config_dialog._vfunc_load_from_file()
-    
-    return vfunc_fp
+    #===========================================================================
+    # L1 Models
+    #===========================================================================
+    return None
 
 
 
 #===============================================================================
 # TESTS------
 #===============================================================================
-_04_MS_args = ("tutorial_name, projDB_fp", [
-    #('cf1_tutorial_01', oj_main('04_MS_createTemplates_cf1_4b9cc3', 'projDB.canflood2')), #L1 not implemented
-    ('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
-    ('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2')),
-    ('cf1_tutorial_02c', oj_main('04_MS_createTemplates_cf1_1ae7e8', 'projDB.canflood2')),
-])
+
 
 
 @pytest.mark.parametrize(*_04_MS_args)
@@ -297,10 +302,12 @@ def test_dial_model_02_save(dialog_model,
     
  
 _02_save_args = ("tutorial_name, projDB_fp", [
-    #pytest.param('cf1_tutorial_01',oj('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'),), #not setup for L1 yet
-    pytest.param('cf1_tutorial_02',oj('test_02_save_c1-0-cf1_tut_91c6ab', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02b',oj('test_02_save_c1-0-cf1_tut_185208', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02c',oj('test_02_save_c1-0-cf1_tut_054f7f', 'projDB.canflood2'),),  
+    pytest.param('cf1_tutorial_01',oj('test_02_save_c1-0-cf1_tut_334dbe', 'projDB.canflood2'),), #not setup for L1 yet
+    #===========================================================================
+    # pytest.param('cf1_tutorial_02',oj('test_02_save_c1-0-cf1_tut_91c6ab', 'projDB.canflood2'),),
+    # pytest.param('cf1_tutorial_02b',oj('test_02_save_c1-0-cf1_tut_185208', 'projDB.canflood2'),),
+    # pytest.param('cf1_tutorial_02c',oj('test_02_save_c1-0-cf1_tut_054f7f', 'projDB.canflood2'),),  
+    #===========================================================================
 ])
 
 
@@ -328,6 +335,8 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
         07_vfunc_data
     
     WARNING: pydev + pyunit capture is reset by the click tests
+    
+    NOTE: for L1 models, this test is identical to test_dial_model_02_save
     """     
     #assert dialog.model==model
     #===========================================================================
@@ -351,17 +360,23 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
     #===========================================================================
     print(f'\n\nchecking dialog\n{"="*80}')
     
- 
-    vfunc_fp = vfunc
-    df_d = load_vfunc_to_df_d(vfunc_fp)
-    assert len(df_d)==int(dialog_model.label_V_functionCount.text()), f'vfunc count failed to set'
-    
     #check the vfunc index 
     vfunc_index_df = dialog_model.parent.projDB_get_tables(['06_vfunc_index'])[0]
- 
     
-    #check the keys match
-    assert set(df_d.keys())==set(vfunc_index_df.index), 'vfunc keys do not match the index'
+    
+    vfunc_fp = vfunc
+    if not vfunc_fp is None:
+        df_d = load_vfunc_to_df_d(vfunc_fp)
+        assert len(df_d)==int(dialog_model.label_V_functionCount.text()), f'vfunc count failed to set'
+        
+
+     
+        
+        #check the keys match
+        assert set(df_d.keys())==set(vfunc_index_df.index), 'vfunc keys do not match the index'
+        
+    else:
+        assert len(vfunc_index_df)==0, 'expected no vfuncs in index'
 
         
     #===========================================================================
@@ -433,6 +448,7 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
 #===============================================================================
 
 _03_saveV_args = ("tutorial_name, projDB_fp", [
+    pytest.param('cf1_tutorial_01',oj('test_03_save_vfunc_c1-0-c_7147f1', 'projDB.canflood2'),), #not setup for L1 yet
     pytest.param('cf1_tutorial_02',oj('test_03_save_vfunc_c1-0-c_bcb0b2', 'projDB.canflood2'),),
     pytest.param('cf1_tutorial_02b',oj('test_03_save_vfunc_c1-0-c_5dee21', 'projDB.canflood2'),),
     pytest.param('cf1_tutorial_02c',oj('test_03_save_vfunc_c1-0-c_2a2788', 'projDB.canflood2'),),
@@ -517,6 +533,7 @@ def test_dial_model_05_run(dialog_model, model,
     
 
 _04_run_args = ("tutorial_name, projDB_fp", [
+    pytest.param('cf1_tutorial_01',oj('test_05_run_c1-0-cf1_tuto_15650d', 'projDB.canflood2'),), #not setup for L1 yet
     pytest.param('cf1_tutorial_02',oj('test_05_run_c1-0-cf1_tuto_c4bd7e', 'projDB.canflood2'),),
     pytest.param('cf1_tutorial_02b',oj('test_05_run_c1-0-cf1_tuto_d0d7f3', 'projDB.canflood2'),),
     pytest.param('cf1_tutorial_02c',oj('test_05_run_c1-0-cf1_tuto_2c39a5', 'projDB.canflood2'),),

@@ -30,7 +30,7 @@ Overviews
 -----------------------
 CanFlood v2 is an object-based, transparent, open-source flood risk calculation tool built for Canada's Federal Guidelines for Flood Risk Assessment.
 This tool is designed to help you build, run, and evaluate a set of flood risk models from data you provide for your study area. 
-The tool assumes you have a basic understanding of flood risk modelling as described in the Federal Guidelines for Flood Risk Assessment. For more information, see the documentation (or click the help button).  
+The tool assumes you have a basic understanding of flood risk modelling as described in the Federal Guidelines for Flood Risk Assessment.
 
 
 
@@ -65,7 +65,7 @@ Project Setup
 On the Project Setup tab, begin by creating a Project Database File with the **New** button.
 Additional optional fields are provided to specify the study area and DEM layers.
 
-Pressing the **Save** button will save the information you've entered so far onto the project database file.
+Pressing the **Save** button will save the information you've entered so far onto the :ref:`project database <sec02-projDB>` file.
 
 .. _fig-dialog-projectSetup:
 

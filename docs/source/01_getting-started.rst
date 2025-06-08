@@ -103,7 +103,7 @@ Finally, enter the event probabilities (and optional metadata) before again pres
 Model Suite
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-On the *Model Suite* tab, you can configure the models included in your analysis.
+On the **Model Suite** tab, you can configure the models included in your analysis.
 The seven receptor categories described in the Federal Guidelines for Flood Risk Assessment are included in the tool to help you organize your models.
 Begin by clicking **Create Templates** to generate a model template for each receptor category.
 Additional models can be added or removed using the +/- buttons.
@@ -129,7 +129,7 @@ Begin your model configuration by specifying the Inventory Vector Layer and its 
    - **Elevation Type**: controls whether the values in tghe **elevation field** are absolute or relative to the DEM.
    - **tag**: the field containing the code corresponding to the damage function for that asset.
    - **scale**: the field containing the value by which the damage function result should be scaled (e.g., floor area).
-   - **elevation**: the field containing the elevation or height of the asset.
+   - **elevation**: the field containing the elevation or height values of the asset.
    - **cap**: the field containing the maximum impact value to allow for the asset (e.g., comlete replacement cost)
 
 .. _fig-dialog-modelConfig-AssetInventory:

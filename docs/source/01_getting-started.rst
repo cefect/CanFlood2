@@ -194,7 +194,7 @@ Once your model suite is configured and successfully run, the tools on the **Rep
 
    Reporting
 
-See the :ref:`User Guide <sec02-userGuide>` and the :ref:`Tutorials <sec03-tutorials>` section to learn more.
+See the :ref:`User Guide <sec02-userGuide>` and the :ref:`Tutorials <sec03-tutorials>` sections to learn more.
 
 
 .. _sec01-faq:
@@ -205,6 +205,11 @@ Frequently Asked Questions
 **is CanFlood a flood risk model?**
 
 No, it is a framework for building and running flood risk models.
+
+**What vulnerability functions should I use?**
+
+CanFlood2 does not include any vulnerability functions yet, but it can use any vulnerability function that is in the CanFlood format.
+See our sister project `CanCurve <https://github.com/NRCan/CanCurve>`_ for a tool to create CanFlood vulnerability functions.
 
 
 

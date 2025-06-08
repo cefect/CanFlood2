@@ -23,7 +23,7 @@ from canflood2.parameters import modelTable_params_d
 
 modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed'])
 
-from .test_02_dialog_model import _02_save_args as DM_02_save_args, _03_saveV_args
+from .test_02_dialog_model import _02_save_args, _03_saveV_args
 #===============================================================================
 # DATA--------
 #===============================================================================
@@ -141,8 +141,9 @@ def test_core_02_table_impacts_to_db(model,
  
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_06e268', 'projDB.canflood2'))
-])
+    ('cf1_tutorial_01', oj('02_table_impacts_to_db_cf_fb37c5', 'projDB.canflood2')),
+    ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_06e268', 'projDB.canflood2')),
+     ])
 def test_core_03_table_impacts_prob_to_db(model,
                      tutorial_name, #dont really need this
                      test_name,
@@ -163,6 +164,7 @@ def test_core_03_table_impacts_prob_to_db(model,
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_01', oj('03_table_impacts_prob_to__4f9332', 'projDB.canflood2')),
     ('cf1_tutorial_02', oj('03_table_impacts_prob_to__d92998', 'projDB.canflood2'))
 ]
 )
@@ -185,8 +187,9 @@ def test_core_04_table_ead_to_db(model,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_01', oj('04_table_ead_to_db_cf1_tu_dafa34', 'projDB.canflood2')),
     ('cf1_tutorial_02', oj('04_table_ead_to_db_cf1_tu_2c4681', 'projDB.canflood2'))
 ])
 @pytest.mark.parametrize("ead_lowPtail, ead_highPtail, ead_lowPtail_user, ead_highPtail_user", [

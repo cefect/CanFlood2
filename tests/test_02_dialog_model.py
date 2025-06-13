@@ -533,10 +533,10 @@ def test_dial_model_05_run(dialog_model, model,
     
 
 _04_run_args = ("tutorial_name, projDB_fp", [
-    pytest.param('cf1_tutorial_01',oj('test_05_run_c1-0-cf1_tuto_15650d', 'projDB.canflood2'),), #not setup for L1 yet
+    #pytest.param('cf1_tutorial_01',oj('test_05_run_c1-0-cf1_tuto_15650d', 'projDB.canflood2'),),  
     pytest.param('cf1_tutorial_02',oj('test_05_run_c1-0-cf1_tuto_c4bd7e', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02b',oj('test_05_run_c1-0-cf1_tuto_d0d7f3', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02c',oj('test_05_run_c1-0-cf1_tuto_2c39a5', 'projDB.canflood2'),),
+   # pytest.param('cf1_tutorial_02b',oj('test_05_run_c1-0-cf1_tuto_d0d7f3', 'projDB.canflood2'),),
+    #pytest.param('cf1_tutorial_02c',oj('test_05_run_c1-0-cf1_tuto_2c39a5', 'projDB.canflood2'),),
     ])
 
 

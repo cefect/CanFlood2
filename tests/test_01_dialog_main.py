@@ -180,6 +180,7 @@ def dialog_loaded(dialog_main,
     # load ui from projDB
     #===========================================================================
     #patch and click load projDB
+    assert os.path.exists(projDB_fp), f'projDB_fp does not exist: {projDB_fp}'
     projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp))) #assert_projDB_fp(projDB_fp)
     #patch the load button
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda*args, **kwargs:(projDB_fp, ''))

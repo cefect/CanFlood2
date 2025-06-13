@@ -39,7 +39,7 @@ from canflood2.hp.qt import set_widget_value
 #===============================================================================
 # TESTS=======--------
 #===============================================================================
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name", [
     #'cf1_tutorial_01',
     'cf1_tutorial_02', 
@@ -233,9 +233,7 @@ def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
     
     
 @pytest.mark.dev
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
-     ])
+@pytest.mark.parametrize(*DM_04_run_args)
 def test_dial_main_04_exportCSV(dialog_loaded, test_name,
                                 ):
     """run the model"""

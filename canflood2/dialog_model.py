@@ -570,6 +570,8 @@ class Model_config_dialog_assetInventory(object):
         #=======================================================================
         del self.functionGroups_index_d[fg_index]
         
+        log.debug('removed function group %d'%fg_index)
+        
             
         
         

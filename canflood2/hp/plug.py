@@ -11,6 +11,7 @@ QGIS plugin helpers
 #===============================================================================
 #python
 import logging, configparser, datetime, sys, os, types
+import weakref
 import pandas as pd
 import numpy as np
 
@@ -661,6 +662,8 @@ def bind_MapLayerComboBox(widget, #
     widget.setAllowEmptyLayer(True)
     widget.setCurrentIndex(-1) #set selection to none
     
+    
+    
     #===========================================================================
     # define new methods
     #===========================================================================
@@ -718,12 +721,23 @@ def bind_QgsFieldComboBox(widget, signal_emitter_widget=None,   fn_str=None, fn_
     # Ensure the widget is a QgsFieldComboBox.
     assert isinstance(widget, QgsFieldComboBox), f"Expected QgsFieldComboBox, got {type(widget)}"
     
+    wref    = weakref.ref(widget)
+    
     def _setLayer_fallback(self, layer=None):
         """
         Slot that selects an appropriate field whenever the layer changes.
         It is a *bound method*, so 'self' is the combo box (a QObject).
         
         """
+        
+        w = wref()                        # dereference weak-ref
+        if w is None:
+            # Combo box has been destroyed — disconnect once, then vanish
+            try:
+                signal_emitter_widget.layerChanged.disconnect(_setLayer_fallback)                    
+            except (RuntimeError, TypeError):
+                pass
+            return
  
         
         # If signal passes in a layer, use it; otherwise look at emitter.
@@ -763,51 +777,53 @@ def bind_QgsFieldComboBox(widget, signal_emitter_widget=None,   fn_str=None, fn_
         # --- prime the combo immediately ---------------------------------------
         widget.setLayer_fallback()
         
-    def connect_downstream_combobox(downstream_combo: QgsFieldComboBox):
-        """
-        Keep `downstream_combo` in lock-step with `widget` (the upstream combo).
-        The downstream combo is disabled so the user can’t alter it.
-    
-        Parameters
-        ----------
-        downstream_combo : QgsFieldComboBox
-            The combo box to mirror.
-        """
-        assert isinstance(downstream_combo, QgsFieldComboBox), (
-            f"Expected QgsFieldComboBox, got {type(downstream_combo)}"
-        )
-    
-        # Disable direct user interaction
-        downstream_combo.setEnabled(False)
-    
-        # ---------- internal sync routine ----------
-        def _sync():
-            try:
-                # 1. Mirror the layer (repopulates the downstream combo)
-                downstream_combo.setLayer(widget.layer())
-        
-                # 2. Mirror the current field
-                fld = widget.currentField()          # QgsFieldComboBox convenience
-                if fld:                              # fld is a string or None
-                    downstream_combo.setField(fld)
-            except:
-                #raise a QGIS warning
-                QgsMessageLog.logMessage(
-                    "Failed to sync downstream combo box",
-                    level=Qgis.Warning
-                )
-                
-                
-        # -------------------------------------------
-    
-        # Hook up both relevant upstream signals
-        #widget.layerChanged.connect(_sync)
-        widget.fieldChanged.connect(_sync)
-    
-        # Do one initial sync so the downstream starts in the right state
-        _sync()
-        
-    widget.connect_downstream_combobox = connect_downstream_combobox
+    #===========================================================================
+    # def connect_downstream_combobox(downstream_combo: QgsFieldComboBox):
+    #     """
+    #     Keep `downstream_combo` in lock-step with `widget` (the upstream combo).
+    #     The downstream combo is disabled so the user can’t alter it.
+    # 
+    #     Parameters
+    #     ----------
+    #     downstream_combo : QgsFieldComboBox
+    #         The combo box to mirror.
+    #     """
+    #     assert isinstance(downstream_combo, QgsFieldComboBox), (
+    #         f"Expected QgsFieldComboBox, got {type(downstream_combo)}"
+    #     )
+    # 
+    #     # Disable direct user interaction
+    #     downstream_combo.setEnabled(False)
+    # 
+    #     # ---------- internal sync routine ----------
+    #     def _sync():
+    #         try:
+    #             # 1. Mirror the layer (repopulates the downstream combo)
+    #             downstream_combo.setLayer(widget.layer())
+    #     
+    #             # 2. Mirror the current field
+    #             fld = widget.currentField()          # QgsFieldComboBox convenience
+    #             if fld:                              # fld is a string or None
+    #                 downstream_combo.setField(fld)
+    #         except:
+    #             #raise a QGIS warning
+    #             QgsMessageLog.logMessage(
+    #                 "Failed to sync downstream combo box",
+    #                 level=Qgis.Warning
+    #             )
+    #             
+    #             
+    #     # -------------------------------------------
+    # 
+    #     # Hook up both relevant upstream signals
+    #     #widget.layerChanged.connect(_sync)
+    #     widget.fieldChanged.connect(_sync)
+    # 
+    #     # Do one initial sync so the downstream starts in the right state
+    #     _sync()
+    #     
+    # widget.connect_downstream_combobox = connect_downstream_combobox
+    #===========================================================================
  
         
         

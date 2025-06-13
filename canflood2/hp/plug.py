@@ -696,61 +696,118 @@ def bind_MapLayerComboBox(widget, #
     widget.set_layer_by_name = set_layer_by_name
     
     
-def bind_QgsFieldComboBox(widget, signal_emmiter_widget=None,   fn_str=None, fn_no_str=None):
+def bind_QgsFieldComboBox(widget, signal_emitter_widget=None,   fn_str=None, fn_no_str=None):
     """bind some methods to a QgsFieldComboBox
+    
+    
+    Parameters
+    ----------
+    widget : QgsFieldComboBox
+        The combo box to bind methods to.
+        
+    signal_emitter_widget : QgsMapLayerComboBox, optional
+    
+        A QgsMapLayerComboBox instance that emits a signal when the layer changes.
+        
+    fn_str : str, optional
+        A substring to match field names against. If provided, only fields containing this substring will be selected.
 
     """
  
-
+    #widget.signal_emitter_widget=signal_emitter_widget
     # Ensure the widget is a QgsFieldComboBox.
     assert isinstance(widget, QgsFieldComboBox), f"Expected QgsFieldComboBox, got {type(widget)}"
     
-    def setLayer_fallback(layer):
+    def _setLayer_fallback(self, layer=None):
+        """
+        Slot that selects an appropriate field whenever the layer changes.
+        It is a *bound method*, so 'self' is the combo box (a QObject).
+        
+        """
  
-        widget.clear()
+        
+        # If signal passes in a layer, use it; otherwise look at emitter.
         if layer is None:
+            layer = signal_emitter_widget.currentLayer()
+
+        if layer is None:
+            self.clear()
             return
-        assert isinstance(layer, QgsVectorLayer), f'Expected QgsVectorLayer, got {type(layer)}'
-        
-        # Set the layer; this updates the combo box with the layer's fields.
-        widget.setLayer(layer)
-        
-        selected_field = None
-        
-        # Iterate through all fields to find a match.
-        for field in layer.fields():
-            # If an exclusion is specified, skip that field.
-            if fn_no_str is not None and field.name() == fn_no_str:
+
+        assert isinstance(layer, QgsVectorLayer)
+
+        self.setLayer(layer)          # repopulate the list
+
+        # pick the field to select …
+        match = None
+        for fld in layer.fields():
+            if fn_no_str and fld.name() == fn_no_str:
                 continue
-            
-            # If a matching substring is provided, check it.
-            if fn_str is not None:
-                if fn_str in field.name():
-                    selected_field = field.name()
-                    break
-            else:
-                # Without matching criteria, select the first field.
-                selected_field = field.name()
-                break
-        
-        # Fallback: if no field matched, use the first field (if any).
-        #=======================================================================
-        # if selected_field is None and layer.fields():
-        #     selected_field = layer.fields()[0].name()
-        #=======================================================================
-        
-        if selected_field is not None:
-            widget.setField(selected_field)
-    
-    widget.setLayer_fallback = setLayer_fallback
+            if fn_str and fn_str not in fld.name():
+                continue
+            match = fld.name()
+            break
+
+        if match:
+            self.setField(match)
+
+    # attach as a *method* so Qt sees 'self' === widget (a QObject)
+    widget.setLayer_fallback = types.MethodType(_setLayer_fallback, widget)
     
     # If a signal emitter widget is provided, connect its layer-changed signal.
-    if signal_emmiter_widget is not None:
-        assert isinstance(signal_emmiter_widget, QgsMapLayerComboBox), f'Expected QgsMapLayerComboBox, got {type(signal_emmiter_widget)}'
-        # Assumes that the signal is named "currentLayerChanged" and emits a layer.
-        signal_emmiter_widget.layerChanged.connect(
-            lambda: widget.setLayer_fallback(signal_emmiter_widget.currentLayer())
-            )
+    if signal_emitter_widget is not None:
+        assert isinstance(signal_emitter_widget, QgsMapLayerComboBox), f'Expected QgsMapLayerComboBox, got {type(signal_emitter_widget)}'
+        # Assumes that the signal is named "currentLayerChanged" and emits a layer. 
+        signal_emitter_widget.layerChanged.connect(widget.setLayer_fallback)
+        
+        # --- prime the combo immediately ---------------------------------------
+        widget.setLayer_fallback()
+        
+    def connect_downstream_combobox(downstream_combo: QgsFieldComboBox):
+        """
+        Keep `downstream_combo` in lock-step with `widget` (the upstream combo).
+        The downstream combo is disabled so the user can’t alter it.
+    
+        Parameters
+        ----------
+        downstream_combo : QgsFieldComboBox
+            The combo box to mirror.
+        """
+        assert isinstance(downstream_combo, QgsFieldComboBox), (
+            f"Expected QgsFieldComboBox, got {type(downstream_combo)}"
+        )
+    
+        # Disable direct user interaction
+        downstream_combo.setEnabled(False)
+    
+        # ---------- internal sync routine ----------
+        def _sync():
+            try:
+                # 1. Mirror the layer (repopulates the downstream combo)
+                downstream_combo.setLayer(widget.layer())
+        
+                # 2. Mirror the current field
+                fld = widget.currentField()          # QgsFieldComboBox convenience
+                if fld:                              # fld is a string or None
+                    downstream_combo.setField(fld)
+            except:
+                #raise a QGIS warning
+                QgsMessageLog.logMessage(
+                    "Failed to sync downstream combo box",
+                    level=Qgis.Warning
+                )
+                
+                
+        # -------------------------------------------
+    
+        # Hook up both relevant upstream signals
+        #widget.layerChanged.connect(_sync)
+        widget.fieldChanged.connect(_sync)
+    
+        # Do one initial sync so the downstream starts in the right state
+        _sync()
+        
+    widget.connect_downstream_combobox = connect_downstream_combobox
  
         
         

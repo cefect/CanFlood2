@@ -70,8 +70,14 @@ QLabel {
   <layout class="QHBoxLayout" name="horizontalLayout_2">
    <item>
     <widget class="QLabel" name="label_15">
+     <property name="maximumSize">
+      <size>
+       <width>50</width>
+       <height>16777215</height>
+      </size>
+     </property>
      <property name="text">
-      <string>Function Group:</string>
+      <string>Group:</string>
      </property>
     </widget>
    </item>
@@ -95,38 +101,15 @@ QLabel {
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="label_8">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="text">
-      <string>scale</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QgsFieldComboBox" name="mFieldComboBox_scale"/>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_14">
-     <property name="text">
-      <string>elevation</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QgsFieldComboBox" name="mFieldComboBox_elv"/>
-   </item>
-   <item>
     <widget class="QLabel" name="label_13">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>60</width>
+       <height>16777215</height>
+      </size>
      </property>
      <property name="text">
       <string>tag</string>
@@ -139,14 +122,58 @@ QLabel {
    <item>
     <widget class="QgsFieldComboBox" name="mFieldComboBox_tag">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="label_8">
+     <property name="maximumSize">
+      <size>
+       <width>50</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>scale</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFieldComboBox" name="mFieldComboBox_scale"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_14">
+     <property name="maximumSize">
+      <size>
+       <width>80</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>elevation</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFieldComboBox" name="mFieldComboBox_elv"/>
+   </item>
+   <item>
     <widget class="QLabel" name="label_12">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>50</width>
+       <height>16777215</height>
+      </size>
      </property>
      <property name="text">
       <string>cap</string>
@@ -159,7 +186,7 @@ QLabel {
    <item>
     <widget class="QgsFieldComboBox" name="mFieldComboBox_cap">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
     </widget>
    </item>

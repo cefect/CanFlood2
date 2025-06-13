@@ -95,9 +95,12 @@ tutorial_lib = {
                 'comboBox_R_lowPtail': 'extrapolate',
                 'doubleSpinBox_R_lowPtail': 1e9,
                 'doubleSpinBox_R_highPtail': 0.1,
-            }
-        }
-    }}
+            },
+            'FunctionGroup_widget':{
+                0:'?'
+                },
+        
+                }}}
 
 #===============================================================================
 # Tutorial 2B (AEP)

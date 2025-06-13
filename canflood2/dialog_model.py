@@ -347,6 +347,14 @@ class Model_config_dialog_assetInventory(object):
         
         }
     
+    functionGroups_finv_tags_d = { #see also parameters.modelTable_params_d['table_finv']
+        'mFieldComboBox_cap':'cap',
+        'mFieldComboBox_elv':'elev',
+        'mFieldComboBox_scale':'scale',
+        'mFieldComboBox_tag':'tag',
+        
+        }
+    
     functionGroups_index_d=dict()
     
     def _connect_slots_assetInventory(self, log):
@@ -366,12 +374,18 @@ class Model_config_dialog_assetInventory(object):
             
         self.comboBox_finv_vlay.layerChanged.connect(update_finv_geometry_label)
         
+
+        
         #=======================================================================
         # Advanced Tab: Function Groups
         #=======================================================================
         #create the first function group
-        fg_index = self._add_function_group()
+        _, _, FG_widget_d = self._add_function_group()
         
+        """
+        this is a mirror of the main function group on the Data Selection tab
+        connecting all the DataSelection comboboxes so they update these ones"""
+ 
         
             
  
@@ -390,8 +404,21 @@ class Model_config_dialog_assetInventory(object):
             }.items():
             
             bind_QgsFieldComboBox(comboBox, 
-                                  signal_emmiter_widget=self.comboBox_finv_vlay,
+                                  signal_emitter_widget=self.comboBox_finv_vlay,
                                   fn_str=fn_str)
+            
+            #connect Advanced Tab as downstream widgets
+            if not fn_str=='xid':
+                #retreive the AdvancedTab widget
+                w= None
+                for k,d in FG_widget_d.items():
+                    if d['tag']==fn_str.replace('f0_',''):
+                        w = d['widget']
+                assert not w is  None, 'failed to find widget for tag %s'%fn_str
+ 
+                #connect it to the advganced tab downstream widget
+                #comboBox.connect_downstream_combobox(w)
+                
             
         #set the optionals
         for cbox in [ self.mFieldComboBox_AI_01_tag, self.mFieldComboBox_AI_01_cap]:
@@ -402,6 +429,8 @@ class Model_config_dialog_assetInventory(object):
         """not sure about this... leaving this dependent on teh projDB fo rnow
         self.labelLineEdit_AI_label.tesxtChanged(self.update_labels)
         #self.label_mod_asset.setText(s['asset_label'])"""
+        
+
         
     def get_finv_vlay(self):
         """get the asset inventory vector layer"""
@@ -436,7 +465,7 @@ class Model_config_dialog_assetInventory(object):
         
         log.info(f'added function group {fg_index+1}/{len(self.functionGroups_index_d)} to the advanced tab')
         
-        return fg_index
+        return fg_index, widget, widget_d
         
     def _add_function_group_ui(self, fg_index):
         """setup the UI for the function group
@@ -444,7 +473,7 @@ class Model_config_dialog_assetInventory(object):
         making this separate for assigning actions
         """
         
-        
+        log = self.logger.getChild('_add_function_group_ui')
         layout = self.groupBox_AI_03_functionGroups.layout()            
         
         #load the widget
@@ -458,6 +487,17 @@ class Model_config_dialog_assetInventory(object):
             assert isinstance(child_widget, widget_type), f'failed to find widget: {name}'
             widget_d[name] = {'name':name, 'widget':child_widget}
             
+            if name in self.functionGroups_finv_tags_d.keys():
+                widget_d[name]['tag'] = self.functionGroups_finv_tags_d[name]
+            else:
+                widget_d[name]['tag'] = None    
+            
+        
+        log.debug(f'added   {len(widget_d)} widgets') 
+            
+        #=======================================================================
+        # bindings
+        #=======================================================================
         #set the label
         widget.label_functionGroupID.setText(str(fg_index))
             
@@ -469,6 +509,32 @@ class Model_config_dialog_assetInventory(object):
         widget.pushButton_mod_plus.clicked.connect(
             lambda: self._add_function_group()
             )
+        
+        #vbind the field combo boxes to the finv vector layer
+        cnt = 0
+        for name, widget_type in self.functionGroups_widget_type_d.items():
+            if widget_type == QgsFieldComboBox:
+                w = widget_d[name]['widget']
+                tag = widget_d[name]['tag']
+                bind_QgsFieldComboBox(w, 
+                                      signal_emitter_widget=self.comboBox_finv_vlay,
+                                      fn_str=tag)
+                
+                cnt += 1
+                
+                #set optionals
+                #===============================================================
+                # if tag in ['cap', 'tag']:
+                #     w.setAllowEmptyFieldName(True)
+                #     w.setCurrentIndex(-1)
+                #===============================================================
+        
+        log.debug(f'bound {cnt} field combo boxes to the finv vector layer')
+                
+        
+ 
+        
+ 
         
         return widget, widget_d
         
@@ -495,6 +561,7 @@ class Model_config_dialog_assetInventory(object):
                 layout.removeWidget(widget)
         widget.setParent(None)   # Detach the widget from its parent
         widget.deleteLater()     # Schedule the widget for deletion
+        widget=None
         
         self.functionGroups_index_d[fg_index]['widget'] = None  # Clear the reference to the widget
         

@@ -413,7 +413,7 @@ QTabBar::tab:selected {
           <bool>false</bool>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="tab_AI_01_DataSeledction">
           <property name="autoFillBackground">
@@ -614,13 +614,13 @@ QTabBar::tab:selected {
               <item>
                <widget class="QGroupBox" name="groupBox_8">
                 <property name="title">
-                 <string>Function Group: 01</string>
+                 <string>Function Group: 1</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_18">
                  <item>
                   <widget class="QLabel" name="label_29">
                    <property name="text">
-                    <string>Select the fields from your inventory vector layer that provide the scale, elevation, tag, and cap information for each asset</string>
+                    <string>Specify the calculation fields from your inventory.  See the &quot;Advanced&quot; tab to add additional function groups.</string>
                    </property>
                   </widget>
                  </item>
@@ -703,13 +703,6 @@ QTabBar::tab:selected {
                    </item>
                   </layout>
                  </item>
-                 <item>
-                  <widget class="QLabel" name="label_32">
-                   <property name="text">
-                    <string>See the &quot;Advanced&quot; tab to add additional function groups</string>
-                   </property>
-                  </widget>
-                 </item>
                 </layout>
                </widget>
               </item>
@@ -718,6 +711,12 @@ QTabBar::tab:selected {
            </item>
            <item>
             <widget class="QGroupBox" name="groupBox_4">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="title">
               <string>Metadata</string>
              </property>
@@ -828,7 +827,7 @@ QTabBar::tab:selected {
               <bool>true</bool>
              </property>
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+              <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -840,7 +839,7 @@ QTabBar::tab:selected {
               <item>
                <widget class="QLabel" name="label_12">
                 <property name="text">
-                 <string>Specify the damage calculation fields from your inventory. Use the &quot;+&quot; to add a function group and &quot;-&quot; to remove.</string>
+                 <string>Specify  calculation fields from your inventory. See the &quot;Data Selection&quot; tab to edit FG 1. Use +/- to add/remove groups.</string>
                 </property>
                </widget>
               </item>

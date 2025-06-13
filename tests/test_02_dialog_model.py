@@ -92,7 +92,7 @@ def oj_out(test_name, result):
 #===============================================================================
 # dialog_model setup
 #===============================================================================
-interactive = True
+interactive = False
 @pytest.fixture
 def dialog_model(
         dialog_loaded, #main dialog loaded with layers
@@ -103,7 +103,11 @@ def dialog_model(
         tutorial_name,
         finv_vlay, 
         
+        #general modelConfig widget test data
         widget_modelConfig_data_d, #tests.data.tutorial_fixtures  
+        
+        #Asset Inventory function group test data
+        widget_FunctionGroup_t, #tests.data.tutorial_fixtures
         
         #control
         
@@ -167,6 +171,28 @@ def dialog_model(
             set_widget_value(widget, v)
         except Exception as e:
             raise IOError(f'failed to set widget \'{k}\' to value \'{v}\' w/\n    {e}')
+        
+    #function groups
+    if widget_FunctionGroup_t is not None:
+        cnt=0
+        for i, test_d in enumerate(widget_FunctionGroup_t):
+            #add the group
+            fg_index, widget, widget_d = dlg._add_function_group()
+            
+            #set the values
+            for name, d_i in widget_d.items():
+                if d_i['tag'] is not None:
+                    target_fieldName = test_d[d_i['tag']]
+                    
+                    #check this is in the layer
+                    assert target_fieldName in finv_vlay.fields().names(), 'bad field name'
+                    
+                    #select it with the widget
+                    d_i['widget'].setField(test_d[d_i['tag']])
+                    cnt+=1
+                    
+        print(f'set {cnt} function group fields')
+            
             
  
     """ 
@@ -241,6 +267,7 @@ def test_dial_model_01_launch_config(dialog_model,model, qtbot):
 # ])
 #===============================================================================
 
+@pytest.mark.dev
 @pytest.mark.parametrize(*_04_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_02_save(dialog_model,
@@ -267,7 +294,7 @@ def test_dial_model_02_save(dialog_model,
     # resolve dialog
     #===========================================================================
  
-    qtbot.mouseClick(dialog_model.pushButton_save, Qt.LeftButton)
+    click(dialog_model.pushButton_save)
     
     #===========================================================================
     # check---------
@@ -459,7 +486,7 @@ _03_saveV_args = ("tutorial_name, projDB_fp", [
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize(*_04_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_04_functionGroup(dialog_model,model, qtbot):

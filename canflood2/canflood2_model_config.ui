@@ -839,7 +839,7 @@ QTabBar::tab:selected {
               <item>
                <widget class="QLabel" name="label_12">
                 <property name="text">
-                 <string>Specify  calculation fields from your inventory. See the &quot;Data Selection&quot; tab to edit FG 1. Use +/- to add/remove groups.</string>
+                 <string>Specify  calculation fields from your inventory. See the &quot;Data Selection&quot; tab to edit Group 1. Use +/- to add/remove groups.</string>
                 </property>
                </widget>
               </item>

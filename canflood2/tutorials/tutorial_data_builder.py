@@ -96,9 +96,9 @@ tutorial_lib = {
                 'doubleSpinBox_R_lowPtail': 1e9,
                 'doubleSpinBox_R_highPtail': 0.1,
             },
-            'FunctionGroup_widget':{
-                0:'?'
-                },
+            'FunctionGroup':( #using tuple as the counter is automatically incremented
+                {'cap':'f1_cap','elev':'f1_elv','scale':'f1_scale','tag':'f1_tag'},
+                ),
         
                 }}}
 

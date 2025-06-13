@@ -160,6 +160,18 @@ def widget_Main_dialog_data_d(tutorial_name):
     return copy.deepcopy(tutorial_lib[tutorial_name]['widget']['Main_dialog'])
 
 
+@pytest.fixture
+def widget_FunctionGroup_t(tutorial_name):
+    d = tutorial_lib[tutorial_name]['widget']
+    if 'FunctionGroup' not in d:
+        return None
+    else:
+        assert isinstance(d['FunctionGroup'], tuple), \
+            f"Expected 'FunctionGroup' to be a tuple, got {type(d['FunctionGroup'])}"
+        return copy.deepcopy(d['FunctionGroup'])
+ 
+
+
 
 
 

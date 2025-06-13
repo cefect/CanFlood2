@@ -571,8 +571,8 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
  
 
 _04_MS_args = ("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_01', oj('04_MS_createTemplates_cf1_4b9cc3', 'projDB.canflood2')), #L1 not implemented
-    #('cf1_tutorial_02', oj('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
+    #('cf1_tutorial_01', oj('04_MS_createTemplates_cf1_4b9cc3', 'projDB.canflood2')), #L1 not implemented
+    ('cf1_tutorial_02', oj('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
     #('cf1_tutorial_02b', oj('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2')),
     #('cf1_tutorial_02c', oj('04_MS_createTemplates_cf1_1ae7e8', 'projDB.canflood2')),
 ])

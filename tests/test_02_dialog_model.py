@@ -92,7 +92,7 @@ def oj_out(test_name, result):
 #===============================================================================
 # dialog_model setup
 #===============================================================================
-interactive = False
+interactive = True
 @pytest.fixture
 def dialog_model(
         dialog_loaded, #main dialog loaded with layers
@@ -214,7 +214,7 @@ def vfunc(dialog_model, vfunc_fp, monkeypatch):
 #===============================================================================
 
 
-
+ 
 @pytest.mark.parametrize(*_04_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_01_launch_config(dialog_model,model, qtbot):
@@ -229,6 +229,9 @@ def test_dial_model_01_launch_config(dialog_model,model, qtbot):
     #===========================================================================
     qtbot.mouseClick(dialog_model.pushButton_close, Qt.LeftButton)
     
+    print(f'done')
+
+
 
 
 #===============================================================================
@@ -457,6 +460,34 @@ _03_saveV_args = ("tutorial_name, projDB_fp", [
 
 
 @pytest.mark.dev
+@pytest.mark.parametrize(*_04_MS_args)
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+def test_dial_model_04_functionGroup(dialog_model,model, qtbot):
+    """simple launching and closing of the model configuration dialog
+    
+    loads a simple projDB_fp (just initialized models)
+    """     
+    #assert dialog.model==model
+    assert len(dialog_model.functionGroups_index_d)==1, 'expected one function group'
+    w1 =  dialog_model.functionGroups_index_d[0]['widget']
+    
+    
+    #===========================================================================
+    # add a new one
+    #===========================================================================
+    click(w1.pushButton_mod_plus)
+    
+    assert len(dialog_model.functionGroups_index_d)==2
+    #===========================================================================
+    # remove it
+    #===========================================================================
+    click(dialog_model.functionGroups_index_d[1]['widget'].pushButton_mod_minus)
+    assert len(dialog_model.functionGroups_index_d)==1
+    
+ 
+    
+    
+
 @pytest.mark.parametrize(*_03_saveV_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_05_run(dialog_model, model,

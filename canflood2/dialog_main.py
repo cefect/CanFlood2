@@ -921,8 +921,7 @@ class Main_dialog_modelSuite(object):
             assert len(self.model_index_d)==0, f'must clearn model suite before creating templates'
  
             
-            # Loop through each group box, and load the model template into it.
- 
+            # Loop through each group box, and load the model template into it. 
             for category_code, d in consequence_category_d.items():
                 gb = getattr(self, d['boxName'])
  
@@ -931,7 +930,6 @@ class Main_dialog_modelSuite(object):
                     gb.setLayout(QtWidgets.QVBoxLayout())
             
                 # Add the loaded widget to the group box's layout
-
                 self._add_model(gb.layout(), category_code, logger=log)
      
      
@@ -955,15 +953,13 @@ class Main_dialog_modelSuite(object):
                           logger=None):
         """add the widget for the model to the model suite tab
         
-        called by self._add_model
+        called by self._add_model()
         """
         #=======================================================================
         # defaults
         #=======================================================================
         if logger is None: logger=self.logger
-        log = logger.getChild('_add_model_widget')
-        
-        
+        log = logger.getChild('_add_model_widget')        
         
         modelid, category_code = model.modelid, model.category_code
         
@@ -1099,6 +1095,10 @@ class Main_dialog_modelSuite(object):
                    check_projDB=False,
                    ):
         """start a model object, then add the template to the layout"""
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
         if logger is None: logger=self.logger.getChild('add_model')
         log = logger.getChild('add_model')
         if projDB_fp is None: projDB_fp = self.get_projDB_fp()
@@ -2476,12 +2476,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
 #===============================================================================
 # helpers-----
 #===============================================================================
-
-
-        
  
-    
-    
 # Load the widget from the .ui file
 def load_model_widget_template(
     model_template_ui = os.path.join(os.path.dirname(__file__), 'canflood2_model_widget.ui'), 

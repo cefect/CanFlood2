@@ -24,6 +24,7 @@ from qgis.core import (
     QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel,
     QgsWkbTypes, QgsMapLayer, QgsLogger,
     )
+from qgis.gui import QgsFieldComboBox
 
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
@@ -332,7 +333,175 @@ class Model_compiler(object):
         return expos_df
     
  
+class Model_config_dialog_assetInventory(object):
+    """organizer for Asset Inventory toolbox"""
+    functionGroups_widget_type_d= {
+        'label_functionGroupID':QLabel,
+        'mFieldComboBox_cap':QgsFieldComboBox,
+        'mFieldComboBox_elv':QgsFieldComboBox,
+        'mFieldComboBox_scale':QgsFieldComboBox,
+        'mFieldComboBox_tag':QgsFieldComboBox,
+        'pushButton_mod_minus':QPushButton,
+        'pushButton_mod_plus':QPushButton,
         
+        
+        }
+    
+    functionGroups_index_d=dict()
+    
+    def _connect_slots_assetInventory(self, log):
+        """asset inventory related slot connections"""
+        
+        #connect the vector layer
+        bind_MapLayerComboBox(self.comboBox_finv_vlay, 
+                              iface=self.iface, 
+                              layerType=QgsMapLayerProxyModel.VectorLayer)
+ 
+        
+        #bind the exposure geometry label
+        def update_finv_geometry_label():
+            layer = self.comboBox_finv_vlay.currentLayer()
+            if not layer is None:
+                self.label_EX_geometryType.setText(QgsWkbTypes.displayString(layer.wkbType()))
+            
+        self.comboBox_finv_vlay.layerChanged.connect(update_finv_geometry_label)
+        
+        #=======================================================================
+        # Advanced Tab: Function Groups
+        #=======================================================================
+        #create the first function group
+        fg_index = self._add_function_group()
+        
+        
+            
+ 
+        
+        
+        #=======================================================================
+        # #finv bindings
+        #=======================================================================
+        #loop through and connect all the field combo boxes to the finv map layer combo box
+        for comboBox, fn_str in {
+            self.mFieldComboBox_cid:'xid',
+            self.mFieldComboBox_AI_01_scale:'f0_scale',
+            self.mFieldComboBox_AI_01_tag:'f0_tag',
+            self.mFieldComboBox_AI_01_elev:'f0_elev',
+            self.mFieldComboBox_AI_01_cap:'f0_cap',
+            }.items():
+            
+            bind_QgsFieldComboBox(comboBox, 
+                                  signal_emmiter_widget=self.comboBox_finv_vlay,
+                                  fn_str=fn_str)
+            
+        #set the optionals
+        for cbox in [ self.mFieldComboBox_AI_01_tag, self.mFieldComboBox_AI_01_cap]:
+            cbox.setAllowEmptyFieldName(True)
+            cbox.setCurrentIndex(-1)
+        
+        #bind the asset label to the update_labels such that any time it changes the function runs
+        """not sure about this... leaving this dependent on teh projDB fo rnow
+        self.labelLineEdit_AI_label.tesxtChanged(self.update_labels)
+        #self.label_mod_asset.setText(s['asset_label'])"""
+        
+    def get_finv_vlay(self):
+        """get the asset inventory vector layer"""
+        vlay = self.comboBox_finv_vlay.currentLayer()
+        assert not vlay is None, 'no vector layer selected'
+        
+        assert isinstance(vlay, QgsVectorLayer), f'bad type: {type(vlay)}'
+        
+        #check that it is a point layer
+        if not vlay.geometryType() == QgsWkbTypes.PointGeometry:
+            raise NotImplementedError(f'geometry type not supported: {QgsWkbTypes.displayString(vlay.wkbType())}')
+         
+        
+        return vlay
+    
+    def _add_function_group(self):
+        """add a function group widget to the advanced tab"""
+        log = self.logger.getChild('_add_function_group')
+        log.debug('adding function group widget')
+        
+        #get the index
+        fg_index = len(self.functionGroups_index_d)
+        assert not fg_index in self.functionGroups_index_d, f'index {fg_index} already exists'        
+        
+        #build the UI
+        log.debug(f'adding function group {fg_index}')
+        widget, widget_d = self._add_function_group_ui(fg_index)
+            
+            
+        #add to the index
+        self.functionGroups_index_d[fg_index] = {'widget':widget, 'child_d':widget_d}
+        
+        log.info(f'added function group {fg_index+1}/{len(self.functionGroups_index_d)} to the advanced tab')
+        
+        return fg_index
+        
+    def _add_function_group_ui(self, fg_index):
+        """setup the UI for the function group
+        called by _add_function_group()
+        making this separate for assigning actions
+        """
+        
+        
+        layout = self.groupBox_AI_03_functionGroups.layout()            
+        
+        #load the widget
+        widget = load_functionGroup_widget_template()
+        layout.addWidget(widget)
+        
+        #loop through each widget element and make a reference
+        widget_d = dict()
+        for name, widget_type in self.functionGroups_widget_type_d.items():
+            child_widget = widget.findChild(widget_type, name)
+            assert isinstance(child_widget, widget_type), f'failed to find widget: {name}'
+            widget_d[name] = {'name':name, 'widget':child_widget}
+            
+        #set the label
+        widget.label_functionGroupID.setText(str(fg_index))
+            
+        #bind the new buttons
+        widget.pushButton_mod_minus.clicked.connect(
+            lambda: self._remove_function_group(fg_index)
+            )
+        
+        widget.pushButton_mod_plus.clicked.connect(
+            lambda: self._add_function_group()
+            )
+        
+        return widget, widget_d
+        
+    def _remove_function_group(self, fg_index):
+        """
+        remove a function group widget from the advanced tab
+        """
+        log = self.logger.getChild('_remove_function_group')
+        log.debug(f'removing function group {fg_index}')
+        
+        d = self.functionGroups_index_d[fg_index]
+        widget, child_d = d['widget'], d['child_d']
+        
+        #=======================================================================
+        # remove the widget
+        #=======================================================================
+ 
+        
+        parent = widget.parent()
+ 
+        if parent is not None:
+            layout = parent.layout()  # Get the parent's layout
+            if layout is not None:
+                layout.removeWidget(widget)
+        widget.setParent(None)   # Detach the widget from its parent
+        widget.deleteLater()     # Schedule the widget for deletion
+        
+        self.functionGroups_index_d[fg_index]['widget'] = None  # Clear the reference to the widget
+        
+        #=======================================================================
+        # clear the index entry   
+        #=======================================================================
+        del self.functionGroups_index_d[fg_index]
         
             
         
@@ -341,7 +510,8 @@ class Model_compiler(object):
  
 
 
-class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
+class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory, 
+                          QtWidgets.QDialog, FORM_CLASS):
     
     
     
@@ -389,42 +559,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # Asset Inventory--------
         #=======================================================================
-        bind_MapLayerComboBox(self.comboBox_finv_vlay, iface=self.iface, layerType=QgsMapLayerProxyModel.VectorLayer)
- 
-        
-        #bind the exposure geometry label
-        def update_finv_geometry_label():
-            layer = self.comboBox_finv_vlay.currentLayer()
-            if not layer is None:
-                self.label_EX_geometryType.setText(QgsWkbTypes.displayString(layer.wkbType()))
-            
-        self.comboBox_finv_vlay.layerChanged.connect(update_finv_geometry_label)
-        
-        #=======================================================================
-        # #finv bindings
-        #=======================================================================
-        #loop through and connect all the field combo boxes to the finv map layer combo box
-        for comboBox, fn_str in {
-            self.mFieldComboBox_cid:'xid',
-            self.mFieldComboBox_AI_01_scale:'f0_scale',
-            self.mFieldComboBox_AI_01_tag:'f0_tag',
-            self.mFieldComboBox_AI_01_elev:'f0_elev',
-            self.mFieldComboBox_AI_01_cap:'f0_cap',
-            }.items():
-            
-            bind_QgsFieldComboBox(comboBox, 
-                                  signal_emmiter_widget=self.comboBox_finv_vlay,
-                                  fn_str=fn_str)
-            
-        #set the optionals
-        for cbox in [ self.mFieldComboBox_AI_01_tag, self.mFieldComboBox_AI_01_cap]:
-            cbox.setAllowEmptyFieldName(True)
-            cbox.setCurrentIndex(-1)
-        
-        #bind the asset label to the update_labels such that any time it changes the function runs
-        """not sure about this... leaving this dependent on teh projDB fo rnow
-        self.labelLineEdit_AI_label.tesxtChanged(self.update_labels)
-        #self.label_mod_asset.setText(s['asset_label'])"""
+        self._connect_slots_assetInventory(log)
         
         #=======================================================================
         # Vulnerability-----------
@@ -751,19 +886,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         log.push(f'saved {len(s)} parameters for model {model.name}')
         
         
-    def get_finv_vlay(self):
-        """get the asset inventory vector layer"""
-        vlay = self.comboBox_finv_vlay.currentLayer()
-        assert not vlay is None, 'no vector layer selected'
-        
-        assert isinstance(vlay, QgsVectorLayer), f'bad type: {type(vlay)}'
-        
-        #check that it is a point layer
-        if not vlay.geometryType() == QgsWkbTypes.PointGeometry:
-            raise NotImplementedError(f'geometry type not supported: {QgsWkbTypes.displayString(vlay.wkbType())}')
-         
-        
-        return vlay
+
         
 
  
@@ -908,9 +1031,20 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         self.model=None
         
         
-        
-        
-        
+#===============================================================================
+# HERLPERS--------
+#===============================================================================
+ 
+def load_functionGroup_widget_template(
+    template_ui = os.path.join(os.path.dirname(__file__), 'canflood2_model_functionGroup_widget.ui'), 
+    parent=None,
+    ):
+    
+    """load the model widget template"""
+ 
+    widget = QtWidgets.QWidget(parent)
+    uic.loadUi(template_ui, widget)
+    return widget
         
         
         

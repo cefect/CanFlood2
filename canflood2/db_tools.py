@@ -79,10 +79,7 @@ def sql_to_df(table_name, conn, template_prefix=None, **kwargs):
  
         """
  
-        dtype=template_df.dtypes.to_dict()
-        
-
- 
+        dtype=template_df.dtypes.to_dict() 
         
         #configure the index param
         if isinstance(template_df.index, pd.MultiIndex):

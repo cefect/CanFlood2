@@ -137,9 +137,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, 
     # Simulate clicking the save button.
     click(dialog.pushButton_save) #Main_dialog._save_ui_to_projDB()
 
-
-
-
+ 
 
 #===============================================================================
 # @pytest.mark.parametrize("tutorial_name, projDB_fp", [
@@ -209,6 +207,7 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
  
 @pytest.mark.parametrize(*DM_04_run_args)
 def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
+
                                 ):
     """run the model"""
     dialog = dialog_loaded
@@ -233,7 +232,16 @@ def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
     click(dialog.pushButton_R_riskCurve) #Main_dialog._plot_risk_curve()
     
     
- 
+@pytest.mark.dev
+@pytest.mark.parametrize("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
+     ])
+def test_dial_main_04_exportCSV(dialog_loaded, test_name,
+                                ):
+    """run the model"""
+    dialog = dialog_loaded
+    
+    click(dialog.pushButton_R_exportCSV)
  
 """ 
 

@@ -145,9 +145,7 @@ class Main_dialog_projDB(object):
         assert isinstance(projDB_fp, str)
         assert os.path.exists(projDB_fp)
     
-        with sqlite3.connect(projDB_fp) as conn:
-            #assert_projDB_conn(conn)
- 
+        with sqlite3.connect(projDB_fp) as conn: 
             dfs = {name: sql_to_df(name, conn, template_prefix=template_prefix) for name in table_names}
     
         if result_as_dict:
@@ -1538,6 +1536,11 @@ class Main_dialog_reporting(object):
         #=======================================================================
         self.pushButton_R_riskCurve.clicked.connect(self._plot_risk_curve)
         
+        #=======================================================================
+        # export
+        #=======================================================================
+        self.pushButton_R_exportCSV.clicked.connect(self._exportCSV)
+        
     def _populate_results_model_selection(self):
         """from the projDB, populate the model selection table"""
         
@@ -1802,13 +1805,38 @@ class Main_dialog_reporting(object):
         os.makedirs(out_dir, exist_ok=True)
         return out_dir
     
+    def _exportCSV(self, *args):
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        log = self.logger.getChild('_exportCSV')
+        projDB_fp = self.get_projDB_fp()
+        
+        out_dir=self._get_out_dir()
+        
+        log.debug(f'on {projDB_fp}')
+        
+        with sqlite3.connect(projDB_fp) as conn: 
+            table_names = get_table_names(conn)
             
-        
-        
-        
-        
-        
-        
+            log.info(f'exporting {len(table_names)} tables')
+            
+            for table_name in table_names:
+                try:
+                    #load with the templates (wont work for models)
+                    df = sql_to_df(table_name, conn, template_prefix=None)
+                except:
+                    df = pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+                
+                ofp = os.path.join(out_dir, table_name+'.csv')
+                
+                df.to_csv(ofp)
+                
+                log.debug(f'wrote {df.shape} to \n    {ofp}')
+                
+        log.push(f'wrote {len(table_names)} data tables to csv')
+ 
  
     
 class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, 

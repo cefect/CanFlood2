@@ -80,6 +80,9 @@ def set_widget_value(widget, value):
         
     elif isinstance(widget, QgsFieldComboBox): 
         if isinstance(value, str):
+            #check the value is a valid field name
+            if value not in widget.fields().names():
+                raise KeyError(f'requested field name (\'{value}\') not in comboBox')
             widget.setField(value)
         else:
             raise NotImplementedError(type(value))

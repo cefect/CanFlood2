@@ -56,7 +56,7 @@ tut_names = list(tutorial_lib.keys())
 #===============================================================================
 # HELPERS=========---------
 #===============================================================================
-overwrite_testdata=False #udpate test pickles
+overwrite_testdata=True #udpate test pickles
 def write_projDB(dialog_main, test_name):
  
     projDB_fp = dialog_main.get_projDB_fp()
@@ -378,7 +378,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
     Create New ProjDB
     test saving the projDB
     
-    
+    start point for test data
  
     """
     #===========================================================================
@@ -396,13 +396,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
     #===========================================================================
     # #create a new projDB
     #===========================================================================
-    """ 
-    dialog_main.show()
-    QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
-    sys.exit(QApp.exec_()) #wrap
-    """
-
-
+ 
     dialog_create_new_projDB(monkeypatch, dialog_main, tmpdir)
  
  
@@ -507,11 +501,18 @@ def test_dial_main_03_load_projDB(dialog_loaded,
    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
    ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2')), 
    ('cf1_tutorial_02c', oj('02_save_ui_to_project_dat_7b3a19', 'projDB.canflood2')),
+   ('cf1_tutorial_02d', oj('02_save_ui_to_project_dat_6f16b9', 'projDB.canflood2')),
 ])
 def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
                                          tutorial_name,
                                          ):
-    """test creation and clearing of the model suite"""
+    """test creation and clearing of the model suite
+    
+    
+    loads from test_dial_main_02_save_ui_to_project_database
+    
+    output used for tests in test_dial_model
+    """
     
  
     #===========================================================================
@@ -568,15 +569,21 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     write_projDB(dialog, test_name)
     
 
- 
+
+gfp = lambda x:oj(x, 'projDB.canflood2')
+
 
 _04_MS_args = ("tutorial_name, projDB_fp", [
-    #('cf1_tutorial_01', oj('04_MS_createTemplates_cf1_4b9cc3', 'projDB.canflood2')), #L1 not implemented
-    ('cf1_tutorial_02', oj('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
-    #('cf1_tutorial_02b', oj('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2')),
-    #('cf1_tutorial_02c', oj('04_MS_createTemplates_cf1_1ae7e8', 'projDB.canflood2')),
+    ('cf1_tutorial_01', gfp('04_MS_createTemplates_cf1_4b9cc3')), 
+    ('cf1_tutorial_02', gfp('04_MS_createTemplates_cf1_f72317')),
+    ('cf1_tutorial_02b', gfp('04_MS_createTemplates_cf1_ea97b3')),
+    ('cf1_tutorial_02c', gfp('04_MS_createTemplates_cf1_1ae7e8')),
+    ('cf1_tutorial_02d', gfp('04_MS_createTemplates_cf1_eae93b')),
 ])
+
     
+
+_04_MS_args_d = {item[0]: item[1] for item in _04_MS_args[1]}
 
 #===============================================================================
 # TESTS: POST MODEL CONFIG----------

@@ -242,7 +242,7 @@ class Model_run_methods(object):
                 deps_df = expoi_df.subtract(gels_s, axis=0)
                 
             #===================================================================
-            # #adjust for asset height (elv)            
+            # #adjust for asset height (elev)            
             #===================================================================
             """ TODO: support WSH"""
             #join the exposures onto the assets

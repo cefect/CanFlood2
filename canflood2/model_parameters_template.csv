@@ -1,21 +1,17 @@
-varName,widgetName,value,required,model_index,note
-modelid,,,TRUE,TRUE,duplicated indexer for redundancy
-category_code,,,TRUE,TRUE,duplicated indexer for redundancy
-name,,,TRUE,TRUE,duplicated indexer for redundancy
-expo_level,comboBox_expoLevel,,TRUE,FALSE,
-finv_vlay,comboBox_finv_vlay,,TRUE,FALSE,not used. Finv can only be imported from the model config (for now)
-finv_elevType,comboBox_AI_elevType,,TRUE,FALSE,just the layer nam e
-finv_indexField,mFieldComboBox_cid,,TRUE,FALSE,
-f01_scale,mFieldComboBox_AI_01_scale,,TRUE,FALSE,netid 1 (basic)
-f01_elev,mFieldComboBox_AI_01_elev,,TRUE,FALSE,netid 1 (basic)
-f01_tag,mFieldComboBox_AI_01_tag,,FALSE,FALSE,netid 1 (basic)
-f01_cap,mFieldComboBox_AI_01_cap,,FALSE,FALSE,netid 1 (basic)
-finv_dataSource,dataSourceLineEdit_AI,,FALSE,FALSE,
-asset_label,labelLineEdit_AI_label,,TRUE,TRUE,used for UI updates
-finv_date,dateLineEdit_AI,,FALSE,FALSE,
-consq_label,consequenceLineEdit_V,,TRUE,TRUE,used for UI updates (not to be confused with category_desc)
-ead_highPtail,comboBox_R_highPtail,,TRUE,FALSE,extrapolate. Float. None. User
-ead_lowPtail,comboBox_R_lowPtail,,TRUE,FALSE,flat. Extrapolate. Float.none. User
-ead_highPtail_user,doubleSpinBox_R_highPtail,,FALSE,FALSE,value for 'user'
-ead_lowPtail_user,doubleSpinBox_R_lowPtail,,FALSE,FALSE,value for 'user'
-result_ead,,,FALSE,TRUE,set by run method _set_ead_total
+varName,widgetName,value,required,model_index,dynamic,fg_index,note
+modelid,,,TRUE,TRUE,FALSE,,duplicated indexer for redundancy
+category_code,,,TRUE,TRUE,FALSE,,duplicated indexer for redundancy
+name,,,TRUE,TRUE,FALSE,,duplicated indexer for redundancy
+expo_level,comboBox_expoLevel,,TRUE,FALSE,FALSE,,
+finv_vlay,comboBox_finv_vlay,,TRUE,FALSE,FALSE,,not used. Finv can only be imported from the model config (for now)
+finv_elevType,comboBox_AI_elevType,,TRUE,FALSE,FALSE,,just the layer nam e
+finv_indexField,mFieldComboBox_cid,,TRUE,FALSE,FALSE,,
+finv_dataSource,dataSourceLineEdit_AI,,FALSE,FALSE,FALSE,,
+asset_label,labelLineEdit_AI_label,,TRUE,TRUE,FALSE,,used for UI updates
+finv_date,dateLineEdit_AI,,FALSE,FALSE,FALSE,,
+consq_label,consequenceLineEdit_V,,TRUE,TRUE,FALSE,,used for UI updates (not to be confused with category_desc)
+ead_highPtail,comboBox_R_highPtail,,TRUE,FALSE,FALSE,,extrapolate. Float. None. User
+ead_lowPtail,comboBox_R_lowPtail,,TRUE,FALSE,FALSE,,flat. Extrapolate. Float.none. User
+ead_highPtail_user,doubleSpinBox_R_highPtail,,FALSE,FALSE,FALSE,,value for 'user'
+ead_lowPtail_user,doubleSpinBox_R_lowPtail,,FALSE,FALSE,FALSE,,value for 'user'
+result_ead,,,FALSE,TRUE,FALSE,,set by run method _set_ead_total

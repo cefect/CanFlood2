@@ -212,7 +212,7 @@ class Model_compiler(object):
             # load DEM
             #=======================================================================
             dem_rlay = self.parent.get_dem_vlay()
-            assert dem_rlay is not None, 'must select a DEM for finv_elevType=\'ground\''
+            assert dem_rlay is not None, f'must select a DEM for finv_elevType=\'{finv_elevType}\''
             log.debug(f'loaded dem {dem_rlay.name()}')
 
             
@@ -338,7 +338,7 @@ class Model_config_dialog_assetInventory(object):
     functionGroups_widget_type_d= {
         'label_functionGroupID':QLabel,
         'mFieldComboBox_cap':QgsFieldComboBox,
-        'mFieldComboBox_elv':QgsFieldComboBox,
+        'mFieldComboBox_elev':QgsFieldComboBox,
         'mFieldComboBox_scale':QgsFieldComboBox,
         'mFieldComboBox_tag':QgsFieldComboBox,
         'pushButton_mod_minus':QPushButton,
@@ -349,16 +349,17 @@ class Model_config_dialog_assetInventory(object):
     
     functionGroups_finv_tags_d = { #see also parameters.modelTable_params_d['table_finv']
         'mFieldComboBox_cap':'cap',
-        'mFieldComboBox_elv':'elev',
+        'mFieldComboBox_elev':'elev',
         'mFieldComboBox_scale':'scale',
         'mFieldComboBox_tag':'tag',
         
         }
     
-    functionGroups_index_d=dict()
+    
     
     def _connect_slots_assetInventory(self, log):
         """asset inventory related slot connections"""
+        self.functionGroups_index_d=dict()
         
         #connect the vector layer
         bind_MapLayerComboBox(self.comboBox_finv_vlay, 
@@ -386,10 +387,7 @@ class Model_config_dialog_assetInventory(object):
         this is a mirror of the main function group on the Data Selection tab
         connecting all the DataSelection comboboxes so they update these ones"""
  
-        
-            
  
-        
         
         #=======================================================================
         # #finv bindings
@@ -415,9 +413,12 @@ class Model_config_dialog_assetInventory(object):
                     if d['tag']==fn_str.replace('f0_',''):
                         w = d['widget']
                 assert not w is  None, 'failed to find widget for tag %s'%fn_str
+                
+                #disable the downstream
+                w.setEnabled(False)
  
                 #connect it to the advganced tab downstream widget
-                #comboBox.connect_downstream_combobox(w)
+                comboBox.connect_downstream_combobox(w)
                 
             
         #set the optionals
@@ -906,6 +907,9 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
         
         if model is None: model = self.model
         
+        
+ 
+        
         #retrieve the parameter table
         params_df = model.get_tables(['table_parameters'])[0].set_index('varName')
         
@@ -913,7 +917,7 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
         view(params_df)
         """
         #=======================================================================
-        # collect from ui
+        # collect static
         #=======================================================================
         #loop through each widget and collect the state from the ui
         d = dict()
@@ -922,6 +926,67 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
             widget = getattr(self, widgetName)
             d[i] = get_widget_value(widget)
             
+        #update
+        s = pd.Series(d, name='value').replace('', pd.NA) 
+        
+        #update the parameters table with the ui state
+        params_df.loc[s.index, 'value'] = s
+        
+        
+        #=======================================================================
+        # collect dynamic: FunctionGroups
+        #=======================================================================
+        d=dict()
+        #those parameters not fo und in the params_df because they are generated
+        index_d = self.functionGroups_index_d
+        log.debug(f'collecting functionGroup params on {len(index_d)} function groups')
+        cnt = 0
+        for i, (fg_index, data_d) in enumerate(index_d.items()):
+
+            #loop through each child and collect
+            for j, (name, widget_d) in enumerate(data_d['child_d'].items()):
+                tag, widget = widget_d['tag'], widget_d['widget']
+                if not tag is None:
+                    cnt+=1
+                    #retrieve the fieldName from teh widget
+                    v = get_widget_value(widget)
+                    
+                    #check if the result is None or null
+                    if v is None or v == '':
+                        log.debug(f'    skipping {tag} for function group {fg_index} as it is empty')
+                        continue
+                    
+                    #store in the container
+                    k = 'f%d_%s'%(fg_index, tag)
+                    assert not k in d.keys(), f'key {k} already exists in the parameter dictionary'
+                    #d[k] = v
+                    log.debug(f'    got \'{k}\'={v}')
+ 
+                    d[cnt] = {'varName':k, 'widgetName':name, 'value':v, 
+                         'required':False, 'dynamic':True,
+                         'model_index':False, #whether the field should be included in the model_index table
+                         'fg_index':fg_index,                   
+                        }
+        
+        #check
+ 
+        log.debug(f'collected {len(d)} functionGroup parameters')
+        
+ 
+        
+        #update
+        if len(d)>0:
+            dyn_df = pd.DataFrame.from_dict(d, orient='index').set_index('varName')
+            
+            assert dyn_df['fg_index'].max()+1==len(index_d), 'fg_index mismatch'
+            
+            #check the columns are identical
+            assert set(params_df.columns) == set(dyn_df.columns), 'columns mismatch'
+            
+            #concatenate the two dataframes
+            params_df = pd.concat([params_df, dyn_df], axis=0)
+            
+        
         #=======================================================================
         # precheck
         #=======================================================================
@@ -935,13 +1000,11 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
 
         
         #=======================================================================
-        # wrap
+        # update
         #=======================================================================
-        
-        s = pd.Series(d, name='value').replace('', pd.NA)
-        
-        #update the parameters table with the ui state
-        params_df.loc[s.index, 'value'] = s
+
+ 
+  
         
         #write to the parent
         model.set_tables({'table_parameters':params_df.reset_index()}, logger=log)

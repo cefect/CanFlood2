@@ -49,10 +49,11 @@ tutorial_lib = {
             },
             'Model_config_dialog': {
                 'comboBox_expoLevel': 'binary (L1)',
+                'comboBox_finv_vlay':'cf1_tutorial_01_finv',
                 'comboBox_AI_elevType': 'absolute',
                 'mFieldComboBox_cid': 'xid',
                 'mFieldComboBox_AI_01_scale': 'f0_scale',
-                'mFieldComboBox_AI_01_elev': 'f0_elv',
+                'mFieldComboBox_AI_01_elev': 'f0_elev',
                 # 'mFieldComboBox_AI_01_tag': None,
                 # 'mFieldComboBox_AI_01_cap': None,
                 'labelLineEdit_AI_label': 'my inventory',
@@ -86,8 +87,8 @@ tutorial_lib = {
                 'comboBox_AI_elevType': 'relative',
                 'mFieldComboBox_cid': 'xid',
                 'mFieldComboBox_AI_01_scale': 'f0_scale',
-                'mFieldComboBox_AI_01_elev': 'f0_elv',
-                'mFieldComboBox_AI_01_tag': 'f0_tag',
+                'mFieldComboBox_AI_01_elev': 'f0_elev', #not settiing...
+                'mFieldComboBox_AI_01_tag': 'functionName',
                 'mFieldComboBox_AI_01_cap': 'f0_cap',
                 'labelLineEdit_AI_label': 'my inventory',
                 'consequenceLineEdit_V': 'some consequence',
@@ -96,11 +97,8 @@ tutorial_lib = {
                 'doubleSpinBox_R_lowPtail': 1e9,
                 'doubleSpinBox_R_highPtail': 0.1,
             },
-            'FunctionGroup':( #using tuple as the counter is automatically incremented
-                {'cap':'f1_cap','elev':'f1_elv','scale':'f1_scale','tag':'f1_tag'},
-                ),
-        
-                }}}
+            
+            }}}
 
 #===============================================================================
 # Tutorial 2B (AEP)
@@ -125,6 +123,19 @@ tutorial_lib[tName]['data'].update(
 tutorial_lib[tName]['widget']['Model_config_dialog'].update(
     {'comboBox_AI_elevType': 'absolute'}
     )
+
+#===============================================================================
+# Tutorial 2D (functionGroups)
+#===============================================================================
+tName = 'cf1_tutorial_02d'
+tutorial_lib[tName] = copy.deepcopy(tutorial_lib['cf1_tutorial_02'])
+tutorial_lib[tName]['fancy_name'] = 'Tutorial 2d (functionGroups)'
+
+#container for holding ADDITIONAL advanced function groups (f0 is on the main config)
+            #using tuple as the counter is automatically incremented
+tutorial_lib[tName]['widget']['FunctionGroup'] = ( 
+                {'cap':'f1_cap','elev':'f1_elev','scale':'f1_scale','tag':'f1_tag'},
+                )
 
 
 

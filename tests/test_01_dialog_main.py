@@ -74,6 +74,8 @@ def write_projDB(dialog_main, test_name):
 def oj(*args):
     return os.path.join(test_data_dir, *args)
 
+gfp = lambda x:oj(x, 'projDB.canflood2')
+
 def oj_out(test_name, result):
     return oj(result_write_filename_prep(test_name), os.path.basename(result))
 
@@ -570,7 +572,7 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     
 
 
-gfp = lambda x:oj(x, 'projDB.canflood2')
+
 
 
 _04_MS_args = ("tutorial_name, projDB_fp", [

@@ -38,74 +38,75 @@ class plugLogger(object):
     
     log_nm_default = 'cf2' #logger name
     
-    def __init__(self, 
-                 iface=None,
-                 statusQlab=None,                 
-                 parent=None,
-                 log_nm = None,
-                 debug_logger=None,
-                 ):
-        """
-        
-        params
-        ---------
-        debug_logger: python logging class
-            workaround to capture QgsLogger
-        """
-        
-        if not iface is None:
-            if not 'QgisInterface' in str(type(iface)):
-                raise IOError('bad type on iface: %s'%type(iface))
-            
-            self.messageBar = iface.messageBar()
-        self.iface=iface
-        self.statusQlab = statusQlab
-        self.parent=parent
-        
-        #setup the name
-        parentClassName = self.parent.__class__.__name__
-        if 'None' in parentClassName:
-            parentClassName = ''
-        
-        
-        if  log_nm is None: #normal calls
-            self.log_nm = '%s.%s'%(self.log_nm_default, parentClassName)
-
-        else: #getChild calls
-            self.log_nm = log_nm
-            
-        if not debug_logger is None:
-            debug_logger = debug_logger.getChild(parentClassName)
-            
+    def __init__(self,
  
-        
-        self.debug_logger=debug_logger
-        
-        
-    def getChild(self, new_childnm):
-        
-        if hasattr(self.parent, 'logger'):
-            log_nm = '%s.%s'%(self.parent.logger.log_nm, new_childnm)
+                 iface:        "QgisInterface | None"        = None,
+                 statusQlab   = None,
+                 parent:       "QtCore.QObject | None"       = None,
+                 log_nm:       str | None                    = None,
+                 debug_logger: "logging.Logger | None"       = None):
+        """
+        Parameters
+        ----------
+        iface : QgisInterface, optional
+            QGIS interface so we can push/popup messages.
+        statusQlab : QLabel, optional
+            A status-line QLabel that mirrors log messages.
+        parent : QObject, optional
+            Widget that owns this logger (not used for pytest hierarchy).
+        log_nm : str, optional
+            Public prefix (e.g. “MD”).  If omitted we derive one.
+        debug_logger : logging.Logger, optional
+            Root pytest logger; unit tests capture plugin output here.
+        """
+
+        # ------------------------- QGIS handles ------------------------
+        if iface is not None and "QgisInterface" not in str(type(iface)):
+            raise IOError(f"bad type on iface: {type(iface)}")
+
+        self.iface       = iface
+        self.messageBar  = iface.messageBar() if iface else None
+        self.statusQlab  = statusQlab
+        self.parent      = parent
+
+        # ------------------------- public prefix -----------------------
+        if log_nm is None:
+            # fall back to “cf2” or “cf2.<ClassName>”
+            cls = parent.__class__.__name__ if parent else ""
+            self.log_nm = f"{self.log_nm_default}.{cls}" if cls else self.log_nm_default
         else:
-            log_nm = new_childnm
-            
-        #configure debug logger
-        try: #should only work during tests?
-            debug_logger = self.debug_logger.getChild(new_childnm)
-        except:
-            debug_logger = None
-        
-        #build a new logger
-        child_log = plugLogger(
+            self.log_nm = log_nm
+
+        # --------------------- pytest/file hierarchy -------------------
+        #
+        # Mirror every segment of self.log_nm exactly once in the
+        # debug_logger’s dotted name, nothing else.
+        #
+        if debug_logger is not None:
+            for seg in self.log_nm.split("."):
+                if seg and seg not in debug_logger.name.split("."):
+                    debug_logger = debug_logger.getChild(seg)
+
+        self.debug_logger = debug_logger
+    # ------------------------------------------------------------------ #
+    #  getChild                                                          #
+    # ------------------------------------------------------------------ #
+    def getChild(self, new_childnm: str, *, child_parent=None):
+        """
+        Return a child logger with prefix ``<self.log_nm>.<new_childnm>``.
+
+        No dialog class names are injected; the pytest hierarchy is
+        extended with *only* the new segment.
+        """
+        child_log_nm = f"{self.log_nm}.{new_childnm}"
+
+        return plugLogger(
             iface=self.iface,
             statusQlab=self.statusQlab,
-            parent= self.parent,
-            log_nm=log_nm,
-            debug_logger=debug_logger)
-        
-
-        
-        return child_log
+            parent=child_parent,          # keep None unless you *want* cls name
+            log_nm=child_log_nm,
+            debug_logger=self.debug_logger,   # __init__ will append missing seg
+        )
     
     def info(self, msg):
         self._loghlp(msg, Qgis.Info, push=False, status=True)

@@ -359,7 +359,7 @@ class Model_config_dialog_assetInventory(object):
     
     def _connect_slots_assetInventory(self, log):
         """asset inventory related slot connections"""
-        self.functionGroups_index_d=dict()
+        
         
         #connect the vector layer
         bind_MapLayerComboBox(self.comboBox_finv_vlay, 
@@ -380,6 +380,8 @@ class Model_config_dialog_assetInventory(object):
         #=======================================================================
         # Advanced Tab: Function Groups
         #=======================================================================
+        self.functionGroups_index_d=dict()
+        
         #create the first function group
         _, _, FG_widget_d = self._add_function_group()
         
@@ -387,30 +389,35 @@ class Model_config_dialog_assetInventory(object):
         this is a mirror of the main function group on the Data Selection tab
         connecting all the DataSelection comboboxes so they update these ones"""
  
+        #build the first group widget bindings dict (on main Data Selection tab)
+        self.functionGroup0_widget_d = {
+            'xid': self.mFieldComboBox_cid,
+            'scale': self.mFieldComboBox_AI_01_scale,
+            'tag': self.mFieldComboBox_AI_01_tag,
+            'elev': self.mFieldComboBox_AI_01_elev,
+            'cap': self.mFieldComboBox_AI_01_cap,
+        }
+
  
         
         #=======================================================================
         # #finv bindings
         #=======================================================================
         #loop through and connect all the field combo boxes to the finv map layer combo box
-        for comboBox, fn_str in {
-            self.mFieldComboBox_cid:'xid',
-            self.mFieldComboBox_AI_01_scale:'f0_scale',
-            self.mFieldComboBox_AI_01_tag:'f0_tag',
-            self.mFieldComboBox_AI_01_elev:'f0_elev',
-            self.mFieldComboBox_AI_01_cap:'f0_cap',
-            }.items():
+        for tag, comboBox in self.functionGroup0_widget_d.items():
+            
+            fn_str = 'f0_' + tag
             
             bind_QgsFieldComboBox(comboBox, 
                                   signal_emitter_widget=self.comboBox_finv_vlay,
                                   fn_str=fn_str)
             
             #connect Advanced Tab as downstream widgets
-            if not fn_str=='xid':
+            if not tag=='xid':
                 #retreive the AdvancedTab widget
                 w= None
                 for k,d in FG_widget_d.items():
-                    if d['tag']==fn_str.replace('f0_',''):
+                    if d['tag']==tag:
                         w = d['widget']
                 assert not w is  None, 'failed to find widget for tag %s'%fn_str
                 
@@ -448,7 +455,10 @@ class Model_config_dialog_assetInventory(object):
         return vlay
     
     def _add_function_group(self):
-        """add a function group widget to the advanced tab"""
+        """ui endpoint for add a function group widget to the advanced tab
+        
+        NOTE: for adding from the projDB, see self.load_model()
+        """
         log = self.logger.getChild('_add_function_group')
         log.debug('adding function group widget')
         
@@ -573,6 +583,22 @@ class Model_config_dialog_assetInventory(object):
         
         log.debug('removed function group %d'%fg_index)
         
+    def _remove_function_group_all(self):
+        """remove all function groups from the advanced tab"""
+        log = self.logger.getChild('_remove_function_group_all')
+        
+        log.debug('removing all function groups')
+        
+        #loop through and remove each
+        cnt=0
+        for fg_index in sorted(self.functionGroups_index_d.keys(), reverse=True):
+            self._remove_function_group(fg_index)
+            cnt+1
+            
+        assert len(self.functionGroups_index_d) == 0, 'failed to remove all function groups'
+        log.debug(f'removed {cnt} function groups')
+        
+        self.functionGroups_index_d=dict()
             
         
         
@@ -824,27 +850,120 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
         
 
         #=======================================================================
-        # #load parameters from the table to the ui
+        # #load parameters from the table to the ui 
         #=======================================================================
         params_df = model.get_table_parameters(projDB_fp=projDB_fp)
         """
         view(params_df)
         """
         
+        #=======================================================================
+        # static
+        #=======================================================================
         #get just those with values
-        params_df = params_df.loc[:, ['widgetName', 'value']].dropna(subset=['value', 'widgetName']
+        df1 = params_df.loc[:, ['widgetName', 'value', 'dynamic']].dropna(subset=['value', 'widgetName']
                                        ).set_index('widgetName')
+                                       
+        static_d = df1.loc[~df1['dynamic']].drop('dynamic', axis=1).iloc[:, 0].to_dict()                              
+                                       
+                                       
  
-        if len(params_df)>0:
-            log.debug(f'loading {len(params_df)} parameters for model {model.name}')
-            for k,row in params_df.iterrows():
+        if len(static_d)>0:
+            log.debug(f'loading {len(static_d)} parameters for model {model.name}')
+            for k,v in static_d.items():
+                if not hasattr(self, k):
+                    raise KeyError(f'widget {k} not found in dialog')
                 widget = getattr(self, k)
-                set_widget_value(widget, row['value'])
+                set_widget_value(widget, v)
  
                 
         else:
             log.debug(f'paramter table empty for model {model.name}')
             
+        #=======================================================================
+        # dynamic: function Groups
+        #=======================================================================
+        if not params_df['fg_index'].notna().any():
+            log.warning('no function groups found in the parameters table... skipping load')
+            
+        else:
+ 
+            
+     
+            #load the group values from the parameter table
+            df1 = params_df[params_df['fg_index'].notna()].set_index('varName')
+            df1 = df1.dropna(subset=['value']).drop(['required', 'dynamic', 'model_index'], axis=1)
+            df1 = df1.astype({'fg_index':'int64'}).sort_values('fg_index')
+            
+            #add tags
+            df1['tag'] = df1.index.str.replace(r"f(\d+)_", "", regex=True)
+            
+            #check that the fg_index is monotonic starting at zero
+            assert df1['fg_index'].min() == 0, 'fg_index must start at zero'
+            assert df1['fg_index'].max() == df1['fg_index'].nunique()-1, 'fg_index must be monotonic'
+            
+            #loop through each function group and populate the UI
+            
+            log.debug(f'loading {len(df1)} function groups for model {model.name}')
+            
+            cnt=0
+            for fg_index, gdf in df1.groupby('fg_index'):
+                gdf = gdf.reset_index().set_index('tag').sort_index().drop('fg_index', axis=1)
+                
+                #first group
+                if fg_index==0:
+                    """dont want to destroy/recreate the UI here as it is connected"""
+                    assert fg_index in self.functionGroups_index_d, 'expected FG0 to be on the advanced tab already'
+                    
+                    log.debug(f'adding FG0')
+                    #used for checking
+                    advanced_child_d = {d['tag']:d for k,d in self.functionGroups_index_d[fg_index]['child_d'].items() if not d['tag'] is None}
+                    
+                    #set the parameters on hte main widgets
+                    for k, v in gdf['value'].items():
+ 
+                        
+                        #get the main widget
+                        assert k in self.functionGroup0_widget_d.keys(), f'unknown tag: {k}'
+                        
+                        #set
+                        """NOTE: this should be linked to the advanced widget"""
+                        set_widget_value(self.functionGroup0_widget_d[k], v)
+                        
+                        #check the Advanced tab link
+                        advanced_w = advanced_child_d[k]['widget']
+                        assert get_widget_value(advanced_w) == v, f'widget {k} not set correctly: {get_widget_value(advanced_w)} != {v}'
+                    
+                    
+                #advanced gruops
+                #NOTE: only relevent for L2 models
+                else:
+                    #destroy any existing
+                    if fg_index in self.functionGroups_index_d.keys():
+                        self._remove_function_group(fg_index)
+                        log.debug(f'removed function group {fg_index}')
+                
+                    #build the UI
+                    log.debug(f'adding function group {fg_index}')
+                    widget, widget_d = self._add_function_group_ui(fg_index)
+                        
+                        
+                    #add to the index
+                    self.functionGroups_index_d[fg_index] = {'widget':widget, 'child_d':widget_d}
+                    
+                    #set the widget values from the parameters
+                    wTag_d = {d['tag']:d for k,d in widget_d.items() if not d['tag'] is None}
+                    for k, v in gdf['value'].items():                        
+                        set_widget_value(wTag_d[k]['widget'], v)
+                
+                #wrap
+                log.debug(f'finished adding function group {fg_index} with {len(gdf)} parameters')
+                cnt+=1
+            #wrap
+            log.debug(f'finished loading {cnt} function groups for model {model.name}')
+                        
+ 
+ 
             
             
         
@@ -917,7 +1036,7 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
         view(params_df)
         """
         #=======================================================================
-        # collect static
+        # collect static--------
         #=======================================================================
         #loop through each widget and collect the state from the ui
         d = dict()
@@ -934,7 +1053,7 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
         
         
         #=======================================================================
-        # collect dynamic: FunctionGroups
+        # collect dynamic: FunctionGroups-----
         #=======================================================================
         d=dict()
         #those parameters not fo und in the params_df because they are generated

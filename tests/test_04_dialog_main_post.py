@@ -24,7 +24,7 @@ from tests.conftest import (
 from tests.test_01_dialog_main import dialog_main, dialog_loaded #get the main dialog tests
 from tests.test_02_dialog_model import oj as oj_model #get the core
 from tests.test_02_dialog_model import _04_run_args as DM_04_run_args 
-from tests.test_02_dialog_model import _03_saveV_args as DM_02_saveV_args
+from .test_02_dialog_model import _10_save_args as DM_save_args
 
 
 from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp, assert_series_match
@@ -144,7 +144,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, 
 #     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
 #      ])
 #===============================================================================
-@pytest.mark.parametrize(*DM_02_saveV_args)
+@pytest.mark.parametrize(*DM_save_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
                                 consequence_category, modelid,
@@ -180,10 +180,11 @@ def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
 #      ])
 #===============================================================================
 
-@pytest.mark.parametrize(*DM_02_saveV_args)
+@pytest.mark.parametrize(*DM_save_args)
 def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
                                 ):
-    """test the run model button on the model widget (not to be confused with the model config dialog)
+    """test the run model button on the model widget 
+    (not to be confused with the model config dialog)
     """
     #===========================================================================
     # setup

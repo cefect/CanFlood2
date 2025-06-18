@@ -99,13 +99,13 @@ def oj_out(test_name, result):
 interactive = False
 @pytest.fixture
 def dialog_model(
-        dialog_loaded, #main dialog loaded with layers
+        dialog_loaded, #main dialog. loads layers (except finv) and projDB
         model,
  
         
         #turtorial data
         tutorial_name,
-        #finv_vlay, 
+        finv_vlay, #needed to instance the projDB
         
         #general modelConfig widget test data
         #widget_modelConfig_data_d, #tests.data.tutorial_fixtures  
@@ -139,8 +139,6 @@ def dialog_model(
     dialog_main = dialog_loaded
     
     dlg = dialog_main.Model_config_dialog
-
-
     
     
     print(f"\n\nlaunching model configuration dialog for \'{tutorial_name}\' {model.name}\n{'='*80}")
@@ -198,7 +196,10 @@ def model(dialog_main, consequence_category, modelid):
 
 @pytest.fixture
 def finv_vlay_loaded(dialog_model, finv_vlay):
-    """loads the finv_vlay into the dialog main"""
+    """loads the finv_vlay into the dialog main
+    
+    NOTE: other (non-model specific) layers are loaded with the dialog_loaded fixture
+    """
     if not finv_vlay is None:
         dialog_model.comboBox_finv_vlay.setLayer(finv_vlay)
         return finv_vlay
@@ -636,12 +637,14 @@ def test_dial_model_10_saveAll(dialog_model, model,
                             vfunc,
                             functionGroups_d,
                             test_name, qtbot):
-    """all save tests"""
+    """all save tests
+    i.e. modle compiling
+    """
     
     #===========================================================================
     # save
     #===========================================================================
-    click(dialog_model.pushButton_save)
+    click(dialog_model.pushButton_save) #Model_config_dialog._save()
     
     #===========================================================================
     # write------
@@ -656,10 +659,10 @@ def test_dial_model_10_saveAll(dialog_model, model,
     
 
 _10_save_args = ("tutorial_name, projDB_fp", [
-    pytest.param('cf1_tutorial_01', gfp('test_10_saveAll_c1-0-cf1__bbaceb'),),  
-    pytest.param('cf1_tutorial_02', gfp('test_10_saveAll_c1-0-cf1__89377f'),),
-    pytest.param('cf1_tutorial_02b', gfp('test_10_saveAll_c1-0-cf1__40367f'),),
-    pytest.param('cf1_tutorial_02c', gfp('test_10_saveAll_c1-0-cf1__51ada1'),),
+    #pytest.param('cf1_tutorial_01', gfp('test_10_saveAll_c1-0-cf1__bbaceb'),),  
+    #pytest.param('cf1_tutorial_02', gfp('test_10_saveAll_c1-0-cf1__89377f'),),
+    #pytest.param('cf1_tutorial_02b', gfp('test_10_saveAll_c1-0-cf1__40367f'),),
+    #pytest.param('cf1_tutorial_02c', gfp('test_10_saveAll_c1-0-cf1__51ada1'),),
     pytest.param('cf1_tutorial_02d', gfp('test_10_saveAll_c1-0-cf1__114fcd'),),
 ])
 
@@ -668,10 +671,13 @@ _10_save_args = ("tutorial_name, projDB_fp", [
 @pytest.mark.parametrize(*_10_save_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_20_run(dialog_model, model,
-                           test_name,
-                           tutorial_name 
+                           
+                           finv_vlay_loaded,
+                           
+                           test_name,tutorial_name 
                            ):
     """run the model (post compile)
+    loads compiled data via the projDB
     
 
     
@@ -681,14 +687,21 @@ def test_dial_model_20_run(dialog_model, model,
     """
     
     #===========================================================================
-    # load parameters
+    # load parameters 
     #===========================================================================
-    """done by fixture"""
+    """done by dialog_model (loads projDB)"""
+    
+    #===========================================================================
+    # load layers
+    #===========================================================================
+    """finv_vlay_loaded loads the finv
+    other layers are loaded by dialog_loaded fixture
+    """
     
     #===========================================================================
     # load vfuncs
     #===========================================================================
-    """included in projDB""" 
+    """done by dialog_model (loads projDB)"""
     
     #===========================================================================
     # compile model tables

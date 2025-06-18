@@ -169,6 +169,8 @@ def dialog_loaded(dialog_main,
     
     TODO: rename this as a projDB fixture?
     
+    excluding finv_vlay as this is model specific
+    
     """
     
     #===========================================================================

@@ -23,7 +23,7 @@ from canflood2.parameters import modelTable_params_d
 
 modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed'])
 
-from .test_02_dialog_model import _02_save_args, _03_saveV_args
+from .test_02_dialog_model import _10_save_args as DM_save_args
 #===============================================================================
 # DATA--------
 #===============================================================================
@@ -116,7 +116,7 @@ def model(dialog,
 #===============================================================================
 
 #@pytest.mark.parametrize("projDB_fp", [oj_dModel('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2')])
-@pytest.mark.parametrize(*_03_saveV_args)
+@pytest.mark.parametrize(*DM_save_args)
 def test_core_01_init(model,
                       tutorial_name, #ddummy for args
                       ):
@@ -126,7 +126,7 @@ def test_core_01_init(model,
 
 
 
-@pytest.mark.parametrize(*_03_saveV_args)
+@pytest.mark.parametrize(*DM_save_args)
 def test_core_02_table_impacts_to_db(model,
                      tutorial_name, #dont really need this
                      test_name,

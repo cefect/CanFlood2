@@ -61,12 +61,12 @@ os.makedirs(test_data_dir, exist_ok=True)
 #===============================================================================
 #for updating the projDB in the plugin tutorial data loader
 #see test_dial_model_05_run
-overwrite_testdata_plugin=True 
+overwrite_testdata_plugin=False 
 
 
 
 
-overwrite_testdata=True #for writing tests
+overwrite_testdata=False #for writing tests
 def write_projDB(dialog_model, test_name): 
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)

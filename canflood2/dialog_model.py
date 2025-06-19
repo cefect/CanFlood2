@@ -439,11 +439,13 @@ class Model_config_dialog_assetInventory(object):
         self.functionGroups_index_d=dict()
         
         #create the first function group
-        _, _, FG_widget_d = self._add_function_group()
-        
         """
         this is a mirror of the main function group on the Data Selection tab
         connecting all the DataSelection comboboxes so they update these ones"""
+        _, _, FG_widget_d = self._add_function_group()
+        
+        #disable the delete button on fg0
+        FG_widget_d['pushButton_mod_minus']['widget'].setEnabled(False)
  
         #build the first group widget bindings dict (on main Data Selection tab)
         self.functionGroup0_widget_d = {

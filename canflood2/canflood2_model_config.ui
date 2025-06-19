@@ -764,13 +764,23 @@ QTabBar::tab:selected {
                <layout class="QFormLayout" name="formLayout_2">
                 <item row="0" column="0">
                  <widget class="QLabel" name="dateLabel">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>0</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>Date</string>
                   </property>
                  </widget>
                 </item>
                 <item row="0" column="1">
-                 <widget class="QLineEdit" name="dateLineEdit_AI"/>
+                 <widget class="QLineEdit" name="dateLineEdit_AI">
+                  <property name="placeholderText">
+                   <string>YYYY MM DD</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>

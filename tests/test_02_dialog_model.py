@@ -66,7 +66,7 @@ overwrite_testdata_plugin=False
 
 
 
-overwrite_testdata=False #for writing tests
+overwrite_testdata=True #for writing tests
 def write_projDB(dialog_model, test_name): 
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
@@ -756,11 +756,12 @@ def test_dial_model_20_run(dialog_model, model,
     
     
 
-_04_run_args = ("tutorial_name, projDB_fp", [
-    #pytest.param('cf1_tutorial_01',oj('test_05_run_c1-0-cf1_tuto_15650d', 'projDB.canflood2'),),  
-    pytest.param('cf1_tutorial_02',oj('test_05_run_c1-0-cf1_tuto_c4bd7e', 'projDB.canflood2'),),
-   # pytest.param('cf1_tutorial_02b',oj('test_05_run_c1-0-cf1_tuto_d0d7f3', 'projDB.canflood2'),),
-    #pytest.param('cf1_tutorial_02c',oj('test_05_run_c1-0-cf1_tuto_2c39a5', 'projDB.canflood2'),),
+_20_run_args = ("tutorial_name, projDB_fp", [
+    pytest.param('cf1_tutorial_01',oj('test_20_run_c1-0-cf1_tuto_392609', 'projDB.canflood2'),),  
+    pytest.param('cf1_tutorial_02',oj('test_20_run_c1-0-cf1_tuto_13a988', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_02b',oj('test_20_run_c1-0-cf1_tuto_802bc4', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_02c',oj('test_20_run_c1-0-cf1_tuto_6e937d', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_02d',oj('test_20_run_c1-0-cf1_tuto_45abf7', 'projDB.canflood2'),),
     ])
 
 

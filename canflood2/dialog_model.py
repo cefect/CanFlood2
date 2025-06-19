@@ -120,7 +120,11 @@ class Model_compiler(object):
         log = self.logger.getChild('_table_finv_to_db')
  
         #=======================================================================
-        # load the data
+        # load data ---------
+        #=======================================================================
+        
+        #=======================================================================
+        # parameters
         #=======================================================================
         indexField = model.param_d['finv_indexField']
         #load the parameter table
@@ -145,6 +149,16 @@ class Model_compiler(object):
         field_value_d['indexField'] = indexField
         #load field names from parameters table 
         
+        
+        #check for double selection across function groups
+        if not params_df['value'].is_unique:
+            #this is allowed.. but complicates things
+            log.warning('multiple selections for the same inventory vector layer field across function groups. see log.')
+            log.debug(f'\n{params_df[params_df.duplicated(subset=["value"], keep=False)]}')
+        
+        #=======================================================================
+        # finv layer
+        #=======================================================================
  
         
         #get the vector layer
@@ -161,25 +175,55 @@ class Model_compiler(object):
 
         assert all(v in df_raw.columns for v in field_value_d.values()), 'Some fields are not found in the dataframe columns'
  
-        dxcol = df_raw.loc[:, field_value_d.values()].set_index(indexField)
-        dxcol.index.name='indexField'
+#===============================================================================
+#         dxcol = df_raw.loc[:, params_df['value'].to_list() + [indexField]].set_index(indexField)
+#         dxcol.index.name='indexField'
+# v
+# 
+#         # Promote columns to a multi-index using 'fg_index' lookup
+# 
+#         fg_index_mapping = params_df.set_index('value')['fg_index'].rename('fg_index')
+#         tag_mapping = params_df.set_index('value')['tag'].rename('finvField')
+#         
+#         dxcol.columns = pd.MultiIndex.from_arrays(
+#             [dxcol.columns, dxcol.columns.map(fg_index_mapping), dxcol.columns.map(tag_mapping)],
+#             names=['fieldName', 'fg_index', 'finvField']
+#         )
+#===============================================================================
         
-
-        
-        
-        #=======================================================================
-        # #multindex Columns
-        #=======================================================================
-
-        # Promote columns to a multi-index using 'fg_index' lookup
-
-        fg_index_mapping = params_df.set_index('value')['fg_index'].rename('fg_index')
-        tag_mapping = params_df.set_index('value')['tag'].rename('finvField')
-        
-        dxcol.columns = pd.MultiIndex.from_arrays(
-            [dxcol.columns, dxcol.columns.map(fg_index_mapping), dxcol.columns.map(tag_mapping)],
+        # -----------------------------------------------------------------------------    
+        # 1. Build the *column* index directly from params_df
+        #    ------------------------------------------------
+        col_index = pd.MultiIndex.from_frame(
+            params_df[['value', 'fg_index', 'tag']]
+                .rename(columns={'value': 'fieldName', 'tag': 'finvField'}),
             names=['fieldName', 'fg_index', 'finvField']
         )
+        
+        if not col_index.is_unique:
+            raise ValueError("The (fieldName, fg_index, finvField) combinations in "
+                             "`params_df` must be unique.")
+        
+        # -----------------------------------------------------------------------------    
+        # 2. Gather the data from df_raw (duplicates in `value` are allowed)
+        #    --------------------------------------------------------------
+        #    • .loc with a **list** preserves order *and* repeats, so the data columns
+        #      line up 1-for-1 with the rows of params_df.
+        #    • Add `indexField` to the index, then drop it from columns.
+        #
+        dxcol = (
+            df_raw
+              .set_index(indexField)                 # rows keyed by indexField
+              .loc[:, col_index.get_level_values('fieldName')]   # pull columns (duplicates allowed)
+        )
+        
+        # 3. Attach the new MultiIndex
+        dxcol.columns = col_index
+        
+        # Optional: keep the index’s label tidy
+        dxcol.index.name = 'indexField'
+
+
         
         #reorder the column levels
         dxcol = dxcol.reorder_levels(['fg_index', 'finvField', 'fieldName'], axis=1)
@@ -187,8 +231,7 @@ class Model_compiler(object):
         log.debug(f'converted {dxcol.shape} dataframe to multi-index with fg_index and tag')
         
         
-        #add empty columns for any field_value_d.keys() that are missing from the dataframe
- 
+        #add empty columns for any finvFields that are missing from the dataframe 
         cnt=0
         for finvField in self.functionGroups_finv_tags_d.values():
             if not finvField in dxcol.columns.get_level_values('finvField'):
@@ -197,7 +240,7 @@ class Model_compiler(object):
                     dxcol[(fg_index, finvField, f'f{fg_index}_{finvField}')] = pd.NA
                     cnt += 1
                     
-        log.debug(f'added {cnt} empty columns for missing finvFields')
+        if cnt > 0:log.debug(f'added {cnt} empty columns for missing finvFields')
         #makes data consistency checks easier
         #no longer needed?
         #=======================================================================
@@ -205,6 +248,9 @@ class Model_compiler(object):
         #     if k not in df.columns:
         #         df[k] = pd.NA
         #=======================================================================
+        """
+        view(dxcol)
+        """
 
         #=======================================================================
         # unstack

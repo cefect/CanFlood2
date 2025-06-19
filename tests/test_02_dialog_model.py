@@ -66,7 +66,7 @@ overwrite_testdata_plugin=False
 
 
 
-overwrite_testdata=True #for writing tests
+overwrite_testdata=False #for writing tests
 def write_projDB(dialog_model, test_name): 
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
@@ -462,7 +462,9 @@ def test_dial_model_02_widgetData(dialog_model,
 
 L2_MS_args = ( #params for L2 models
     ("tutorial_name", "projDB_fp"),[
-        ('cf1_tutorial_02d',_04_MS_args_d['cf1_tutorial_02d'])
+        ('cf1_tutorial_02',_04_MS_args_d['cf1_tutorial_02']),
+        ('cf1_tutorial_02d',_04_MS_args_d['cf1_tutorial_02d']),
+         ('cf1_tutorial_02d_2',_04_MS_args_d['cf1_tutorial_02d']),
 ])
 
 
@@ -533,7 +535,7 @@ def test_dial_model_03_vfunc(dialog_model, model,
 
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize(*L2_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_04_functionGroup(dialog_model,model, qtbot,
@@ -543,7 +545,8 @@ def test_dial_model_04_functionGroup(dialog_model,model, qtbot,
     """save + finv+widgets+ functionGroups
     
     add and remove then check
-    """     
+    """
+    if functionGroups_d is None: functionGroups_d = dict()     
     #assert dialog.model==model
     gcnt =  1+len(functionGroups_d)
     assert len(dialog_model.functionGroups_index_d)==gcnt, 'expected one additional function group'
@@ -667,7 +670,7 @@ _10_save_args = ("tutorial_name, projDB_fp", [
 ])
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize(*_10_save_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_20_run(dialog_model, model,

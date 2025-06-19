@@ -628,7 +628,7 @@ def test_dial_model_04_functionGroup(dialog_model,model, qtbot,
  
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize(*_04_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_10_saveAll(dialog_model, model,
@@ -667,7 +667,7 @@ _10_save_args = ("tutorial_name, projDB_fp", [
 ])
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize(*_10_save_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_20_run(dialog_model, model,

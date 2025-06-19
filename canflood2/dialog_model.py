@@ -10,6 +10,7 @@ ui dialog class for model config window
 #==============================================================================
 #python
 import sys, os, datetime, time, configparser, logging, sqlite3
+import pprint
 import pandas as pd
 
 from pandas.testing import assert_index_equal
@@ -121,16 +122,29 @@ class Model_compiler(object):
         #=======================================================================
         # load the data
         #=======================================================================
+        indexField = model.param_d['finv_indexField']
+        #load the parameter table
+        params_df = model.get_table_parameters_fg()
+        
+        """
+        model.get_table_parameters()
+        """
+        
+        assert not params_df['value'].isnull().any(), 'parameters table must not have null values'
+        
+        
+        #=======================================================================
+        # NO! only those specieid by the user are included
+        # #check the length is divisible by 4
+        # assert len(params_df) % 4 == 0, 'parameters table must have a multiple of 4 rows'
+        #=======================================================================
+        
+        field_value_d = params_df['value'].to_dict()
+        
+        #add the indexer
+        field_value_d['indexField'] = indexField
         #load field names from parameters table 
         
-        """only one nest for now
-        using this names_d as a lazy conversion from the model_parameters to the finv table names"""
-        names_d = {
-            'indexField':'finv_indexField',
-            'scale':'f01_scale','elev':'f01_elev','tag':'f01_tag','cap':'f01_cap',
-            }
-        
-        field_value_d = {k:model.param_d[v] for k,v in names_d.items() if v in model.param_d.keys()}
  
         
         #get the vector layer
@@ -141,31 +155,73 @@ class Model_compiler(object):
         
         log.debug(f'loaded {df_raw.shape} from {vlay.name()}')
         #=======================================================================
-        # process 
+        # process--------- 
         #=======================================================================
-        #check that all the field names are in the columns
-        #redundant as these come from the FieldBox?
+        #slice to finv fields
 
-        # Ensure all values in the dictionary are present in the dataframe's column names
-        assert all(value in df_raw.columns for value in field_value_d.values()), 'Some fields are not found in the dataframe columns'
+        assert all(v in df_raw.columns for v in field_value_d.values()), 'Some fields are not found in the dataframe columns'
+ 
+        dxcol = df_raw.loc[:, field_value_d.values()].set_index(indexField)
+        dxcol.index.name='indexField'
+        
 
         
-        #standaraize the column names
-        df = df_raw.rename(columns={v:k for k,v in field_value_d.items()}).loc[:, field_value_d.keys()]
+        
+        #=======================================================================
+        # #multindex Columns
+        #=======================================================================
+
+        # Promote columns to a multi-index using 'fg_index' lookup
+
+        fg_index_mapping = params_df.set_index('value')['fg_index'].rename('fg_index')
+        tag_mapping = params_df.set_index('value')['tag'].rename('finvField')
+        
+        dxcol.columns = pd.MultiIndex.from_arrays(
+            [dxcol.columns, dxcol.columns.map(fg_index_mapping), dxcol.columns.map(tag_mapping)],
+            names=['fieldName', 'fg_index', 'finvField']
+        )
+        
+        #reorder the column levels
+        dxcol = dxcol.reorder_levels(['fg_index', 'finvField', 'fieldName'], axis=1)
+        
+        log.debug(f'converted {dxcol.shape} dataframe to multi-index with fg_index and tag')
+        
         
         #add empty columns for any field_value_d.keys() that are missing from the dataframe
+ 
+        cnt=0
+        for finvField in self.functionGroups_finv_tags_d.values():
+            if not finvField in dxcol.columns.get_level_values('finvField'):
+                #add a column with NA values
+                for fg_index in dxcol.columns.get_level_values('fg_index').unique():
+                    dxcol[(fg_index, finvField, f'f{fg_index}_{finvField}')] = pd.NA
+                    cnt += 1
+                    
+        log.debug(f'added {cnt} empty columns for missing finvFields')
         #makes data consistency checks easier
-        for k in names_d.keys():
-            if k not in df.columns:
-                df[k] = pd.NA
+        #no longer needed?
+        #=======================================================================
+        # for k in names_d.keys():
+        #     if k not in df.columns:
+        #         df[k] = pd.NA
+        #=======================================================================
+
+        #=======================================================================
+        # unstack
+        #=======================================================================
+        #pivot 'fg_index' onto the index (as a multi-Index)
+        dx = dxcol.droplevel('fieldName', axis=1).stack(level='fg_index') 
         
-        #add the nestID
-        df['nestID'] = 0
         
-        #move nestID and indexField columns to front
-        df = df[['nestID', 'indexField'] + [c for c in df.columns if c not in ['nestID', 'indexField']]]
+        #force int dtype on to index levels
+        dx.index = dx.index.set_levels(
+            [dx.index.levels[0].astype('int64'), dx.index.levels[1].astype('int64')],
+            level=[0, 1]
+        )
         
-        df = df.astype({'indexField':'int64', 'nestID':'int64'}).set_index(['indexField', 'nestID'])
+
+ 
+ 
         
         """
         df.dtypes
@@ -174,10 +230,10 @@ class Model_compiler(object):
         #=======================================================================
         # #write it to the database
         #=======================================================================
-        model.set_tables({'table_finv':df}, logger=log)
+        model.set_tables({'table_finv':dx}, logger=log)
         
-        log.debug(f'finished')
-        return df
+        log.debug(f'finished on table_finv with {dx.shape} records')
+        return dx
     
     def _table_gels_to_db(self, model=None, logger=None):
         """build the ground eleveations table"""
@@ -378,7 +434,7 @@ class Model_config_dialog_assetInventory(object):
 
         
         #=======================================================================
-        # Advanced Tab: Function Groups
+        # Finv 
         #=======================================================================
         self.functionGroups_index_d=dict()
         
@@ -406,11 +462,11 @@ class Model_config_dialog_assetInventory(object):
         #loop through and connect all the field combo boxes to the finv map layer combo box
         for tag, comboBox in self.functionGroup0_widget_d.items():
             
-            fn_str = 'f0_' + tag
+ 
             
             bind_QgsFieldComboBox(comboBox, 
                                   signal_emitter_widget=self.comboBox_finv_vlay,
-                                  fn_str=fn_str)
+                                  fn_str=tag)
             
             #connect Advanced Tab as downstream widgets
             if not tag=='xid':
@@ -419,7 +475,7 @@ class Model_config_dialog_assetInventory(object):
                 for k,d in FG_widget_d.items():
                     if d['tag']==tag:
                         w = d['widget']
-                assert not w is  None, 'failed to find widget for tag %s'%fn_str
+                assert not w is  None, 'failed to find widget for tag %s'%tag
                 
                 #disable the downstream
                 w.setEnabled(False)
@@ -427,11 +483,17 @@ class Model_config_dialog_assetInventory(object):
                 #connect it to the advganced tab downstream widget
                 comboBox.connect_downstream_combobox(w)
                 
+            if tag in ['tag', 'cap']:
+                w.setAllowEmptyFieldName(True)
+                w.setCurrentIndex(-1)
+                #set the optionals
+                comboBox.setAllowEmptyFieldName(True)
+                comboBox.setCurrentIndex(-1)
+                
+                
+                
             
-        #set the optionals
-        for cbox in [ self.mFieldComboBox_AI_01_tag, self.mFieldComboBox_AI_01_cap]:
-            cbox.setAllowEmptyFieldName(True)
-            cbox.setCurrentIndex(-1)
+ 
         
         #bind the asset label to the update_labels such that any time it changes the function runs
         """not sure about this... leaving this dependent on teh projDB fo rnow
@@ -828,6 +890,9 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
         log.info(f'finished loading vfuncs from {os.path.basename(vfunc_fp)}')
 
         
+
+
+
     def load_model(self, model, projDB_fp=None):
         """load the model worker into the dialog"""
         #=======================================================================
@@ -886,17 +951,10 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
         if not params_df['fg_index'].notna().any():
             log.warning('no function groups found in the parameters table... skipping load')
             
-        else:
- 
-            
+        else:           
      
             #load the group values from the parameter table
-            df1 = params_df[params_df['fg_index'].notna()].set_index('varName')
-            df1 = df1.dropna(subset=['value']).drop(['required', 'dynamic', 'model_index'], axis=1)
-            df1 = df1.astype({'fg_index':'int64'}).sort_values('fg_index')
-            
-            #add tags
-            df1['tag'] = df1.index.str.replace(r"f(\d+)_", "", regex=True)
+            df1 = self.model.get_table_parameters_fg(params_df =params_df)
             
             #check that the fg_index is monotonic starting at zero
             assert df1['fg_index'].min() == 0, 'fg_index must start at zero'

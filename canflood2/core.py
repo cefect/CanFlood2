@@ -365,13 +365,13 @@ class Model_run_methods(object):
         #=======================================================================
         # collectg
         #=======================================================================
-        mresult_dx = pd.concat(result_d, names=['tag'])#.reorder_levels(['indexField', 'nestID', 'tag', 'event_names']).sort_index()
+        mresult_dx = pd.concat(result_d, names=['tag'])#.reorder_levels(['indexField', 'fg_index', 'tag', 'event_names']).sort_index()
         
         # Check if the 'tag' level is redundant against all other indexers
         assert mresult_dx.index.droplevel('tag').nunique() == mresult_dx.index.nunique(), "The 'tag' level is not redundant"
  
         # Drop the 'tag' level from the index
-        mresult_dx = mresult_dx.droplevel('tag').reorder_levels(['indexField', 'nestID', 'event_names']).sort_index()
+        mresult_dx = mresult_dx.droplevel('tag').reorder_levels(['indexField', 'fg_index', 'event_names']).sort_index()
         """
                                        exposure  ...  impact_capped
         indexField nestID event_names            ...               
@@ -745,7 +745,7 @@ class Model_table_assertions(object):
         #=======================================================================
         try:
             if isinstance(index_test, pd.MultiIndex):
-                if not index_test.names == ['indexField', 'nestID']:
+                if not index_test.names == ['indexField', 'fg_index']:
                     raise AssertionError(f'bad index_test names: {index_test.names}')
                 assert_index_match(index_test, finv_index)
                 
@@ -983,6 +983,21 @@ class Model(Model_run_methods, Model_table_assertions):
         df_raw = self.get_tables(['table_parameters'], **kwargs)[0]
         
         return format_table_parameters(df_raw)
+    
+    def get_table_parameters_fg(self, params_df=None):
+        """get function Group parameters"""
+        if params_df is None:
+            params_df = self.get_table_parameters()
+        df1 = params_df[params_df['fg_index'].notna()].set_index('varName')
+        df1 = df1.drop(['required', 'dynamic', 'model_index'], axis=1)
+        df1 = df1.astype({'fg_index':'int64'}).sort_values('fg_index')
+        
+        #unlike other parameters, these are only included if specified
+        assert not df1['value'].isna().any(), 'missing FG parameters' 
+        
+        #add tags
+        df1['tag'] = df1.index.str.replace(r"f(\d+)_", "", regex=True)
+        return df1 
     
  
     

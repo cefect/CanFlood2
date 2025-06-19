@@ -160,11 +160,11 @@ project_db_schema_d['03_model_suite_index'].index.dtypes
 finv_index = pd.Index([], name='indexField', dtype='int64')
 finv_multiIndex = pd.MultiIndex.from_arrays(
     [pd.Series([], dtype='int64'), pd.Series([], dtype='int64')], 
-    names=['indexField', 'nestID']
+    names=['indexField', 'fg_index']
 )
 impacts_multiIndex = pd.MultiIndex.from_arrays(
     [pd.Series([], dtype='int64'), pd.Series([], dtype='int64'), pd.Series([], dtype='str')], 
-    names=['indexField', 'nestID', 'event_names']
+    names=['indexField', 'fg_index', 'event_names']
 )
 
 #these will be prefixed by the model name

@@ -66,7 +66,7 @@ overwrite_testdata_plugin=False
 
 
 
-overwrite_testdata=False #for writing tests
+overwrite_testdata=True #for writing tests
 def write_projDB(dialog_model, test_name): 
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
@@ -535,7 +535,7 @@ def test_dial_model_03_vfunc(dialog_model, model,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize(*L2_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_04_functionGroup(dialog_model,model, qtbot,
@@ -628,7 +628,11 @@ def test_dial_model_04_functionGroup(dialog_model,model, qtbot,
             
             assert param_df.loc[k, 'value'] == value, f'for \'{k}\' got bad value \'{param_df.loc[k, "value"]}\''
  
- 
+
+#add the psudo test
+_04_MS_args[1].append(
+    ('cf1_tutorial_02d_2',_04_MS_args_d['cf1_tutorial_02d'])
+)
 
 
 
@@ -667,10 +671,11 @@ _10_save_args = ("tutorial_name, projDB_fp", [
     pytest.param('cf1_tutorial_02b', gfp('test_10_saveAll_c1-0-cf1__40367f'),),
     pytest.param('cf1_tutorial_02c', gfp('test_10_saveAll_c1-0-cf1__51ada1'),),
     pytest.param('cf1_tutorial_02d', gfp('test_10_saveAll_c1-0-cf1__114fcd'),),
+    pytest.param('cf1_tutorial_02d_2', gfp('test_10_saveAll_c1-0-cf1__ccfc45'),),
 ])
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize(*_10_save_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_20_run(dialog_model, model,

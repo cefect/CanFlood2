@@ -483,7 +483,7 @@ class Model_config_dialog_assetInventory(object):
                 #connect it to the advganced tab downstream widget
                 comboBox.connect_downstream_combobox(w)
                 
-            if tag in ['tag', 'cap']:
+            if tag in ['tag', 'cap', 'scale']:
                 w.setAllowEmptyFieldName(True)
                 w.setCurrentIndex(-1)
                 #set the optionals
@@ -1201,17 +1201,13 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
  
         
         
-    def _run_model(self, *args, compile_model=True):
+    def _run_model(self, *args,  ):
         """run the model
         
-        no longer saves... user must save first
+        no longer saves/compiles... user must save first
             should probably add a 'have you saved yet' check/dialog
         
-        Params
-        ------
-        compile_model: bool
-            flag to compile the model before running
-            for testing purposes
+ 
     
         """
         
@@ -1223,7 +1219,7 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
         model = self.model        
         assert not model is None, 'no model loaded'
         
-        skwargs = dict(logger=log, model=model) 
+ 
         
         log.info(f'running model {model.name}')        
         
@@ -1231,17 +1227,7 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
         try:
             #store the UI state
             self.progressBar.setValue(5)
-    #===========================================================================
-    #         self._set_ui_to_table_parameters(**skwargs)
-    #         
-    # 
-    #         #=======================================================================
-    #         # compiling
-    #         #=======================================================================
-    #         self.progressBar.setValue(20)
-    #         if compile_model:
-    #             self.compile_model(**skwargs)
-    #===========================================================================
+ 
             
             #=======================================================================
             # run it
@@ -1255,6 +1241,8 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
             #=======================================================================
             self.progressBar.setValue(100)
             log.push(f'finished running model {model.name}')
+            
+            
         except Exception as e:
             log.error(f'failed to run model {model.name}')
             log.info(f'failed to run model {model.name} w/ \n     {e}')
@@ -1262,6 +1250,8 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
             self.progressBar.setValue(0)
             
             raise
+        
+        return result
             
         
 

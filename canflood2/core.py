@@ -86,13 +86,9 @@ class Model_run_methods(object):
                     progressBar.setValue(current_value + increment)
                 
         add_to_prog(5)
+        
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
-            
-        
- 
-        
-
             
             
         #=======================================================================
@@ -203,7 +199,7 @@ class Model_run_methods(object):
             
             assert len(finv_dx['tag'].unique())==1, 'L1 models must have a single dummy tag'
             
-            finv_dx['tag'] = 'L1_dummy'
+            finv_dx['tag'] = 'L1_dummy' #patch the tag for L1 models'
  
         
         else:
@@ -318,7 +314,7 @@ class Model_run_methods(object):
             # scale
             #===================================================================
             #apply the scale
-            dx = result_dx.join(gdf['scale'], on=gdf.index.names).drop('exposure', axis=1)
+            dx = result_dx.join(gdf['scale'].fillna(1.0), on=gdf.index.names).drop('exposure', axis=1)
             result_dx['impact_scaled'] = dx['impact']*dx['scale']
             
             #===================================================================
@@ -361,11 +357,18 @@ class Model_run_methods(object):
             #===================================================================
             log.debug(f'finished computing damages for tag \'{tag}\' w/ {len(result_dx)} records')
             result_d[tag] = result_dx
+            """
+            view(result_dx)
+            """
             
         #=======================================================================
         # collectg
         #=======================================================================
         mresult_dx = pd.concat(result_d, names=['tag'])#.reorder_levels(['indexField', 'fg_index', 'tag', 'event_names']).sort_index()
+        
+        """
+        view(mresult_dx)
+        """
         
         # Check if the 'tag' level is redundant against all other indexers
         assert mresult_dx.index.droplevel('tag').nunique() == mresult_dx.index.nunique(), "The 'tag' level is not redundant"
@@ -410,7 +413,18 @@ class Model_run_methods(object):
         
         this is a condensed and imputed version of the impacts table
         decided to make this separate as users will expect something like this
-            but we want to maintain the compelte table for easier backend calcs
+            but we want to maintain the complete table for easier back end calcs
+            
+            
+        Returns
+        ----------------
+        pd.DataFrame
+        AEP                 0.001          0.005          0.010          0.020
+        indexField                                                            
+        14879       111300.000000   57468.542564   56809.104320   51122.812250
+        14880       153703.764320   66621.862874   64998.016299   63850.222080
+        14925       110750.039342   55132.276676   55068.322880   20000.000000
+        14926        91891.289907   48750.970880   47298.223002   20000.000000
         """
         #=======================================================================
         # defaults
@@ -433,8 +447,9 @@ class Model_run_methods(object):
         # simplifyt
         #=======================================================================
         
-        #sum on nestID and retrieve impacts
-        df = impacts_dx['impact_capped'].groupby(['indexField', 'event_names']).sum().unstack('event_names').fillna(0.0)
+        #sum on fg_index and retrieve impacts
+        df = impacts_dx['impact_capped'].groupby(['indexField', 'event_names']).sum()
+        df = df.unstack('event_names').fillna(0.0)
         
         
         #=======================================================================
@@ -486,6 +501,8 @@ class Model_run_methods(object):
         #=======================================================================
         self.set_tables({'table_impacts_prob':impacts_prob_df}, projDB_fp=projDB_fp)
         
+        return impacts_prob_df
+        
  
         
         
@@ -497,6 +514,17 @@ class Model_run_methods(object):
         """compute the row-wise EAD from the damages and write to the database
         
         see CanFloodv1: riskcom.RiskModel.calc_ead()
+        
+        Returns
+        ----------------
+        pd.DataFrame
+                            ead
+            indexField             
+            14879       1274.190785
+            14880       1567.645909
+            14925       1093.357785
+            14926        949.789911
+            14927       1497.024365
         """
         
         #=======================================================================
@@ -571,7 +599,21 @@ class Model_run_methods(object):
                          ):
         """compute the model-wide EAD with fancy tails
         
-        NOTE: we don't use the row-wise EAD as we want to fancier tails
+        NOTE: we don't use the row-wise EAD as we want fancier tails
+        
+        Returns
+        ----------------
+        pd.DataFrame
+             AEP       impacts
+            0  0.000  3.706048e+06
+            1  0.001  3.462964e+06
+            2  0.005  2.490627e+06
+            3  0.010  2.005584e+06
+            4  0.020  1.591033e+06
+            
+            
+        float
+            sum of impacts column
         """
         
         #=======================================================================
@@ -716,7 +758,7 @@ class Model_run_methods(object):
         
         log.info(f'finished computing EAD w/ {result_ead}')
         
-        return result_ead
+        return df, result_ead
         
 class Model_table_assertions(object):
     """organizer for the model table assertions"""

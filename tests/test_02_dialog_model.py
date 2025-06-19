@@ -628,7 +628,7 @@ def test_dial_model_04_functionGroup(dialog_model,model, qtbot,
  
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize(*_04_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_10_saveAll(dialog_model, model,
@@ -659,15 +659,15 @@ def test_dial_model_10_saveAll(dialog_model, model,
     
 
 _10_save_args = ("tutorial_name, projDB_fp", [
-    #pytest.param('cf1_tutorial_01', gfp('test_10_saveAll_c1-0-cf1__bbaceb'),),  
-    #pytest.param('cf1_tutorial_02', gfp('test_10_saveAll_c1-0-cf1__89377f'),),
-    #pytest.param('cf1_tutorial_02b', gfp('test_10_saveAll_c1-0-cf1__40367f'),),
-    #pytest.param('cf1_tutorial_02c', gfp('test_10_saveAll_c1-0-cf1__51ada1'),),
+    pytest.param('cf1_tutorial_01', gfp('test_10_saveAll_c1-0-cf1__bbaceb'),),  
+    pytest.param('cf1_tutorial_02', gfp('test_10_saveAll_c1-0-cf1__89377f'),),
+    pytest.param('cf1_tutorial_02b', gfp('test_10_saveAll_c1-0-cf1__40367f'),),
+    pytest.param('cf1_tutorial_02c', gfp('test_10_saveAll_c1-0-cf1__51ada1'),),
     pytest.param('cf1_tutorial_02d', gfp('test_10_saveAll_c1-0-cf1__114fcd'),),
 ])
 
 
-
+@pytest.mark.dev
 @pytest.mark.parametrize(*_10_save_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_20_run(dialog_model, model,
@@ -715,7 +715,7 @@ def test_dial_model_20_run(dialog_model, model,
     # trigger run sequence
     #===========================================================================
     try:
-        dialog_model._run_model(compile_model=False)
+        click(dialog_model.pushButton_run) # Model_config_dialog._run_model()
     except Exception as e:
         raise ModelNotReadyError(f'failed to run model \'{model.name}\' w/ error: {e}')
     
@@ -725,10 +725,13 @@ def test_dial_model_20_run(dialog_model, model,
     print(f'\n\nchecking dialog_model\n{"="*80}')
     
     
+    #table presence
     for table_name in model.compile_model_tables:
         df = model.get_tables([table_name])[0]
         assert len(df)>0, f'got empty table \'{table_name}\''
         
+    #result value
+    assert float(model.get_parameter_value('result_ead'))>0
     
     
     #===========================================================================

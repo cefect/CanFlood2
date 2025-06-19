@@ -56,7 +56,7 @@ tut_names = list(tutorial_lib.keys())
 #===============================================================================
 # HELPERS=========---------
 #===============================================================================
-overwrite_testdata=False #udpate test pickles
+overwrite_testdata=True #udpate test pickles
 def write_projDB(dialog_main, test_name):
  
     projDB_fp = dialog_main.get_projDB_fp()
@@ -217,7 +217,7 @@ def widget_data_d(dialog_main, widget_Main_dialog_data_d):
 def aoi_vlay_set(aoi_vlay, dialog_main):
     """set the aoi_vlay on teh combobox"""
     dialog_main.comboBox_aoi.setLayer(aoi_vlay)
-    return True
+    return aoi_vlay
 
 
 @pytest.fixture
@@ -367,7 +367,7 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
 #     'cf1_tutorial_02c', #datum
 #     ])
 #===============================================================================
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name", tut_names)
 def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
                           widget_data_d, #widget values set during instance
@@ -375,7 +375,8 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
                           event_meta_set, #eventMeta_df set during instance, loads haz_rlay_d
                           
                           #for testing
-                          aoi_vlay, dem_rlay, eventMeta_df,
+                          #aoi_vlay, 
+                          dem_rlay, eventMeta_df,
                                                   ):
     """
     load tutorial and other data onto dialog
@@ -432,7 +433,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
         
     
     #check that the aoi_vlay is on comboBox_aoi
-    assert dialog_main.comboBox_aoi.currentLayer() == aoi_vlay
+    assert dialog_main.comboBox_aoi.currentLayer() == aoi_vlay_set
      
     #check hte dem_rlay is on comboBox_dem
     assert dialog_main.comboBox_dem.currentLayer() == dem_rlay
@@ -499,7 +500,7 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),

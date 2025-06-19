@@ -49,7 +49,7 @@ tutorial_lib = {
             },
             'Model_config_dialog': {
                 'comboBox_expoLevel': 'binary (L1)',
-                'comboBox_finv_vlay':'cf1_tutorial_01_finv',
+                #'comboBox_finv_vlay':default_data_d['finv'],
                 'comboBox_AI_elevType': 'absolute',
                 'mFieldComboBox_cid': 'xid',
                 'mFieldComboBox_AI_01_scale': 'f0_scale',
@@ -84,10 +84,11 @@ tutorial_lib = {
             },
             'Model_config_dialog': {
                 'comboBox_expoLevel': 'depth-dependent (L2)',
+                #'comboBox_finv_vlay': 'finv_tut2',
                 'comboBox_AI_elevType': 'relative',
                 'mFieldComboBox_cid': 'xid',
                 'mFieldComboBox_AI_01_scale': 'f0_scale',
-                'mFieldComboBox_AI_01_elev': 'f0_elev', #not settiing...
+                'mFieldComboBox_AI_01_elev': 'f0_elev',  
                 'mFieldComboBox_AI_01_tag': 'functionName',
                 'mFieldComboBox_AI_01_cap': 'f0_cap',
                 'labelLineEdit_AI_label': 'my inventory',
@@ -120,6 +121,7 @@ tutorial_lib[tName]['fancy_name'] = 'Tutorial 2c (finv heights)'
 tutorial_lib[tName]['data'].update(
     {'finv': 'finv_tut2_elev.geojson'}
     )
+#tutorial_lib[tName]['widget']['Model_config_dialog']['comboBox_finv_vlay'] = 'finv_tut2_elev'
 tutorial_lib[tName]['widget']['Model_config_dialog'].update(
     {'comboBox_AI_elevType': 'absolute'}
     )
@@ -137,11 +139,32 @@ tutorial_lib[tName]['widget']['FunctionGroup'] = (
                 {'cap':'f1_cap','elev':'f1_elev','scale':'f1_scale','tag':'f1_tag'},
                 )
 
-
-
+#===============================================================================
+# Tutorial 2D_2 (function Groups with over-lapping columns)
+#===============================================================================
+tName = 'cf1_tutorial_02d_2'
+tutorial_lib[tName] = copy.deepcopy(tutorial_lib['cf1_tutorial_02d'])
+tutorial_lib[tName]['fancy_name'] = 'Tutorial 2d.2 (functionGroups with over-lapping columns)'
+tutorial_lib[tName]['widget']['FunctionGroup'] = ( 
+                {'cap':'f1_cap','elev':'f1_elev','scale':'f1_scale','tag':'functionName'},
+                )
  
  
+#===============================================================================
+# add finv to dialog box selection
+#===============================================================================
+get_fn = lambda x: os.path.splitext(os.path.basename(x))[0]
 
+
+for tName in tutorial_lib.keys():
+    #if 'finv' in tutorial_lib[tName]['data']:
+    if 'finv' in tutorial_lib[tName]['data'].keys():
+        finv_vlay = tutorial_lib[tName]['data']['finv']
+        if isinstance(finv_vlay, str):
+            tutorial_lib[tName]['widget']['Model_config_dialog']['comboBox_finv_vlay'] = get_fn(finv_vlay)
+        else:
+            raise TypeError('finv_vlay must be a string')
+ 
 #===============================================================================
 # promote filename to filepahts
 #===============================================================================

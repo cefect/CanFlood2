@@ -81,12 +81,14 @@ def vfunc_fp(tutorial_name, tmpdir):
 #===============================================================================
 # FIXTURES:OBJECTS------------
 #===============================================================================
+get_fn = lambda x: os.path.splitext(os.path.basename(x))[0]
+
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def dem_rlay(dem_fp, tutorial_name):
     
     if dem_fp is None:return None
-    layer = QgsRasterLayer(dem_fp, tutorial_name+'_dem')
+    layer = QgsRasterLayer(dem_fp, get_fn(dem_fp))
     QgsProject.instance().addMapLayer(layer)
     print(f'dem_rlay fixture instantiated from {dem_fp}')
     return layer
@@ -97,7 +99,7 @@ def aoi_vlay(aoi_fp, tutorial_name):
     if aoi_fp is None: return None
  
     assert os.path.exists(aoi_fp), f'bad filepath on aoi_vlay fixture:\n    {aoi_fp}'
-    layer = QgsVectorLayer(aoi_fp, tutorial_name+'_aoi', 'ogr')
+    layer = QgsVectorLayer(aoi_fp, get_fn(aoi_fp), 'ogr')
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
     print(f'aoi_vlay fixture instantiated from {aoi_fp}')
@@ -109,7 +111,8 @@ def finv_vlay(finv_fp, tutorial_name):
     if finv_fp is None:
         return None
     assert os.path.exists(finv_fp), f'bad filepath on finv_vlay fixture:\n    {finv_fp}'
-    layer = QgsVectorLayer(finv_fp, tutorial_name+'_finv', 'ogr')
+    layer =  QgsVectorLayer(finv_fp, get_fn(finv_fp), 'ogr')
+
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
     return layer
@@ -121,7 +124,7 @@ def haz_rlay_d(haz_fp_d):
         return None
     d = {}
     for ari, fp in haz_fp_d.items():
-        layer = QgsRasterLayer(fp, os.path.basename(fp).split('.')[0])
+        layer = QgsRasterLayer(fp, get_fn(fp))
         QgsProject.instance().addMapLayer(layer)
         d[layer.name()] = layer
         

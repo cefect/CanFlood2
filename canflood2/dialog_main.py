@@ -374,17 +374,19 @@ class Main_dialog_dev(object):
         #=======================================================================
         """here we load from the tutorial file data onto the QgisProject
         loading the projDB will attempt to popuolate the ui by selecting from loaded layers"""
-        _get_MD_lib = lambda tut_name: copy.deepcopy(tutorial_lib[tut_name]['Main_dialog'])
-        #_get_MD_fp = lambda tutorial_name, data_key: _get_MD_lib(tutorial_name)['data'].get(data_key, None)
-        data_d = _get_MD_lib(tutorial_name)['data']
+        tlib = copy.deepcopy(tutorial_lib[tutorial_name]) 
+        data_d = tlib['Main_dialog']['data']
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
         
-        def add_layer(data_key, param_name, Constructor, set_widget=True):           
+        def add_layer(data_key, param_name, Constructor, set_widget=True, fp_raw=None):           
 
             try:
-                if not data_key in data_d:
-                    raise KeyError(f'failed to find data key \'{data_key}\'')
+                if fp_raw is None:
+                    if not data_key in data_d:
+                        raise KeyError(f'failed to find data key \'{data_key}\'')
+                    
+                    fp_raw = data_d[data_key]
                 
                 #create a temporary, unique directory
                 
@@ -399,7 +401,7 @@ class Main_dialog_dev(object):
                 
                 
                 #copy over the data to a temporary directory
-                fp_raw = data_d[data_key]
+                
                 fp = shutil.copyfile(fp_raw, os.path.join(temp_dir, os.path.basename(fp_raw)))
                 assert os.path.exists(fp), f'failed to copy file to temp dir: {fp}'
 
@@ -454,14 +456,20 @@ class Main_dialog_dev(object):
         if 'aoi' in data_d:
             add_layer('aoi', 'aoi_vlay_name', vlayConstructor)
         
-        #FINV
-        add_layer('finv', 'finv_rlay_name', vlayConstructor,
-                  set_widget=False, #finv lives on the Model COnfig dialog
-                  )
+
  
         #DEM
         if 'dem' in data_d:
             add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
+            
+        
+        #FINV
+        for consequence_category, d0 in tlib["models"].items():
+            for modelid, d1 in d0.items(): 
+                add_layer('finv', 'NA', vlayConstructor,
+                          set_widget=False, #finv lives on the Model COnfig dialog
+                          fp_raw=d1["data"].get("finv")
+                          )
         
  
         #=======================================================================

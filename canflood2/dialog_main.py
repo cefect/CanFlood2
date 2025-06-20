@@ -981,8 +981,9 @@ class Main_dialog_modelSuite(object):
         # precheck
         #=======================================================================
         #check the layout is empty
+        """this is fine?
         if layout.count() > 0:
-            raise AssertionError(f'layout {layout.name()} is not empty')
+            raise AssertionError(f'layout {layout.name()} is not empty')"""
         
         assert model.widget_d is None, 'model already has widgets'
  

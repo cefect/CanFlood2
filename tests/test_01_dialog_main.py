@@ -54,9 +54,14 @@ from canflood2.tutorials.tutorial_data_builder import tutorial_lib
 tut_names = list(tutorial_lib.keys())
 
 #===============================================================================
+# PARAMS---------
+#===============================================================================
+interactive=True
+overwrite_testdata=False #udpate test projDB
+#===============================================================================
 # HELPERS=========---------
 #===============================================================================
-overwrite_testdata=False #udpate test pickles
+
 def write_projDB(dialog_main, test_name):
  
     projDB_fp = dialog_main.get_projDB_fp()
@@ -139,7 +144,7 @@ use fixtures to parameterize in blocks
     
 @pytest.fixture(scope='function') 
 def dialog_main(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
-        
+        qtbot,
            ):
     """dialog_main fixture.
     
@@ -156,6 +161,8 @@ def dialog_main(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
  
  
     print(f'\n\n{"=" * 80}\nDIALOG fixture setup complete\n{"=" * 80}\n\n')
+    if interactive: qtbot.waitExposed(dialog_main)  # wait until the dialog is visible
+    
     return dialog_main
 
 @pytest.fixture
@@ -367,7 +374,7 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
 #     'cf1_tutorial_02c', #datum
 #     ])
 #===============================================================================
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name", tut_names)
 def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
                           widget_data_d, #widget values set during instance
@@ -592,6 +599,67 @@ _04_MS_args = ("tutorial_name, projDB_fp", [
 
 _04_MS_args_d = {item[0]: item[1] for item in _04_MS_args[1]}
 
+
+
+
+
+
+
+
+
+
+@pytest.mark.dev
+@pytest.mark.parametrize(*_04_MS_args)
+def test_dial_main_05_MS_create(dialog_loaded, test_name,
+                                         tutorial_name,
+                                         ):
+    """adding/deleteing models from the suite"""
+    
+    dialog=dialog_loaded
+    
+    #check they have been added to the dialog index
+    assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
+
+
+    consequence_category = 'c1'
+    og_model_index_keys =  list(dialog.model_index_d[consequence_category].keys())
+    
+    new_modelid = len(og_model_index_keys)
+    #===========================================================================
+    # add a new model------
+    #===========================================================================
+    
+    #get the first model
+    model = dialog.model_index_d[consequence_category][0]
+    
+    #click the add model
+    click(model.widget_d['pushButton_mod_plus']['widget'])
+    
+    #===========================================================================
+    # check its htere
+    #===========================================================================
+    assert len(dialog.model_index_d[consequence_category])== len(og_model_index_keys) + 1
+    assert new_modelid in dialog.model_index_d[consequence_category].keys(), \
+        f'new model id {new_modelid} not in {dialog.model_index_d[consequence_category].keys()}'
+    #===========================================================================
+    # remove it-----
+    #===========================================================================
+    model = dialog.model_index_d[consequence_category][new_modelid]
+    """
+    model.widget_d.keys()
+    """
+    click(model.widget_d['pushButton_mod_minus']['widget'])
+    
+    #===========================================================================
+    # check
+    #===========================================================================
+    assert not new_modelid in dialog.model_index_d[consequence_category].keys(), \
+        f'new model id {new_modelid} still in {dialog.model_index_d[consequence_category].keys()}'
+        
+    #check the new keys match the og
+    assert set(dialog.model_index_d[consequence_category].keys()) == set(og_model_index_keys), \
+        f'new model keys {dialog.model_index_d[consequence_category].keys()} do not match og {og_model_index_keys}'
+    
 #===============================================================================
 # TESTS: POST MODEL CONFIG----------
 #===============================================================================

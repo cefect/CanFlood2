@@ -159,6 +159,17 @@ t2d2["models"]["c1"][0]["FunctionGroup"] = (
     {"cap": "f1_cap", "elev": "f1_elev", "scale": "f1_scale", "tag": "functionName"},
 )
 
+#===============================================================================
+# Tutorial 2e: 2 models----------
+#===============================================================================
+tutorial_lib["cf1_tutorial_02e"] = copy.deepcopy(tutorial_lib["cf1_tutorial_02"])
+t2e = tutorial_lib["cf1_tutorial_02e"]
+t2e["fancy_name"] = "Tutorial 2e (two models)"
+
+#just use data from tutorial1
+t2e["models"]["c2"] = copy.deepcopy(tutorial_lib["cf1_tutorial_01"]["models"]["c1"])
+ 
+ 
 # ───────────────────── helpers ─────────────────────
 def _basename(fp: str) -> str:
     """Return the file name without path or extension."""

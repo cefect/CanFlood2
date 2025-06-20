@@ -15,8 +15,7 @@ import pprint
 from PyQt5.QtTest import QTest
 from PyQt5.Qt import Qt, QApplication, QPoint
 from PyQt5.QtWidgets import (
-    QAction, QFileDialog, QListWidget, QTableWidgetItem,
-    QComboBox,
+    QAction, QFileDialog, QListWidget, QTableWidgetItem, QComboBox,
     )
 
 from qgis.PyQt import QtWidgets
@@ -111,8 +110,7 @@ def dialog_model(
         #Asset Inventory function group test data
          
         
-        #control
-        
+        #control fixtures        
         qtbot, monkeypatch,
         #backend init
         qgis_processing

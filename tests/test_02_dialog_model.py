@@ -744,17 +744,20 @@ def test_dial_model_20_run(dialog_model, model,
     write_projDB(dialog_model, test_name)
     
     #write to plugin test
-    if overwrite_testdata_plugin:
-        from canflood2.tutorials.tutorial_data_builder import test_data_dir as plugin_test_data_dir
-        
-        ofp = os.path.join(plugin_test_data_dir, 'projDBs', tutorial_name+'.canflood2')
-        #assert os.path.exists(ofp), f'expected to find a projDB file at \n    {ofp}'
-        
-        #copy over the .sqlite file
-        projDB_fp = dialog_model.parent.get_projDB_fp()
-        shutil.copyfile(projDB_fp, ofp) 
-        
-        dialog_model.logger.info(f'wrote projDB_fp to \n    {ofp}')
+    #moved this to test_05
+    #===========================================================================
+    # if overwrite_testdata_plugin:
+    #     from canflood2.tutorials.tutorial_data_builder import test_data_dir as plugin_test_data_dir
+    #     
+    #     ofp = os.path.join(plugin_test_data_dir, 'projDBs', tutorial_name+'.canflood2')
+    #     #assert os.path.exists(ofp), f'expected to find a projDB file at \n    {ofp}'
+    #     
+    #     #copy over the .sqlite file
+    #     projDB_fp = dialog_model.parent.get_projDB_fp()
+    #     shutil.copyfile(projDB_fp, ofp) 
+    #     
+    #     dialog_model.logger.info(f'wrote projDB_fp to \n    {ofp}')
+    #===========================================================================
         
         
     

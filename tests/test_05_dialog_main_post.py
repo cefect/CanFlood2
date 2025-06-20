@@ -251,6 +251,9 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
                                 ):
     """test the run all button
     (not to be confused with the model config dialog)
+    
+    
+    using this as an endpoint for the dialog tutorial data loader
     """
     #===========================================================================
     # setup
@@ -266,9 +269,23 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
     
     
     #===========================================================================
-    # svae
+    # write---
     #===========================================================================
     write_projDB(dialog, test_name)
+    
+    if overwrite_testdata_plugin:
+        from canflood2.tutorials.tutorial_data_builder import test_data_dir as plugin_test_data_dir
+        
+        ofp = os.path.join(plugin_test_data_dir, 'projDBs', tutorial_name+'.canflood2')
+        #assert os.path.exists(ofp), f'expected to find a projDB file at \n    {ofp}'
+        if os.path.exists(ofp):
+            dialog.logger.warning(f'projDB exists... overwriting')
+            os.remove(ofp)
+        
+        #copy over the .sqlite file
+        projDB_fp = dialog.get_projDB_fp()
+        shutil.copyfile(projDB_fp, ofp)        
+        dialog.logger.info(f'wrote projDB_fp to \n    {ofp}')
     
     
 

@@ -517,6 +517,8 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     loads from test_dial_main_02_save_ui_to_project_database
     
     output used for tests in test_dial_model
+    
+    NOTE: no configuration of models.. just template creation
     """
     
  

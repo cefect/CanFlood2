@@ -37,9 +37,7 @@ from canflood2.core import ModelNotReadyError
 import canflood2.parameters as parameters
 
 from tests.test_01_dialog_main import widget_data_d, dialog_main, dialog_loaded
-#from tests.test_01_dialog_main import dialog_loaded as dialog_main_loaded
- 
-from tests.test_01_dialog_main import oj as oj_main
+#from tests.test_01_dialog_main import oj as oj_main
 from tests.test_01_dialog_main import _04_MS_args, _04_MS_args_d
 #need to import the fixture from dialog_main
 

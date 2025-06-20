@@ -9,6 +9,7 @@ Created on Mar 6, 2025
 # IMPORTS----------
 #===============================================================================
 import pytest, time, sys, inspect, os, shutil
+import pprint
 
 
 from PyQt5.QtTest import QTest
@@ -27,6 +28,7 @@ from qgis.core import (
 
 from canflood2.hp.qt import set_widget_value, get_widget_value
 from canflood2.hp.vfunc import load_vfunc_to_df_d
+from canflood2.hp.basic import view_web_df as view
 
 from canflood2.assertions import assert_vfunc_fp, assert_series_match
 
@@ -38,7 +40,7 @@ from tests.test_01_dialog_main import widget_data_d, dialog_main, dialog_loaded
 #from tests.test_01_dialog_main import dialog_loaded as dialog_main_loaded
  
 from tests.test_01_dialog_main import oj as oj_main
-from tests.test_01_dialog_main import _04_MS_args
+from tests.test_01_dialog_main import _04_MS_args, _04_MS_args_d
 #need to import the fixture from dialog_main
 
 
@@ -64,7 +66,7 @@ overwrite_testdata_plugin=True
 
 
 
-overwrite_testdata=False #for writing tests
+overwrite_testdata=True #for writing tests
 def write_projDB(dialog_model, test_name): 
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
@@ -82,6 +84,8 @@ def write_projDB(dialog_model, test_name):
 def oj(*args):
     return os.path.join(test_data_dir, *args)
 
+gfp = lambda x:oj(x, 'projDB.canflood2')
+
 def oj_out(test_name, result):
     return oj(result_write_filename_prep(test_name, clear_str='dial_model_'), os.path.basename(result))
  
@@ -95,15 +99,19 @@ def oj_out(test_name, result):
 interactive = False
 @pytest.fixture
 def dialog_model(
-        dialog_loaded, #main dialog loaded with layers
+        dialog_loaded, #main dialog. loads layers (except finv) and projDB
         model,
  
         
         #turtorial data
         tutorial_name,
-        finv_vlay, 
+        finv_vlay, #needed to instance the projDB
         
-        widget_modelConfig_data_d, #tests.data.tutorial_fixtures  
+        #general modelConfig widget test data
+        #widget_modelConfig_data_d, #tests.data.tutorial_fixtures  
+        
+        #Asset Inventory function group test data
+         
         
         #control
         
@@ -120,7 +128,7 @@ def dialog_model(
     
     not using modelstate stored in projDB here
         tests are more focused on replicating user input
-        projDB model state is handled by teest_dialog_main
+        projDB model state is handled by test_dialog_main
         
     using subsequent fixtures to handle more complex setups
     
@@ -131,11 +139,9 @@ def dialog_model(
     dialog_main = dialog_loaded
     
     dlg = dialog_main.Model_config_dialog
-
-
     
     
-    print(f"\n\nlaunching model configuration dialog for model \'{model.name}\'\n{'='*80}")
+    print(f"\n\nlaunching model configuration dialog for \'{tutorial_name}\' {model.name}\n{'='*80}")
     
     #===========================================================================
     # # Launch the dialog by clicking the widget that opens it.
@@ -156,18 +162,22 @@ def dialog_model(
     #===========================================================================
     # post launch setup
     #===========================================================================
-    if finv_vlay is not None:
-        dlg.comboBox_finv_vlay.setLayer(finv_vlay)
+    #===========================================================================
+    # if finv_vlay is not None:
+    #     dlg.comboBox_finv_vlay.setLayer(finv_vlay)
+    #===========================================================================
         
-    assert not widget_modelConfig_data_d is None, 'widget_modelConfig_data_d fixture is None'
-    #if widget_modelConfig_data_d is not None:
-    for k,v in widget_modelConfig_data_d.items():
-        widget = getattr(dlg, k)
-        try:
-            set_widget_value(widget, v)
-        except Exception as e:
-            raise IOError(f'failed to set widget \'{k}\' to value \'{v}\' w/\n    {e}')
-            
+    #widget data
+    """see fixture"""
+    
+    #function Groups
+    """see fixture"""
+    
+    #vfuncs
+    """see fixture"""
+        
+
+ 
  
     """ 
     dlg.show()
@@ -183,6 +193,41 @@ def dialog_model(
 @pytest.fixture
 def model(dialog_main, consequence_category, modelid):
     return dialog_main.model_index_d[consequence_category][modelid]
+
+@pytest.fixture
+def finv_vlay_loaded(dialog_model, finv_vlay):
+    """loads the finv_vlay into the dialog main
+    
+    NOTE: other (non-model specific) layers are loaded with the dialog_loaded fixture
+    """
+    if not finv_vlay is None:
+        dialog_model.comboBox_finv_vlay.setLayer(finv_vlay)
+        return finv_vlay
+    return None
+
+
+@pytest.fixture
+def widget_data_d(dialog_model,
+                  widget_modelConfig_data_d, #tests.data.tutorial_fixtures
+                  finv_vlay_loaded, #needed for all the layer widgets  
+                  ):
+    """enters the test data onto each widget of the model config dialog"""
+    
+ 
+        
+        
+    
+    assert not widget_modelConfig_data_d is None, 'widget_modelConfig_data_d fixture is None'
+    #if widget_modelConfig_data_d is not None:
+    for k,v in widget_modelConfig_data_d.items():
+        widget = getattr(dialog_model, k)
+        try:
+            set_widget_value(widget, v)
+        except Exception as e:
+            raise IOError(f'failed to set widget \'{k}\' to value \'{v}\' w/\n    {e}')
+        
+        
+    return widget_modelConfig_data_d
 
 
 @pytest.fixture
@@ -207,14 +252,53 @@ def vfunc(dialog_model, vfunc_fp, monkeypatch):
     #===========================================================================
     return None
 
+@pytest.fixture
+def functionGroups_d(dialog_model, widget_FunctionGroup_t, finv_vlay):
+    
+    if widget_FunctionGroup_t is not None:
+        result_d=dict()
+        cnt=0
+        for i, test_d in enumerate(widget_FunctionGroup_t):
+            #add the group
+            fg_index, widget, widget_d = dialog_model._add_function_group()
+            
+            result_d[fg_index] = dict()
+            
+            #set the values
+            for name, d_i in widget_d.items():
+                if d_i['tag'] is not None:
+                    target_fieldName = test_d[d_i['tag']]
+ 
+                    
+                    #check this is in the layer
+                    assert target_fieldName in finv_vlay.fields().names(), 'bad field name'
+                    
+                    #select it with the widget
+                    d_i['widget'].setField(target_fieldName)
+                    cnt+=1
+                    
+                    result_d[fg_index][d_i['tag']] = target_fieldName
+                    
+        print(f'set {cnt} function group fields')
+    
+    else:
+        result_d=None
+        
+    return result_d
+
 
 
 #===============================================================================
 # TESTS------
 #===============================================================================
+"""STRATEGY
+
+lots of small tests with checks
+
+then one complete test to build the projDB for the next phase"""
 
 
-
+ 
 @pytest.mark.parametrize(*_04_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_01_launch_config(dialog_model,model, qtbot):
@@ -229,6 +313,9 @@ def test_dial_model_01_launch_config(dialog_model,model, qtbot):
     #===========================================================================
     qtbot.mouseClick(dialog_model.pushButton_close, Qt.LeftButton)
     
+    print(f'done')
+
+
 
 
 #===============================================================================
@@ -238,13 +325,33 @@ def test_dial_model_01_launch_config(dialog_model,model, qtbot):
 # ])
 #===============================================================================
 
-@pytest.mark.parametrize(*_04_MS_args)
+
+@pytest.mark.parametrize(
+    ("tutorial_name", "projDB_fp"),
+    [
+        pytest.param(
+            'cf1_tutorial_01',_04_MS_args_d['cf1_tutorial_01'],
+            marks=pytest.mark.xfail(reason="have not specified finv_elevType",strict=True  ),
+        ),
+        pytest.param(
+            'cf1_tutorial_02',_04_MS_args_d['cf1_tutorial_02'],
+            #marks=pytest.mark.xfail(reason="no vlay provided yet",strict=True),
+        ),
+        # Additional cases you commented out can stay commented:
+        # pytest.param('cf1_tutorial_02b', oj('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2')),
+        # pytest.param('cf1_tutorial_02c', oj('04_MS_createTemplates_cf1_1ae7e8', 'projDB.canflood2')),
+    ]
+)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_model_02_save(dialog_model,
-                            model, 
-                            widget_modelConfig_data_d, 
+                            model,
+                            finv_vlay_loaded,
+                                                      
                             test_name, qtbot):
-    """basic model dialog setup
+    """basic model dialog init + slect finv + save
+    
+    model init:
+        
     clicking save loads:
         table_parameters
         table_finv
@@ -253,6 +360,7 @@ def test_dial_model_02_save(dialog_model,
         
     does NOT load
         vfuncs
+        functionGroups (f1+)
         results
     """     
     #assert dialog.model==model
@@ -264,71 +372,110 @@ def test_dial_model_02_save(dialog_model,
     # resolve dialog
     #===========================================================================
  
-    qtbot.mouseClick(dialog_model.pushButton_save, Qt.LeftButton)
+    click(dialog_model.pushButton_save)
     
     #===========================================================================
     # check---------
     #===========================================================================
     print(f'\n\nchecking dialog\n{"="*80}')
     
-    #against testing parameters
-    for k,v in widget_modelConfig_data_d.items():
+
+        
+        
+
+    #===========================================================================
+    # write------
+    #===========================================================================
+    #write_projDB(dialog_model, test_name)
+    
+    
+ 
+
+@pytest.mark.parametrize(*_04_MS_args)
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+def test_dial_model_02_widgetData(dialog_model,
+                            model, 
+                               
+                            widget_data_d,
+                            ):
+    """ model dialog launch + widget data + save
+    """
+        #===========================================================================
+    # load parameters
+    #===========================================================================
+    """done by fixture"""
+    #===========================================================================
+    # resolve dialog
+    #===========================================================================
+ 
+    click(dialog_model.pushButton_save)
+    
+    #===========================================================================
+    # checks----------
+    #===========================================================================
+
+    #===========================================================================
+    # #against testing parameters
+    #===========================================================================
+    for k,v in widget_data_d.items():
         #print(f'checking \'{k}\'==\'{v}\'')
         widget = getattr(dialog_model, k)
         assert get_widget_value(widget)==v, f'for \'{k}\' got bad value \'{get_widget_value(widget)}\''
         
-    #against set projeft Database
+    #===========================================================================
+    # #against set projeft Database
+    #===========================================================================
     param_df = model.get_table_parameters().set_index('varName')
     
     ##param_df = param_df.set_index('varName').loc[:, ['widgetName', 'value']]
-    param_d = param_df.dropna(subset=['widgetName']).set_index('widgetName')['value'].dropna().to_dict()
+    param_d = param_df[~param_df['dynamic']].dropna(subset=['widgetName']).set_index('widgetName')['value'].dropna().to_dict()
     assert len(param_d)>0, f'no parameters found for model \'{model.name}\''
     #checkc that the keys match
-    assert set(widget_modelConfig_data_d.keys()).issubset(param_d.keys()), 'parameter keys do not match the widget data keys'
-    
-    
-    #loop and check each
-    for k,v in widget_modelConfig_data_d.items():
-        assert str(v)==param_d[k], f'for \'{k}\' got bad value \'{v}\''
-        
- 
 
-        
-    #===========================================================================
-    # write------
-    #===========================================================================
-    write_projDB(dialog_model, test_name)
     
+    # Check if widget_data_d keys are a subset of param_d keys
+    """
+    param_d['comboBox_finv_vlay']
+    view(param_df)
+    pprint.pprint(widget_data_d)
+    """
     
- 
-_02_save_args = ("tutorial_name, projDB_fp", [
-    pytest.param('cf1_tutorial_01',oj('test_02_save_c1-0-cf1_tut_334dbe', 'projDB.canflood2'),), #not setup for L1 yet
-    #===========================================================================
-    # pytest.param('cf1_tutorial_02',oj('test_02_save_c1-0-cf1_tut_91c6ab', 'projDB.canflood2'),),
-    # pytest.param('cf1_tutorial_02b',oj('test_02_save_c1-0-cf1_tut_185208', 'projDB.canflood2'),),
-    # pytest.param('cf1_tutorial_02c',oj('test_02_save_c1-0-cf1_tut_054f7f', 'projDB.canflood2'),),  
-    #===========================================================================
+    #these widgets are unique as we enter data here but dont include in the params
+    #they are converted to nested dynamic parameters
+    ignore_widgets_l = [
+        'mFieldComboBox_AI_01_elev',  'mFieldComboBox_AI_01_scale',
+        'mFieldComboBox_AI_01_tag', 'mFieldComboBox_AI_01_cap',
+        ]
+    
+    check_k = set(widget_data_d.keys()) - set(ignore_widgets_l)
+
+
+    if not set(check_k).issubset(param_d.keys()):
+        missing_keys = set(check_k) - set(param_d.keys())
+        raise AssertionError(f'Parameter keys do not match the widget data keys. \n    Missing keys: {missing_keys}')
+
+    #loop and check each
+    for k,v in widget_data_d.items():
+        if k in ignore_widgets_l: continue
+        assert str(v)==param_d[k], f'for \'{k}\' got bad value \'{v}\''
+
+
+L2_MS_args = ( #params for L2 models
+    ("tutorial_name", "projDB_fp"),[
+        ('cf1_tutorial_02',_04_MS_args_d['cf1_tutorial_02']),
+        ('cf1_tutorial_02d',_04_MS_args_d['cf1_tutorial_02d']),
+         ('cf1_tutorial_02d_2',_04_MS_args_d['cf1_tutorial_02d']),
 ])
 
 
 
-
-
- 
-#===============================================================================
-# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-#     #('cf1_tutorial_02', oj_main('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
-#     #('cf1_tutorial_02b', oj_main('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2')),
-#     ('cf1_tutorial_02c', oj_main('04_MS_createTemplates_cf1_1ae7e8', 'projDB.canflood2')),
-# ])
-#===============================================================================
-
-@pytest.mark.parametrize(*_04_MS_args)
+@pytest.mark.parametrize(*L2_MS_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_03_save_vfunc(dialog_model, model,                                  
+def test_dial_model_03_vfunc(dialog_model, model, 
+                             finv_vlay_loaded, widget_data_d,                                
                             vfunc,
                             test_name, qtbot):
-    """same as test_dial_model_02_save, but with vfuncs
+    """init + finv (needed for widgets) + widgets + vfunc load + save
     
     also loads:
         06_vfunc_index
@@ -370,8 +517,6 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
         assert len(df_d)==int(dialog_model.label_V_functionCount.text()), f'vfunc count failed to set'
         
 
-     
-        
         #check the keys match
         assert set(df_d.keys())==set(vfunc_index_df.index), 'vfunc keys do not match the index'
         
@@ -382,88 +527,165 @@ def test_dial_model_03_save_vfunc(dialog_model, model,
     #===========================================================================
     # write------
     #===========================================================================
-    write_projDB(dialog_model, test_name)
+    #write_projDB(dialog_model, test_name)
 
 
  
-#===============================================================================
-# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-#     #pytest.param('cf1_tutorial_02',oj('test_03_save_vfunc_c1-0-c_bcb0b2', 'projDB.canflood2'),),
-#     #pytest.param('cf1_tutorial_02b',oj('test_03_save_vfunc_c1-0-c_5dee21', 'projDB.canflood2'),),
-#     pytest.param('cf1_tutorial_02c',oj('test_03_save_vfunc_c1-0-c_2a2788', 'projDB.canflood2'),),  
-# ])
-# @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-# def test_dial_model_04_save(dialog_model, model,
-#                            test_name,
-#                             
-#                            #load data onto project
-#                            #dem_rlay, aoi_vlay, finv_vlay, haz_rlay_d, 
-#                            ):
-#     """Test compile sequence"""
-#      
-#     #===========================================================================
-#     # load parameters
-#     #===========================================================================
-#     """done by fixture"""
-#      
-#     #===========================================================================
-#     # load vfuncs
-#     #===========================================================================
-#     """included in projDB"""    
-#     #===========================================================================
-#     # execute
-#     #===========================================================================
-#     """this is part of the save"""
-#     skwargs = dict(logger=dialog_model.logger, model=model)
-#      
-#     #dialog_model._set_ui_to_table_parameters(**skwargs)
-#     #dialog_model.compile_model(**skwargs)
-#      
-#     dialog_model._save(**skwargs)
-#   
-#      
-#      
-#     #===========================================================================
-#     # check
-#     #===========================================================================
-#     print(f'\n\nchecking dialog\n{"="*80}')
-#      
-#     #check tables are loaded
-#      
-#     table_names_l = [k for k, d in parameters.modelTable_params_d.items() 
-#                      if d.get('phase') == 'compile' and d.get('required') is True]
-#  
-#      
-#     df_d = model.get_tables(table_names_l, result_as_dict=True)
-#     for table_name, df in df_d.items(): 
-#         assert len(df)>0, f'got empty table \'{table_name}\''
-#          
-#     #check finv layer was set
-#     assert isinstance(dialog_model.get_finv_vlay(), QgsVectorLayer), 'failed to set finv layer'
-#      
-#     #===========================================================================
-#     # write------
-#     #===========================================================================
-#     write_projDB(dialog_model, test_name)
-#===============================================================================
 
-_03_saveV_args = ("tutorial_name, projDB_fp", [
-    pytest.param('cf1_tutorial_01',oj('test_03_save_vfunc_c1-0-c_7147f1', 'projDB.canflood2'),), #not setup for L1 yet
-    pytest.param('cf1_tutorial_02',oj('test_03_save_vfunc_c1-0-c_bcb0b2', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02b',oj('test_03_save_vfunc_c1-0-c_5dee21', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02c',oj('test_03_save_vfunc_c1-0-c_2a2788', 'projDB.canflood2'),),
-    ])
 
+
+
+
+@pytest.mark.parametrize(*L2_MS_args)
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+def test_dial_model_04_functionGroup(dialog_model,model, qtbot,
+                                     finv_vlay_loaded, widget_data_d, 
+                                     functionGroups_d, 
+                                     ):
+    """save + finv+widgets+ functionGroups
+    
+    add and remove then check
+    """
+    if functionGroups_d is None: functionGroups_d = dict()     
+    #assert dialog.model==model
+    gcnt =  1+len(functionGroups_d)
+    assert len(dialog_model.functionGroups_index_d)==gcnt, 'expected one additional function group'
+    w1 =  dialog_model.functionGroups_index_d[len(functionGroups_d)]['widget']
+    
+    
+    #===========================================================================
+    # add a new one
+    #===========================================================================
+    click(w1.pushButton_mod_plus)
+    gcnt+=1
+    
+    assert len(dialog_model.functionGroups_index_d)==gcnt
+    #===========================================================================
+    # remove it
+    #===========================================================================
+    click(dialog_model.functionGroups_index_d[gcnt-1]['widget'].pushButton_mod_minus)
+    gcnt-=1
+    assert len(dialog_model.functionGroups_index_d)==gcnt
+    
+    
+    #===========================================================================
+    # save
+    #===========================================================================
+    click(dialog_model.pushButton_save)
+    
+    
+    #===========================================================================
+    # Check it----------
+    #===========================================================================
+ 
+    #===========================================================================
+    # dialog status
+    #===========================================================================
+    #check the function groups
+    assert len(dialog_model.functionGroups_index_d)==len(functionGroups_d)+1, \
+        f'expected {len(functionGroups_d)} function groups, got {len(dialog_model.functionGroups_index_d)}'
+    
+    #check the Additionals
+    for fg_index, fg_d in functionGroups_d.items():
+        #check against what is set on the dialog
+        parent_d = dialog_model.functionGroups_index_d[fg_index]
+        widget = parent_d['widget']
+        
+        #index by tag
+        child_widget_d = {d['tag']:k for k,d in parent_d['child_d'].items() if d['tag'] is not None}
+        
+        for tag, value in fg_d.items():
+            
+            w = getattr(widget, child_widget_d[tag])
+            assert get_widget_value(w)==value, f'for \'{tag}\' got bad value \'{get_widget_value(w)}\''
+
+    #===========================================================================
+    # projDB
+    #===========================================================================
+    param_df = model.get_table_parameters().set_index('varName'
+                          ).dropna(subset=['fg_index']).drop(['dynamic', 'required', 'model_index'], axis=1)
+ 
+    assert param_df['value'].notna().all(), 'expected all parameter values to be set'
+    #check main (fg=0)
+    #main_fg_df = param_df[param_df['fg_index']==0] 
+    
+    
+    #f0 fields
+    fg0_fields = {'f0_cap':'mFieldComboBox_AI_01_scale',
+                  'f0_elev':'mFieldComboBox_AI_01_elev',  
+                  'f0_tag':'mFieldComboBox_AI_01_tag',
+                  'f0_cap':'mFieldComboBox_AI_01_cap',
+                  }
+    
+    for k, widget_name in fg0_fields.items():
+        assert param_df.loc[k, 'value']==widget_data_d[widget_name], 'f0 mismatch'
+        
+    #f1+fields
+    for fg_index, fg_d in functionGroups_d.items():
+        for tag, value in fg_d.items():
+            
+            k = f'f{fg_index}_{tag}'
+            
+            assert param_df.loc[k, 'value'] == value, f'for \'{k}\' got bad value \'{param_df.loc[k, "value"]}\''
+ 
+
+#add the psudo test
+_04_MS_args[1].append(
+    ('cf1_tutorial_02d_2',_04_MS_args_d['cf1_tutorial_02d'])
+)
+
+
+
+@pytest.mark.parametrize(*_04_MS_args)
+@pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
+def test_dial_model_10_saveAll(dialog_model, model,
+                               finv_vlay_loaded,
+                               widget_data_d,                                  
+                            vfunc,
+                            functionGroups_d,
+                            test_name, qtbot):
+    """all save tests
+    i.e. modle compiling
+    """
+    
+    #===========================================================================
+    # save
+    #===========================================================================
+    click(dialog_model.pushButton_save) #Model_config_dialog._save()
+    
+    #===========================================================================
+    # write------
+    #===========================================================================
+    write_projDB(dialog_model, test_name)
+    
+    
+    
+    
+    
+ 
+    
+
+_10_save_args = ("tutorial_name, projDB_fp", [
+    pytest.param('cf1_tutorial_01', gfp('test_10_saveAll_c1-0-cf1__bbaceb'),),  
+    pytest.param('cf1_tutorial_02', gfp('test_10_saveAll_c1-0-cf1__89377f'),),
+    pytest.param('cf1_tutorial_02b', gfp('test_10_saveAll_c1-0-cf1__40367f'),),
+    pytest.param('cf1_tutorial_02c', gfp('test_10_saveAll_c1-0-cf1__51ada1'),),
+    pytest.param('cf1_tutorial_02d', gfp('test_10_saveAll_c1-0-cf1__114fcd'),),
+    pytest.param('cf1_tutorial_02d_2', gfp('test_10_saveAll_c1-0-cf1__ccfc45'),),
+])
 
 
 @pytest.mark.dev
-@pytest.mark.parametrize(*_03_saveV_args)
+@pytest.mark.parametrize(*_10_save_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
-def test_dial_model_05_run(dialog_model, model,
-                           test_name,
-                           tutorial_name 
+def test_dial_model_20_run(dialog_model, model,
+                           
+                           finv_vlay_loaded,
+                           
+                           test_name,tutorial_name 
                            ):
     """run the model (post compile)
+    loads compiled data via the projDB
     
 
     
@@ -473,14 +695,21 @@ def test_dial_model_05_run(dialog_model, model,
     """
     
     #===========================================================================
-    # load parameters
+    # load parameters 
     #===========================================================================
-    """done by fixture"""
+    """done by dialog_model (loads projDB)"""
+    
+    #===========================================================================
+    # load layers
+    #===========================================================================
+    """finv_vlay_loaded loads the finv
+    other layers are loaded by dialog_loaded fixture
+    """
     
     #===========================================================================
     # load vfuncs
     #===========================================================================
-    """included in projDB""" 
+    """done by dialog_model (loads projDB)"""
     
     #===========================================================================
     # compile model tables
@@ -494,7 +723,7 @@ def test_dial_model_05_run(dialog_model, model,
     # trigger run sequence
     #===========================================================================
     try:
-        dialog_model._run_model(compile_model=False)
+        click(dialog_model.pushButton_run) # Model_config_dialog._run_model()
     except Exception as e:
         raise ModelNotReadyError(f'failed to run model \'{model.name}\' w/ error: {e}')
     
@@ -504,10 +733,13 @@ def test_dial_model_05_run(dialog_model, model,
     print(f'\n\nchecking dialog_model\n{"="*80}')
     
     
+    #table presence
     for table_name in model.compile_model_tables:
         df = model.get_tables([table_name])[0]
         assert len(df)>0, f'got empty table \'{table_name}\''
         
+    #result value
+    assert float(model.get_parameter_value('result_ead'))>0
     
     
     #===========================================================================
@@ -532,11 +764,12 @@ def test_dial_model_05_run(dialog_model, model,
     
     
 
-_04_run_args = ("tutorial_name, projDB_fp", [
-    pytest.param('cf1_tutorial_01',oj('test_05_run_c1-0-cf1_tuto_15650d', 'projDB.canflood2'),), #not setup for L1 yet
-    pytest.param('cf1_tutorial_02',oj('test_05_run_c1-0-cf1_tuto_c4bd7e', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02b',oj('test_05_run_c1-0-cf1_tuto_d0d7f3', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02c',oj('test_05_run_c1-0-cf1_tuto_2c39a5', 'projDB.canflood2'),),
+_20_run_args = ("tutorial_name, projDB_fp", [
+    pytest.param('cf1_tutorial_01',oj('test_20_run_c1-0-cf1_tuto_392609', 'projDB.canflood2'),),  
+    pytest.param('cf1_tutorial_02',oj('test_20_run_c1-0-cf1_tuto_13a988', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_02b',oj('test_20_run_c1-0-cf1_tuto_802bc4', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_02c',oj('test_20_run_c1-0-cf1_tuto_6e937d', 'projDB.canflood2'),),
+    pytest.param('cf1_tutorial_02d',oj('test_20_run_c1-0-cf1_tuto_45abf7', 'projDB.canflood2'),),
     ])
 
 

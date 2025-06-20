@@ -74,6 +74,8 @@ def write_projDB(dialog_main, test_name):
 def oj(*args):
     return os.path.join(test_data_dir, *args)
 
+gfp = lambda x:oj(x, 'projDB.canflood2')
+
 def oj_out(test_name, result):
     return oj(result_write_filename_prep(test_name), os.path.basename(result))
 
@@ -167,6 +169,8 @@ def dialog_loaded(dialog_main,
     
     TODO: rename this as a projDB fixture?
     
+    excluding finv_vlay as this is model specific
+    
     """
     
     #===========================================================================
@@ -180,6 +184,7 @@ def dialog_loaded(dialog_main,
     # load ui from projDB
     #===========================================================================
     #patch and click load projDB
+    assert os.path.exists(projDB_fp), f'projDB_fp does not exist: {projDB_fp}'
     projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp))) #assert_projDB_fp(projDB_fp)
     #patch the load button
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda*args, **kwargs:(projDB_fp, ''))
@@ -212,7 +217,7 @@ def widget_data_d(dialog_main, widget_Main_dialog_data_d):
 def aoi_vlay_set(aoi_vlay, dialog_main):
     """set the aoi_vlay on teh combobox"""
     dialog_main.comboBox_aoi.setLayer(aoi_vlay)
-    return True
+    return aoi_vlay
 
 
 @pytest.fixture
@@ -362,7 +367,7 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
 #     'cf1_tutorial_02c', #datum
 #     ])
 #===============================================================================
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name", tut_names)
 def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
                           widget_data_d, #widget values set during instance
@@ -370,14 +375,15 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
                           event_meta_set, #eventMeta_df set during instance, loads haz_rlay_d
                           
                           #for testing
-                          aoi_vlay, dem_rlay, eventMeta_df,
+                          #aoi_vlay, 
+                          dem_rlay, eventMeta_df,
                                                   ):
     """
     load tutorial and other data onto dialog
     Create New ProjDB
     test saving the projDB
     
-    
+    start point for test data
  
     """
     #===========================================================================
@@ -395,13 +401,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
     #===========================================================================
     # #create a new projDB
     #===========================================================================
-    """ 
-    dialog_main.show()
-    QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
-    sys.exit(QApp.exec_()) #wrap
-    """
-
-
+ 
     dialog_create_new_projDB(monkeypatch, dialog_main, tmpdir)
  
  
@@ -433,7 +433,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
         
     
     #check that the aoi_vlay is on comboBox_aoi
-    assert dialog_main.comboBox_aoi.currentLayer() == aoi_vlay
+    assert dialog_main.comboBox_aoi.currentLayer() == aoi_vlay_set
      
     #check hte dem_rlay is on comboBox_dem
     assert dialog_main.comboBox_dem.currentLayer() == dem_rlay
@@ -500,17 +500,24 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
     ('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
    ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2')), 
    ('cf1_tutorial_02c', oj('02_save_ui_to_project_dat_7b3a19', 'projDB.canflood2')),
+   ('cf1_tutorial_02d', oj('02_save_ui_to_project_dat_6f16b9', 'projDB.canflood2')),
 ])
 def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
                                          tutorial_name,
                                          ):
-    """test creation and clearing of the model suite"""
+    """test creation and clearing of the model suite
+    
+    
+    loads from test_dial_main_02_save_ui_to_project_database
+    
+    output used for tests in test_dial_model
+    """
     
  
     #===========================================================================
@@ -567,15 +574,21 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     write_projDB(dialog, test_name)
     
 
- 
+
+
+
 
 _04_MS_args = ("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_01', oj('04_MS_createTemplates_cf1_4b9cc3', 'projDB.canflood2')), #L1 not implemented
-    #('cf1_tutorial_02', oj('04_MS_createTemplates_cf1_f72317', 'projDB.canflood2')),
-    #('cf1_tutorial_02b', oj('04_MS_createTemplates_cf1_ea97b3', 'projDB.canflood2')),
-    #('cf1_tutorial_02c', oj('04_MS_createTemplates_cf1_1ae7e8', 'projDB.canflood2')),
+    ('cf1_tutorial_01', gfp('04_MS_createTemplates_cf1_4b9cc3')), 
+    ('cf1_tutorial_02', gfp('04_MS_createTemplates_cf1_f72317')),
+    ('cf1_tutorial_02b', gfp('04_MS_createTemplates_cf1_ea97b3')),
+    ('cf1_tutorial_02c', gfp('04_MS_createTemplates_cf1_1ae7e8')),
+    ('cf1_tutorial_02d', gfp('04_MS_createTemplates_cf1_eae93b')),
 ])
+
     
+
+_04_MS_args_d = {item[0]: item[1] for item in _04_MS_args[1]}
 
 #===============================================================================
 # TESTS: POST MODEL CONFIG----------

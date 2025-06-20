@@ -81,12 +81,14 @@ def vfunc_fp(tutorial_name, tmpdir):
 #===============================================================================
 # FIXTURES:OBJECTS------------
 #===============================================================================
+get_fn = lambda x: os.path.splitext(os.path.basename(x))[0]
+
 @pytest.fixture(scope='function')
 @clean_qgis_layer
 def dem_rlay(dem_fp, tutorial_name):
     
     if dem_fp is None:return None
-    layer = QgsRasterLayer(dem_fp, tutorial_name+'_dem')
+    layer = QgsRasterLayer(dem_fp, get_fn(dem_fp))
     QgsProject.instance().addMapLayer(layer)
     print(f'dem_rlay fixture instantiated from {dem_fp}')
     return layer
@@ -97,7 +99,7 @@ def aoi_vlay(aoi_fp, tutorial_name):
     if aoi_fp is None: return None
  
     assert os.path.exists(aoi_fp), f'bad filepath on aoi_vlay fixture:\n    {aoi_fp}'
-    layer = QgsVectorLayer(aoi_fp, tutorial_name+'_aoi', 'ogr')
+    layer = QgsVectorLayer(aoi_fp, get_fn(aoi_fp), 'ogr')
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
     print(f'aoi_vlay fixture instantiated from {aoi_fp}')
@@ -109,7 +111,8 @@ def finv_vlay(finv_fp, tutorial_name):
     if finv_fp is None:
         return None
     assert os.path.exists(finv_fp), f'bad filepath on finv_vlay fixture:\n    {finv_fp}'
-    layer = QgsVectorLayer(finv_fp, tutorial_name+'_finv', 'ogr')
+    layer =  QgsVectorLayer(finv_fp, get_fn(finv_fp), 'ogr')
+
     assert isinstance(layer, QgsVectorLayer)
     QgsProject.instance().addMapLayer(layer)
     return layer
@@ -118,10 +121,17 @@ def finv_vlay(finv_fp, tutorial_name):
 @clean_qgis_layer
 def haz_rlay_d(haz_fp_d):
     if haz_fp_d is None:
-        return None
+        raise ValueError('haz_fp_d fixture requires a dictionary of file paths')
+    
     d = {}
     for ari, fp in haz_fp_d.items():
-        layer = QgsRasterLayer(fp, os.path.basename(fp).split('.')[0])
+        layer = QgsRasterLayer(fp, get_fn(fp))
+        
+        #check that a layer with the same name does not already exist on the project
+        existing_layer = QgsProject.instance().mapLayersByName(layer.name())
+        if len(existing_layer) > 0:
+            raise IOError(f'A layer with the same name {layer.name()} already exists in the project. ')
+        
         QgsProject.instance().addMapLayer(layer)
         d[layer.name()] = layer
         
@@ -158,6 +168,18 @@ def widget_modelConfig_data_d(tutorial_name):
 @pytest.fixture
 def widget_Main_dialog_data_d(tutorial_name): 
     return copy.deepcopy(tutorial_lib[tutorial_name]['widget']['Main_dialog'])
+
+
+@pytest.fixture
+def widget_FunctionGroup_t(tutorial_name):
+    d = tutorial_lib[tutorial_name]['widget']
+    if 'FunctionGroup' not in d:
+        return None
+    else:
+        assert isinstance(d['FunctionGroup'], tuple), \
+            f"Expected 'FunctionGroup' to be a tuple, got {type(d['FunctionGroup'])}"
+        return copy.deepcopy(d['FunctionGroup'])
+ 
 
 
 

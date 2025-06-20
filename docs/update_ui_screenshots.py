@@ -22,8 +22,8 @@ from PyQt5.Qt import Qt
 
 from tests.conftest import *
 from tests.test_01_dialog_main import dialog_loaded, dialog_main, oj
-from tests.test_02_dialog_model import oj as oj_model
 from tests.test_02_dialog_model import dialog_model, model 
+from tests.test_02_dialog_model import _20_run_args as _DM_run_args
 
 
 from canflood2.parameters import src_dir
@@ -33,9 +33,11 @@ from canflood2.parameters import src_dir
 #===============================================================================
 
 #output projDB from test_02_dialog_model.test_dial_model_05_run()
-_run_args = ("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_c4bd7e', 'projDB.canflood2'))
-     ])
+#grab only the **first** case ───────────────────────────────
+_run_args = (
+    _DM_run_args[0],          # the column-name string
+    _DM_run_args[1][1:2],      # a new list that contains just the second pytest.param
+)
 
 #===============================================================================
 # helpers

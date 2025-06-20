@@ -614,23 +614,20 @@ QTabBar::tab:selected {
               <item>
                <widget class="QGroupBox" name="groupBox_8">
                 <property name="title">
-                 <string>Function Group: 01</string>
+                 <string>Function Group: 1</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_18">
                  <item>
                   <widget class="QLabel" name="label_29">
                    <property name="text">
-                    <string>Select the fields from your inventory vector layer that provide the scale, elevation, tag, and cap information for each asset</string>
+                    <string>Specify the calculation fields from your inventory.  See the &quot;Advanced&quot; tab to add additional function groups.</string>
                    </property>
                   </widget>
                  </item>
                  <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_11">
                    <item>
-                    <widget class="QLabel" name="label_23">
-                     <property name="enabled">
-                      <bool>true</bool>
-                     </property>
+                    <widget class="QLabel" name="label_22">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                        <horstretch>0</horstretch>
@@ -638,12 +635,16 @@ QTabBar::tab:selected {
                       </sizepolicy>
                      </property>
                      <property name="text">
-                      <string>tag</string>
+                      <string>elevation</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag"/>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
                    </item>
                    <item>
                     <widget class="QLabel" name="label_21">
@@ -665,23 +666,6 @@ QTabBar::tab:selected {
                     <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_scale"/>
                    </item>
                    <item>
-                    <widget class="QLabel" name="label_22">
-                     <property name="text">
-                      <string>elevation</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev">
-                     <property name="enabled">
-                      <bool>true</bool>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
                     <widget class="QLabel" name="label_27">
                      <property name="enabled">
                       <bool>true</bool>
@@ -701,14 +685,29 @@ QTabBar::tab:selected {
                      </property>
                     </widget>
                    </item>
+                   <item>
+                    <widget class="QLabel" name="label_23">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="text">
+                      <string>tag</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag"/>
+                   </item>
                   </layout>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_32">
-                   <property name="text">
-                    <string>See the &quot;Advanced&quot; tab to add additional function groups</string>
-                   </property>
-                  </widget>
                  </item>
                 </layout>
                </widget>
@@ -718,6 +717,12 @@ QTabBar::tab:selected {
            </item>
            <item>
             <widget class="QGroupBox" name="groupBox_4">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="title">
               <string>Metadata</string>
              </property>
@@ -765,13 +770,23 @@ QTabBar::tab:selected {
                <layout class="QFormLayout" name="formLayout_2">
                 <item row="0" column="0">
                  <widget class="QLabel" name="dateLabel">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>0</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>Date</string>
                   </property>
                  </widget>
                 </item>
                 <item row="0" column="1">
-                 <widget class="QLineEdit" name="dateLineEdit_AI"/>
+                 <widget class="QLineEdit" name="dateLineEdit_AI">
+                  <property name="placeholderText">
+                   <string>YYYY MM DD</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -823,12 +838,12 @@ QTabBar::tab:selected {
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_14">
            <item>
-            <widget class="QGroupBox" name="groupBox_2">
+            <widget class="QGroupBox" name="groupBox_AI_03_functionGroups">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+              <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -840,150 +855,8 @@ QTabBar::tab:selected {
               <item>
                <widget class="QLabel" name="label_12">
                 <property name="text">
-                 <string>Specify the damage calculation fields from your inventory. Use the &quot;+&quot; to add a function group and &quot;-&quot; to remove.</string>
+                 <string>Specify calculation fields from your inventory. See the &quot;Data Selection&quot; tab to edit Group 1. Use +/- to add/remove groups.</string>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QGroupBox" name="groupBox_3">
-                <property name="title">
-                 <string/>
-                </property>
-                <layout class="QHBoxLayout" name="horizontalLayout">
-                 <item>
-                  <widget class="QLabel" name="label_6">
-                   <property name="text">
-                    <string>Function Group:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_AI_functionGroupID">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>30</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>01</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_7">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>scale</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox"/>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_9">
-                   <property name="text">
-                    <string>elevation</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_2"/>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_10">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="text">
-                    <string>tag</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_3">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_11">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="text">
-                    <string>cap</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_4">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_2">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>25</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>-</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_3">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>25</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>+</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
                </widget>
               </item>
              </layout>

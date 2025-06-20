@@ -15,6 +15,8 @@ import pytest, time, sys, inspect, os, shutil, hashlib, copy, pprint
 from pandas.testing import assert_frame_equal
 from PyQt5.Qt import Qt, QApplication
 
+from qgis.core import QgsProject
+
 
 from tests.conftest import (
     conftest_logger,
@@ -23,8 +25,8 @@ from tests.conftest import (
 
 from tests.test_01_dialog_main import dialog_main, dialog_loaded #get the main dialog tests
 from tests.test_02_dialog_model import oj as oj_model #get the core
-from tests.test_02_dialog_model import _04_run_args as DM_04_run_args 
-from tests.test_02_dialog_model import _03_saveV_args as DM_02_saveV_args
+from tests.test_02_dialog_model import _20_run_args as DM_run_args 
+from tests.test_02_dialog_model import _10_save_args as DM_save_args
 
 
 from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp, assert_series_match
@@ -45,26 +47,51 @@ from canflood2.hp.qt import set_widget_value
     'cf1_tutorial_02', 
     'cf1_tutorial_02b',
     'cf1_tutorial_02c',
-       #========================================================================
-       # pytest.param('cf1_tutorial_01', 
-       #              marks=pytest.mark.xfail(raises=IOError, reason='this tutorial is not setup yet'),
-       #              )
-       #========================================================================
+ 
                                            ])
 def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_name,
+                                               
+                                               #load layers to project
+                                               #aoi_vlay,dem_rlay,haz_rlay_d, #load to project. _load_projDB_to_ui checks for name match
  
                                            ):
     """test loading tutorial data
     
     NOTE: for major changes, need to rebuild the tutorials/data/projDBs
-        with test_02_dialog_model.overwrite_testdata_plugin """
+        with test_02_dialog_model:
+            overwrite_testdata_plugin=True
+            test_dial_model_20_run()
+            
+         """
     dialog = dialog_main
+    #===========================================================================
+    # load layers to project
+    #===========================================================================
+    """done by pushButton_tut_load"""
+    
+    
+    
+    #===========================================================================
+    # setup the dialog
+    #===========================================================================
     #set the combo box
     set_widget_value(dialog.comboBox_tut_names, 
                      #tutorial_fancy_names_d[tutorial_name],
                      tutorial_lib[tutorial_name]['fancy_name'],)
  
     
+    #===========================================================================
+    # execute
+    #===========================================================================
+    """
+    all_layers_d = QgsProject.instance().mapLayers()
+ 
+    
+    #print all names
+    for layer_id, layer in all_layers_d.items():
+        print(f"{layer.name()}: ({type(layer)})")
+    
+    """
     click(dialog.pushButton_tut_load) #Main_dialog._load_tutorial_to_ui()
     
     #===========================================================================
@@ -111,7 +138,7 @@ def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_
 #     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
 #      ])
 #===============================================================================
-@pytest.mark.parametrize(*DM_04_run_args)
+@pytest.mark.parametrize(*DM_run_args)
 def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, test_name,
                                                   ):
     """load the built main dialog, save it to a new project database
@@ -144,7 +171,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_loaded, tutorial_name, 
 #     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
 #      ])
 #===============================================================================
-@pytest.mark.parametrize(*DM_02_saveV_args)
+@pytest.mark.parametrize(*DM_save_args)
 @pytest.mark.parametrize("consequence_category, modelid", (['c1', 0],))
 def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
                                 consequence_category, modelid,
@@ -180,10 +207,11 @@ def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
 #      ])
 #===============================================================================
 
-@pytest.mark.parametrize(*DM_02_saveV_args)
+@pytest.mark.parametrize(*DM_save_args)
 def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
                                 ):
-    """test the run model button on the model widget (not to be confused with the model config dialog)
+    """test the run model button on the model widget 
+    (not to be confused with the model config dialog)
     """
     #===========================================================================
     # setup
@@ -205,7 +233,7 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
 #      ])
 #===============================================================================
  
-@pytest.mark.parametrize(*DM_04_run_args)
+@pytest.mark.parametrize(*DM_run_args)
 def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
 
                                 ):
@@ -232,10 +260,8 @@ def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
     click(dialog.pushButton_R_riskCurve) #Main_dialog._plot_risk_curve()
     
     
-@pytest.mark.dev
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
-     ])
+
+@pytest.mark.parametrize(*DM_run_args)
 def test_dial_main_04_exportCSV(dialog_loaded, test_name,
                                 ):
     """run the model"""

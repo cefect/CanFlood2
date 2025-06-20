@@ -11,6 +11,7 @@ QGIS plugin helpers
 #===============================================================================
 #python
 import logging, configparser, datetime, sys, os, types
+import weakref
 import pandas as pd
 import numpy as np
 
@@ -37,74 +38,75 @@ class plugLogger(object):
     
     log_nm_default = 'cf2' #logger name
     
-    def __init__(self, 
-                 iface=None,
-                 statusQlab=None,                 
-                 parent=None,
-                 log_nm = None,
-                 debug_logger=None,
-                 ):
-        """
-        
-        params
-        ---------
-        debug_logger: python logging class
-            workaround to capture QgsLogger
-        """
-        
-        if not iface is None:
-            if not 'QgisInterface' in str(type(iface)):
-                raise IOError('bad type on iface: %s'%type(iface))
-            
-            self.messageBar = iface.messageBar()
-        self.iface=iface
-        self.statusQlab = statusQlab
-        self.parent=parent
-        
-        #setup the name
-        parentClassName = self.parent.__class__.__name__
-        if 'None' in parentClassName:
-            parentClassName = ''
-        
-        
-        if  log_nm is None: #normal calls
-            self.log_nm = '%s.%s'%(self.log_nm_default, parentClassName)
-
-        else: #getChild calls
-            self.log_nm = log_nm
-            
-        if not debug_logger is None:
-            debug_logger = debug_logger.getChild(parentClassName)
-            
+    def __init__(self,
  
-        
-        self.debug_logger=debug_logger
-        
-        
-    def getChild(self, new_childnm):
-        
-        if hasattr(self.parent, 'logger'):
-            log_nm = '%s.%s'%(self.parent.logger.log_nm, new_childnm)
+                 iface:        "QgisInterface | None"        = None,
+                 statusQlab   = None,
+                 parent:       "QtCore.QObject | None"       = None,
+                 log_nm:       str | None                    = None,
+                 debug_logger: "logging.Logger | None"       = None):
+        """
+        Parameters
+        ----------
+        iface : QgisInterface, optional
+            QGIS interface so we can push/popup messages.
+        statusQlab : QLabel, optional
+            A status-line QLabel that mirrors log messages.
+        parent : QObject, optional
+            Widget that owns this logger (not used for pytest hierarchy).
+        log_nm : str, optional
+            Public prefix (e.g. “MD”).  If omitted we derive one.
+        debug_logger : logging.Logger, optional
+            Root pytest logger; unit tests capture plugin output here.
+        """
+
+        # ------------------------- QGIS handles ------------------------
+        if iface is not None and "QgisInterface" not in str(type(iface)):
+            raise IOError(f"bad type on iface: {type(iface)}")
+
+        self.iface       = iface
+        self.messageBar  = iface.messageBar() if iface else None
+        self.statusQlab  = statusQlab
+        self.parent      = parent
+
+        # ------------------------- public prefix -----------------------
+        if log_nm is None:
+            # fall back to “cf2” or “cf2.<ClassName>”
+            cls = parent.__class__.__name__ if parent else ""
+            self.log_nm = f"{self.log_nm_default}.{cls}" if cls else self.log_nm_default
         else:
-            log_nm = new_childnm
-            
-        #configure debug logger
-        try: #should only work during tests?
-            debug_logger = self.debug_logger.getChild(new_childnm)
-        except:
-            debug_logger = None
-        
-        #build a new logger
-        child_log = plugLogger(
+            self.log_nm = log_nm
+
+        # --------------------- pytest/file hierarchy -------------------
+        #
+        # Mirror every segment of self.log_nm exactly once in the
+        # debug_logger’s dotted name, nothing else.
+        #
+        if debug_logger is not None:
+            for seg in self.log_nm.split("."):
+                if seg and seg not in debug_logger.name.split("."):
+                    debug_logger = debug_logger.getChild(seg)
+
+        self.debug_logger = debug_logger
+    # ------------------------------------------------------------------ #
+    #  getChild                                                          #
+    # ------------------------------------------------------------------ #
+    def getChild(self, new_childnm: str, *, child_parent=None):
+        """
+        Return a child logger with prefix ``<self.log_nm>.<new_childnm>``.
+
+        No dialog class names are injected; the pytest hierarchy is
+        extended with *only* the new segment.
+        """
+        child_log_nm = f"{self.log_nm}.{new_childnm}"
+
+        return plugLogger(
             iface=self.iface,
             statusQlab=self.statusQlab,
-            parent= self.parent,
-            log_nm=log_nm,
-            debug_logger=debug_logger)
-        
-
-        
-        return child_log
+            parent=child_parent,          # keep None unless you *want* cls name
+            log_nm=child_log_nm,
+            debug_logger=self.debug_logger,   # __init__ will append missing seg
+        )
     
     def info(self, msg):
         self._loghlp(msg, Qgis.Info, push=False, status=True)
@@ -661,6 +663,8 @@ def bind_MapLayerComboBox(widget, #
     widget.setAllowEmptyLayer(True)
     widget.setCurrentIndex(-1) #set selection to none
     
+    
+    
     #===========================================================================
     # define new methods
     #===========================================================================
@@ -696,61 +700,129 @@ def bind_MapLayerComboBox(widget, #
     widget.set_layer_by_name = set_layer_by_name
     
     
-def bind_QgsFieldComboBox(widget, signal_emmiter_widget=None,   fn_str=None, fn_no_str=None):
+def bind_QgsFieldComboBox(widget, signal_emitter_widget=None,   fn_str=None, fn_no_str=None):
     """bind some methods to a QgsFieldComboBox
+    
+    
+    Parameters
+    ----------
+    widget : QgsFieldComboBox
+        The combo box to bind methods to.
+        
+    signal_emitter_widget : QgsMapLayerComboBox, optional
+    
+        A QgsMapLayerComboBox instance that emits a signal when the layer changes.
+        
+    fn_str : str, optional
+        A substring to match field names against. If provided, only fields containing this substring will be selected.
 
     """
  
-
+    #widget.signal_emitter_widget=signal_emitter_widget
     # Ensure the widget is a QgsFieldComboBox.
     assert isinstance(widget, QgsFieldComboBox), f"Expected QgsFieldComboBox, got {type(widget)}"
     
-    def setLayer_fallback(layer):
- 
-        widget.clear()
-        if layer is None:
-            return
-        assert isinstance(layer, QgsVectorLayer), f'Expected QgsVectorLayer, got {type(layer)}'
-        
-        # Set the layer; this updates the combo box with the layer's fields.
-        widget.setLayer(layer)
-        
-        selected_field = None
-        
-        # Iterate through all fields to find a match.
-        for field in layer.fields():
-            # If an exclusion is specified, skip that field.
-            if fn_no_str is not None and field.name() == fn_no_str:
-                continue
-            
-            # If a matching substring is provided, check it.
-            if fn_str is not None:
-                if fn_str in field.name():
-                    selected_field = field.name()
-                    break
-            else:
-                # Without matching criteria, select the first field.
-                selected_field = field.name()
-                break
-        
-        # Fallback: if no field matched, use the first field (if any).
-        #=======================================================================
-        # if selected_field is None and layer.fields():
-        #     selected_field = layer.fields()[0].name()
-        #=======================================================================
-        
-        if selected_field is not None:
-            widget.setField(selected_field)
+    wref    = weakref.ref(widget)
     
-    widget.setLayer_fallback = setLayer_fallback
+    def _setLayer_fallback(self, layer=None):
+        """
+        Slot that selects an appropriate field whenever the layer changes.
+        It is a *bound method*, so 'self' is the combo box (a QObject).
+        
+        """
+        
+        w = wref()                        # dereference weak-ref
+        if w is None:
+            # Combo box has been destroyed — disconnect once, then vanish
+            try:
+                signal_emitter_widget.layerChanged.disconnect(_setLayer_fallback)                    
+            except (RuntimeError, TypeError):
+                pass
+            return
+ 
+        
+        # If signal passes in a layer, use it; otherwise look at emitter.
+        if layer is None:
+            layer = signal_emitter_widget.currentLayer()
+
+        if layer is None:
+            self.clear()
+            return
+
+        assert isinstance(layer, QgsVectorLayer)
+
+        self.setLayer(layer)          # repopulate the list
+
+        # pick the field to select …
+        match = None
+        for fld in layer.fields():
+            if fn_no_str and fld.name() == fn_no_str:
+                continue
+            if fn_str and fn_str not in fld.name():
+                continue
+            match = fld.name()
+            break
+
+        if match:
+            self.setField(match)
+
+    # attach as a *method* so Qt sees 'self' === widget (a QObject)
+    widget.setLayer_fallback = types.MethodType(_setLayer_fallback, widget)
     
     # If a signal emitter widget is provided, connect its layer-changed signal.
-    if signal_emmiter_widget is not None:
-        assert isinstance(signal_emmiter_widget, QgsMapLayerComboBox), f'Expected QgsMapLayerComboBox, got {type(signal_emmiter_widget)}'
-        # Assumes that the signal is named "currentLayerChanged" and emits a layer.
-        signal_emmiter_widget.layerChanged.connect(
-            lambda: widget.setLayer_fallback(signal_emmiter_widget.currentLayer())
-            )
+    if signal_emitter_widget is not None:
+        assert isinstance(signal_emitter_widget, QgsMapLayerComboBox), f'Expected QgsMapLayerComboBox, got {type(signal_emitter_widget)}'
+        # Assumes that the signal is named "currentLayerChanged" and emits a layer. 
+        signal_emitter_widget.layerChanged.connect(widget.setLayer_fallback)
+        
+        # --- prime the combo immediately ---------------------------------------
+        widget.setLayer_fallback()
+        
+    def connect_downstream_combobox(downstream_combo: QgsFieldComboBox):
+        """
+        Keep `downstream_combo` in lock-step with `widget` (the upstream combo).
+        The downstream combo is disabled so the user can’t alter it.
+     
+        Parameters
+        ----------
+        downstream_combo : QgsFieldComboBox
+            The combo box to mirror.
+        """
+        assert isinstance(downstream_combo, QgsFieldComboBox), (
+            f"Expected QgsFieldComboBox, got {type(downstream_combo)}"
+        )
+     
+        # Disable direct user interaction
+        downstream_combo.setEnabled(False)
+     
+        # ---------- internal sync routine ----------
+        def _sync():
+            try:
+                # 1. Mirror the layer (repopulates the downstream combo)
+                downstream_combo.setLayer(widget.layer())
+         
+                # 2. Mirror the current field
+                fld = widget.currentField()          # QgsFieldComboBox convenience
+                if fld:                              # fld is a string or None
+                    downstream_combo.setField(fld)
+            except:
+                #raise a QGIS warning
+                QgsMessageLog.logMessage(
+                    "Failed to sync downstream combo box",
+                    level=Qgis.Warning
+                )
+                 
+                 
+        # -------------------------------------------
+     
+        # Hook up both relevant upstream signals
+        #widget.layerChanged.connect(_sync)
+        widget.fieldChanged.connect(_sync)
+     
+        # Do one initial sync so the downstream starts in the right state
+        _sync()
+         
+    widget.connect_downstream_combobox = connect_downstream_combobox
  
         
         

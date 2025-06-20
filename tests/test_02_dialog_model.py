@@ -53,17 +53,19 @@ from .conftest import (
 test_data_dir = os.path.join(conftest.test_data_dir, 'dialog_model')
 os.makedirs(test_data_dir, exist_ok=True)
 
+
+#===============================================================================
+# PARAMS--------
+#===============================================================================
+overwrite_testdata=True #for writing tests
+interactive = False
 #===============================================================================
 # HELPERS----------
 #===============================================================================
-#for updating the projDB in the plugin tutorial data loader
-#see test_dial_model_05_run
-overwrite_testdata_plugin=True 
+ 
 
 
 
-
-overwrite_testdata=True #for writing tests
 def write_projDB(dialog_model, test_name): 
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
@@ -93,7 +95,7 @@ def oj_out(test_name, result):
 #===============================================================================
 # dialog_model setup
 #===============================================================================
-interactive = False
+
 @pytest.fixture
 def dialog_model(
         dialog_loaded, #main dialog. loads layers (except finv) and projDB

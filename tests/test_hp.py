@@ -26,9 +26,9 @@ from canflood2.hp.Q import ProcessingEnvironment
 """simple borrow of filepaths from the tutorial data"""
 from tests.data.tutorial_fixtures import tutorial_lib
 tutorial_name = 'cf1_tutorial_02'
-data_d = tutorial_lib[tutorial_name]['data']
+data_d = tutorial_lib[tutorial_name]['Main_dialog']['data']
 dem_fp = data_d['dem']
-finv_fp = data_d['finv']
+finv_fp =  tutorial_lib[tutorial_name]['models']['c1'][0]['data']['finv']
 
 assert os.path.exists(dem_fp)
 assert os.path.exists(finv_fp)

@@ -627,10 +627,7 @@ QTabBar::tab:selected {
                  <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_11">
                    <item>
-                    <widget class="QLabel" name="label_23">
-                     <property name="enabled">
-                      <bool>true</bool>
-                     </property>
+                    <widget class="QLabel" name="label_22">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                        <horstretch>0</horstretch>
@@ -638,12 +635,16 @@ QTabBar::tab:selected {
                       </sizepolicy>
                      </property>
                      <property name="text">
-                      <string>tag</string>
+                      <string>elevation</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag"/>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
                    </item>
                    <item>
                     <widget class="QLabel" name="label_21">
@@ -665,23 +666,6 @@ QTabBar::tab:selected {
                     <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_scale"/>
                    </item>
                    <item>
-                    <widget class="QLabel" name="label_22">
-                     <property name="text">
-                      <string>elevation</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev">
-                     <property name="enabled">
-                      <bool>true</bool>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
                     <widget class="QLabel" name="label_27">
                      <property name="enabled">
                       <bool>true</bool>
@@ -700,6 +684,28 @@ QTabBar::tab:selected {
                       <bool>true</bool>
                      </property>
                     </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="label_23">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="text">
+                      <string>tag</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag"/>
                    </item>
                   </layout>
                  </item>
@@ -893,8 +899,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>545</width>
-        <height>211</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
       </property>
       <attribute name="label">
@@ -1072,8 +1078,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>621</width>
-        <height>265</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
       </property>
       <property name="autoFillBackground">
@@ -1572,8 +1578,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>925</width>
-        <height>518</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
       </property>
       <property name="autoFillBackground">

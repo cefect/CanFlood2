@@ -99,7 +99,8 @@ def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_
     #===========================================================================
     print(f'\n\n{"=" * 80}\nchecking loaded data\n{"=" * 80}\n\n')
     
-    tut_data = tutorial_lib[tutorial_name]['data']
+    _get_MD_lib = lambda tut_name: copy.deepcopy(tutorial_lib[tut_name]['Main_dialog'])
+    tut_data = _get_MD_lib(tutorial_name)['data']
     """
     pprint.pprint(tut_data)
     """

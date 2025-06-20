@@ -374,7 +374,9 @@ class Main_dialog_dev(object):
         #=======================================================================
         """here we load from the tutorial file data onto the QgisProject
         loading the projDB will attempt to popuolate the ui by selecting from loaded layers"""
-        data_d = copy.deepcopy(tutorial_lib[tutorial_name]['data'])
+        _get_MD_lib = lambda tut_name: copy.deepcopy(tutorial_lib[tut_name]['Main_dialog'])
+        #_get_MD_fp = lambda tutorial_name, data_key: _get_MD_lib(tutorial_name)['data'].get(data_key, None)
+        data_d = _get_MD_lib(tutorial_name)['data']
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
         

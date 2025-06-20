@@ -10,7 +10,7 @@ Most testing should be in test_02_dialog_model.py and test_03_core.
 '''
 
 
-import pytest, time, sys, inspect, os, shutil
+import pytest, time, sys, inspect, os, shutil, copy
 import pprint
 
 
@@ -50,7 +50,7 @@ from tests.data.tutorial_fixtures import _get_model_fp, _get_model_lib, tutorial
 # params-----
 #===============================================================================
 interactive = False #interactive dialogs for tests
-overwrite_testdata_plugin=True 
+#overwrite_testdata_plugin=True 
 overwrite_testdata=True #write test result projDB
 
 #===============================================================================
@@ -325,9 +325,13 @@ def test_dialog_model_multi_01_configSave(
     view(model_dx)
     """
  
+#add this to the list of saved tests
+from tests.test_02_dialog_model import _10_save_args 
+_01_save_args = copy.deepcopy(_10_save_args)
 
-
-
+_01_save_args[1].append(
+    ('cf1_tutorial_02e', oj('test_01_configSave_cf1_tu_850cd3', 'projDB.canflood2'))
+    )
 
 
 

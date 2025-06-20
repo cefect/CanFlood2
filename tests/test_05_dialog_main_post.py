@@ -18,6 +18,7 @@ from PyQt5.Qt import Qt, QApplication
 from qgis.core import QgsProject
 
 
+import tests.conftest as conftest
 from tests.conftest import (
     conftest_logger,
     result_write_filename_prep, click
@@ -26,7 +27,7 @@ from tests.conftest import (
 from tests.test_01_dialog_main import dialog_main, dialog_loaded #get the main dialog tests
 from tests.test_02_dialog_model import oj as oj_model #get the core
 from tests.test_02_dialog_model import _20_run_args as DM_run_args 
-from tests.test_02_dialog_model import _10_save_args as DM_save_args
+from tests.test_04_dialog_model_multi import _01_save_args as DM_save_args
 
 
 from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp, assert_series_match
@@ -37,11 +38,53 @@ from canflood2.tutorials.tutorial_data_builder import tutorial_fancy_names_d, tu
 from canflood2.hp.qt import set_widget_value
 
 
+#===============================================================================
+# params-----
+#===============================================================================
+interactive = False #interactive dialogs for tests
+overwrite_testdata_plugin=True 
+overwrite_testdata=True #write test result projDB
+
+
+#===============================================================================
+# DATA--------
+#===============================================================================
+test_data_dir = os.path.join(conftest.test_data_dir, 'dialog_main_post')
+os.makedirs(test_data_dir, exist_ok=True)
+
+#===============================================================================
+# HELPERS-----
+#===============================================================================
+get_fn = lambda x: os.path.splitext(os.path.basename(x))[0]
+
+def oj(*args):
+    return os.path.join(test_data_dir, *args)
+
+gfp = lambda x:oj(x, 'projDB.canflood2')
+
+def oj_out(test_name, result):
+    return oj(result_write_filename_prep(test_name, clear_str='dialog_model_multi_'), os.path.basename(result))
+ 
+
+def write_projDB(dialog_main, test_name): 
+    projDB_fp = dialog_main.get_projDB_fp()
+    ofp = oj_out(test_name, projDB_fp)
+ 
+    if overwrite_testdata:
+        print(f'\n\nwriting projDB to \n    {test_name}\n{"="*80}')
+        os.makedirs(os.path.dirname(ofp), exist_ok=True)
+        
+        #copy over the .sqlite file
+        shutil.copyfile(projDB_fp, ofp) 
+ 
+        conftest_logger.info(f'wrote result to \n    {ofp}')
+        
+
 
 #===============================================================================
 # TESTS=======--------
 #===============================================================================
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name", [
     #'cf1_tutorial_01',
     'cf1_tutorial_02', 
@@ -202,16 +245,11 @@ def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
 
 
 
-#===============================================================================
-# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-#     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
-#      ])
-#===============================================================================
-
+@pytest.mark.dev
 @pytest.mark.parametrize(*DM_save_args)
 def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
                                 ):
-    """test the run model button on the model widget 
+    """test the run all button
     (not to be confused with the model config dialog)
     """
     #===========================================================================
@@ -225,6 +263,14 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
     # execute
     #===========================================================================
     click(dialog.pushButton_MS_runAll)
+    
+    
+    #===========================================================================
+    # svae
+    #===========================================================================
+    write_projDB(dialog, test_name)
+    
+    
 
 
 

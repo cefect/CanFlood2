@@ -106,7 +106,7 @@ assert os.path.exists(ui_fp), f'UI file not found: {ui_fp}'
 FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qgis
 
 
-
+get_fn = lambda x: os.path.splitext(os.path.basename(x))[0]
 
 #===============================================================================
 # Dialog class------------------
@@ -404,7 +404,10 @@ class Main_dialog_dev(object):
                 
                 
                 #load the layer
-                layer = Constructor(fp, tutorial_name+'_'+data_key)
+                layer = Constructor(fp, 
+                                    #tutorial_name+'_'+data_key
+                                    get_fn(fp) #use the file name as the layer name
+                                    )
                 
                 # Check if the layer is valid before adding it to the project.
                 if not layer.isValid():
@@ -2369,16 +2372,21 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         for _, row in haz_events_df.iterrows():
             layer_match = get_unique_layer_by_name(row['event_name'], layer_type=QgsRasterLayer)
             if layer_match is None:
-                log.warning(f'failed to find matching raster for: {row["event_name"]}')
-            
-            haz_rlay_d[row['event_name']] = layer_match
+                #NOTE: this will fail if TWO layer names are found
+                log.warning(f'failed to find unique matching raster for: {row["event_name"]}')
+            else:
+                haz_rlay_d[row['event_name']] = layer_match
         
         #select these
-        """later, we assert that the selection matches the event meta table widget"""
-        self.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
-        
-        #load the event meta onto the widget
-        self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(haz_events_df)  
+        if len(haz_rlay_d)>0:
+            """later, we assert that the selection matches the event meta table widget"""
+            self.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
+            
+            #load the event meta onto the widget
+            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(haz_events_df)  
+        else:
+            log.warning(f'hazard events failed to load')
+ 
                 
         #=======================================================================
         # set the model suite

@@ -121,10 +121,17 @@ def finv_vlay(finv_fp, tutorial_name):
 @clean_qgis_layer
 def haz_rlay_d(haz_fp_d):
     if haz_fp_d is None:
-        return None
+        raise ValueError('haz_fp_d fixture requires a dictionary of file paths')
+    
     d = {}
     for ari, fp in haz_fp_d.items():
         layer = QgsRasterLayer(fp, get_fn(fp))
+        
+        #check that a layer with the same name does not already exist on the project
+        existing_layer = QgsProject.instance().mapLayersByName(layer.name())
+        if len(existing_layer) > 0:
+            raise IOError(f'A layer with the same name {layer.name()} already exists in the project. ')
+        
         QgsProject.instance().addMapLayer(layer)
         d[layer.name()] = layer
         

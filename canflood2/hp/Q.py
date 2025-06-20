@@ -35,6 +35,10 @@ def get_unique_layer_by_name(layer_name: str, layer_type = None) -> QgsMapLayer:
     
     """
     pprint.pprint(all_layers_d)
+    
+    #print all names
+    for layer_id, layer in all_layers_d.items():
+        print(f"{layer.name()}: ({type(layer)})")
     """ 
     
     # Filter layers based on name and (if provided) layer type.

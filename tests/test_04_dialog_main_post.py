@@ -15,6 +15,8 @@ import pytest, time, sys, inspect, os, shutil, hashlib, copy, pprint
 from pandas.testing import assert_frame_equal
 from PyQt5.Qt import Qt, QApplication
 
+from qgis.core import QgsProject
+
 
 from tests.conftest import (
     conftest_logger,
@@ -39,32 +41,57 @@ from canflood2.hp.qt import set_widget_value
 #===============================================================================
 # TESTS=======--------
 #===============================================================================
-
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name", [
     #'cf1_tutorial_01',
     'cf1_tutorial_02', 
     'cf1_tutorial_02b',
     'cf1_tutorial_02c',
-       #========================================================================
-       # pytest.param('cf1_tutorial_01', 
-       #              marks=pytest.mark.xfail(raises=IOError, reason='this tutorial is not setup yet'),
-       #              )
-       #========================================================================
+ 
                                            ])
 def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_name,
+                                               
+                                               #load layers to project
+                                               #aoi_vlay,dem_rlay,haz_rlay_d, #load to project. _load_projDB_to_ui checks for name match
  
                                            ):
     """test loading tutorial data
     
     NOTE: for major changes, need to rebuild the tutorials/data/projDBs
-        with test_02_dialog_model.overwrite_testdata_plugin """
+        with test_02_dialog_model:
+            overwrite_testdata_plugin=True
+            test_dial_model_20_run()
+            
+         """
     dialog = dialog_main
+    #===========================================================================
+    # load layers to project
+    #===========================================================================
+    """done by pushButton_tut_load"""
+    
+    
+    
+    #===========================================================================
+    # setup the dialog
+    #===========================================================================
     #set the combo box
     set_widget_value(dialog.comboBox_tut_names, 
                      #tutorial_fancy_names_d[tutorial_name],
                      tutorial_lib[tutorial_name]['fancy_name'],)
  
     
+    #===========================================================================
+    # execute
+    #===========================================================================
+    """
+    all_layers_d = QgsProject.instance().mapLayers()
+ 
+    
+    #print all names
+    for layer_id, layer in all_layers_d.items():
+        print(f"{layer.name()}: ({type(layer)})")
+    
+    """
     click(dialog.pushButton_tut_load) #Main_dialog._load_tutorial_to_ui()
     
     #===========================================================================
@@ -233,7 +260,7 @@ def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
     click(dialog.pushButton_R_riskCurve) #Main_dialog._plot_risk_curve()
     
     
-@pytest.mark.dev
+
 @pytest.mark.parametrize(*DM_run_args)
 def test_dial_main_04_exportCSV(dialog_loaded, test_name,
                                 ):

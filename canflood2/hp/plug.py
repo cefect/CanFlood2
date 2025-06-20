@@ -626,6 +626,22 @@ def bind_simpleListWidget(widget, logger=None):
     
     def check_byName(self, names_l):
         self.model().set_checked_byVal(names_l) 
+        
+    def check_byPos(self, pos_l):
+        """
+        Check rows whose numeric position (0-based) is in *pos_l* (list[int]).
+        All other rows are unchecked.
+        """
+        assert all(isinstance(i, int) for i in pos_l), "check_byPos expects ints"
+        model = self.model()
+        pos_set = set(pos_l)
+        for row in range(model.rowCount()):
+            item = model.item(row, 0)
+            if item is None:
+                continue
+            item.setCheckState(Qt.Checked if row in pos_set else Qt.Unchecked)
+        if self.logger:
+            self.logger.debug(f"Checked {len(pos_set)} rows by position")
                 
     def clear_checks(self):
         self.model().set_checked_all()
@@ -639,12 +655,23 @@ def bind_simpleListWidget(widget, logger=None):
         #retrieve a list of strings from the QStandrrdItems
         return [item.text() for item in items]
     
+    def get_all_items(self):
+        """Return list[str] of *every* entry in the model."""
+        model = self.model()
+        return [
+            model.item(row, 0).text()
+            for row in range(model.rowCount())
+            if model.item(row, 0) is not None
+        ]
+    
     # Bind the helper methods to the widget.
     widget.set_data = types.MethodType(set_data, widget)
     widget.get_checked_items = types.MethodType(get_checked_items, widget)
     widget.clear_checks = types.MethodType(clear_checks, widget)
     widget.check_all = types.MethodType(check_all, widget)
     widget.check_byName = types.MethodType(check_byName, widget)
+    widget.get_all_items = types.MethodType(get_all_items, widget)
+    widget.check_byPos = types.MethodType(check_byPos, widget)
     
     return widget
 

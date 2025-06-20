@@ -314,7 +314,7 @@ project_db_schema_d['07_vfunc_data'] = pd.DataFrame({
 impact_max = 1e12
  
 #===============================================================================
-# PLOTTING============
+# PLOTTING--------
 #===============================================================================
 
 rcParams  = {
@@ -339,6 +339,7 @@ plot_style_lib = {
         'hatch':{
             'color':'blue', 'alpha':0.1, 'hatch':None
             },
+        'cmap':'Accent',
         }
     }
  

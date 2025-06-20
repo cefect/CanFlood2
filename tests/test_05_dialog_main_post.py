@@ -11,6 +11,7 @@ main dialog, post model config/run tests
 # IMPORTS----------
 #===============================================================================
 import pytest, time, sys, inspect, os, shutil, hashlib, copy, pprint
+import re
 
 from pandas.testing import assert_frame_equal
 from PyQt5.Qt import Qt, QApplication
@@ -80,6 +81,16 @@ def write_projDB(dialog_main, test_name):
         conftest_logger.info(f'wrote result to \n    {ofp}')
         
 
+#===============================================================================
+# FIXTURES==========
+#===============================================================================
+@pytest.fixture(scope='function')
+def plot_mode_set(dialog_loaded, plot_mode):
+    assert plot_mode in ['aggregate', 'match']
+    
+    set_widget_value(dialog_loaded.comboBox_R_mode, plot_mode)
+    
+    return plot_mode
 
 #===============================================================================
 # TESTS=======--------
@@ -176,6 +187,7 @@ def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_
     click(dialog.pushButton_tut_load)"""
     
 
+ 
 
 #===============================================================================
 # @pytest.mark.parametrize("tutorial_name, projDB_fp", [
@@ -245,7 +257,7 @@ def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize(*DM_save_args)
 def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
                                 ):
@@ -291,14 +303,22 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
 
 
 
-#===============================================================================
-# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-#     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
-#      ])
-#===============================================================================
- 
-@pytest.mark.parametrize(*DM_run_args)
+_03_run_args = ("tutorial_name, projDB_fp", [
+    #pytest.param('cf1_tutorial_01',oj('test_dial_main_03_model_r_5da84d', 'projDB.canflood2'),),  
+    #===========================================================================
+    # pytest.param('cf1_tutorial_02',oj('test_20_run_c1-0-cf1_tuto_13a988', 'projDB.canflood2'),),
+    # pytest.param('cf1_tutorial_02b',oj('test_20_run_c1-0-cf1_tuto_802bc4', 'projDB.canflood2'),),
+    # pytest.param('cf1_tutorial_02c',oj('test_20_run_c1-0-cf1_tuto_6e937d', 'projDB.canflood2'),),
+    #===========================================================================
+    pytest.param('cf1_tutorial_02e',oj('test_dial_main_03_model_r_d58e3c', 'projDB.canflood2'),),
+    ])
+
+
+@pytest.mark.dev
+@pytest.mark.parametrize(*_03_run_args)
+@pytest.mark.parametrize("plot_mode", ['aggregate', 'match'])
 def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
+                                        plot_mode_set,
 
                                 ):
     """run the model"""
@@ -316,7 +336,14 @@ def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
     click(dialog.pushButton_R_populate) #Main_dialog._populate_results_model_selection(
     
     #select teh first model
-    dialog.listView_R_modelSelection.check_byName(['c1_0'])
+    #build an index
+    lv = dialog.listView_R_modelSelection
+
+    
+
+    
+    #dialog.listView_R_modelSelection.check_byName(['c1_0'])
+    lv.check_all()
     
     #===========================================================================
     # execute
@@ -325,7 +352,7 @@ def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
     
     
 
-@pytest.mark.parametrize(*DM_run_args)
+@pytest.mark.parametrize(*_03_run_args)
 def test_dial_main_04_exportCSV(dialog_loaded, test_name,
                                 ):
     """run the model"""

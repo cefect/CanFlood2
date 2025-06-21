@@ -53,6 +53,10 @@ This zip file can then be distributed using a git-hub release (upload the zip fi
 
 - [ ] notify project team
 
+
+
+
+
 ## Developing an Update
 
 the dev branch is where new features and fixes are collected and tested before release. The following should be executed on the dev branch in preparation for pushing to the main branch:
@@ -63,7 +67,7 @@ the dev branch is where new features and fixes are collected and tested before r
 
 - [ ] ensure the version tag is updated on `.\canflood2\__init__.py`
 
-- [ ] update the README.md to summarize any new features for users
+- [ ] update the `.\README.md` to summarize any new features for users
 
 - [ ] similarly update `.\canflood2\metadata.txt
 

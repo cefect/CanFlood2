@@ -150,4 +150,4 @@ The reporting tab of the main dialog provides a set of functions to generate rep
 When plotting multiple models, two modes are available that control how the data is combined in the plots:
 
 - **aggregate**: This mode combines the result values from all models into a single plot, providing a **total risk** figure for the model suite. This is only appropriate when the consequence types match between the selected models (e.g., $ and $)
-- **batch**: This mode plots the results of each model separately, allowing for comparison between models. This is useful when comparing different consequence types (e.g., $ and $/year) or different model configurations.
+- **batch**: This mode plots the results of each model separately, allowing for comparison between models. This is useful when comparing different consequence types (e.g., $ and displaced persons) or different model configurations.

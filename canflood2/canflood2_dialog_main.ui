@@ -1171,8 +1171,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>960</width>
-            <height>595</height>
+            <width>275</width>
+            <height>356</height>
            </rect>
           </property>
           <property name="styleSheet">
@@ -1579,6 +1579,9 @@ QGroupBox {
                      <width>100</width>
                      <height>0</height>
                     </size>
+                   </property>
+                   <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;controls how plot data is combined when multiple models are selected&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                    </property>
                    <item>
                     <property name="text">

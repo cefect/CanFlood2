@@ -160,7 +160,8 @@ _get_MS_args = lambda x: (x, _04_MS_args_d[x]) #return the tutorial_name and pro
 @pytest.mark.parametrize(
     "tutorial_name, projDB_fp, model_keys",
     [
-        #pytest.param(*_get_MS_args('cf1_tutorial_01'), [('c1', 0)]),
+        pytest.param(*_get_MS_args('cf1_tutorial_01'), [('c1', 0)]),
+        pytest.param(*_get_MS_args('cf1_tutorial_02'), [('c1', 0)]),
         pytest.param('cf1_tutorial_02e', _04_MS_args_d['cf1_tutorial_02'], [('c1', 0), ('c2', 0)]),
         ])
 def test_dialog_model_multi_01_configSave(

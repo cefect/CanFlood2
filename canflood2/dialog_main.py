@@ -1771,7 +1771,7 @@ class Main_dialog_reporting(object):
                 """
                 plt.show()
                 """
-                ax.set_title(f'{i}')
+                ax.set_title(model_name)
                 
                 ax.set_xlabel('AEP')
                 

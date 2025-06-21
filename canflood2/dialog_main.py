@@ -28,6 +28,7 @@
 
 import os, sys, re, gc, shutil, webbrowser, copy, hashlib, time
 import sqlite3
+import pprint
 import pandas as pd
 import numpy as np
 
@@ -51,6 +52,8 @@ from qgis.core import (
 #matplotlib
 import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 
 from .hp.plug import (
@@ -374,15 +377,19 @@ class Main_dialog_dev(object):
         #=======================================================================
         """here we load from the tutorial file data onto the QgisProject
         loading the projDB will attempt to popuolate the ui by selecting from loaded layers"""
-        data_d = copy.deepcopy(tutorial_lib[tutorial_name]['data'])
+        tlib = copy.deepcopy(tutorial_lib[tutorial_name]) 
+        data_d = tlib['Main_dialog']['data']
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
         
-        def add_layer(data_key, param_name, Constructor, set_widget=True):           
+        def add_layer(data_key, param_name, Constructor, set_widget=True, fp_raw=None):           
 
             try:
-                if not data_key in data_d:
-                    raise KeyError(f'failed to find data key \'{data_key}\'')
+                if fp_raw is None:
+                    if not data_key in data_d:
+                        raise KeyError(f'failed to find data key \'{data_key}\'')
+                    
+                    fp_raw = data_d[data_key]
                 
                 #create a temporary, unique directory
                 
@@ -397,7 +404,7 @@ class Main_dialog_dev(object):
                 
                 
                 #copy over the data to a temporary directory
-                fp_raw = data_d[data_key]
+                
                 fp = shutil.copyfile(fp_raw, os.path.join(temp_dir, os.path.basename(fp_raw)))
                 assert os.path.exists(fp), f'failed to copy file to temp dir: {fp}'
 
@@ -452,14 +459,20 @@ class Main_dialog_dev(object):
         if 'aoi' in data_d:
             add_layer('aoi', 'aoi_vlay_name', vlayConstructor)
         
-        #FINV
-        add_layer('finv', 'finv_rlay_name', vlayConstructor,
-                  set_widget=False, #finv lives on the Model COnfig dialog
-                  )
+
  
         #DEM
         if 'dem' in data_d:
             add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
+            
+        
+        #FINV
+        for consequence_category, d0 in tlib["models"].items():
+            for modelid, d1 in d0.items(): 
+                add_layer('finv', 'NA', vlayConstructor,
+                          set_widget=False, #finv lives on the Model COnfig dialog
+                          fp_raw=d1["data"].get("finv")
+                          )
         
  
         #=======================================================================
@@ -971,8 +984,9 @@ class Main_dialog_modelSuite(object):
         # precheck
         #=======================================================================
         #check the layout is empty
+        """this is fine?
         if layout.count() > 0:
-            raise AssertionError(f'layout {layout.name()} is not empty')
+            raise AssertionError(f'layout {layout.name()} is not empty')"""
         
         assert model.widget_d is None, 'model already has widgets'
  
@@ -1557,7 +1571,10 @@ class Main_dialog_reporting(object):
         #=======================================================================
         model_index_dx = self.projDB_get_tables(['03_model_suite_index'])[0]
         
-        model_df = model_index_dx.reset_index().loc[:, 
+        #just those w/ results
+        bx = model_index_dx['result_ead'].notna()
+        
+        model_df = model_index_dx[bx].reset_index().loc[:, 
             ['name', 'category_code', 'modelid', 'asset_label', 'consq_label', 'result_ead']]
         
         log.debug(f'filtered model index table to {model_df.shape}')
@@ -1570,27 +1587,41 @@ class Main_dialog_reporting(object):
         data_l = [f'model: {e}' for e in string_s.values.tolist()]"""
         
         #just using the names for now
-        data_l = model_df['name'].to_list()
+        l = list()
+        for i, r in model_df.iterrows():
+            l.append('[%s] %s ~ %s'%(
+                r['name'], 
+                #r['category_code'], r['modelid'], 
+                r['asset_label'], r['consq_label']))
+        #data_l = model_df['name'].to_list()
  
         
-        self.listView_R_modelSelection.set_data(data_l)
+        self.listView_R_modelSelection.set_data(l)
         
         """
+        pprint.pprint(l)
+        model_df.columns
         view(model_df)
         """
+        
+    def _get_model_selection_index(self):
+        """re-indexing by model name to workaround the list widget"""
+        lv = self.listView_R_modelSelection
+        return {re.search(r'\[(.*?)\]', k).group(1):k  for k in lv.get_all_items() if re.search(r'\[(.*?)\]', k)}
         
     def _get_selected_models(self, projDB_fp=None):
         """return the models container for those selected in the listView"""
         
         #retrieve selected names from the widget
-        names_l = self.listView_R_modelSelection.get_checked_items()
+        #names_l = self.listView_R_modelSelection.get_checked_items()
+        index_d = self._get_model_selection_index()
         
         #locate these in the model index
         dx = self.projDB_get_tables(['03_model_suite_index'], projDB_fp=projDB_fp)[0]
         
-        bx = dx['name'].isin(names_l)
+        bx = dx['name'].isin(list(index_d.keys()))
         
-        assert bx.sum()==len(names_l), f'failed to find all selected models'
+        assert bx.sum()==len(index_d), f'failed to find all selected models'
  
         
         selected_models_df = dx[bx].reset_index().loc[:, ['name', 'category_code', 'modelid']]
@@ -1607,7 +1638,7 @@ class Main_dialog_reporting(object):
             d[row['name']] = self.model_index_d[row['category_code']][row['modelid']]
             cnt+=1
             
-        assert cnt==len(names_l), f'failed to load all selected models'
+        assert cnt==len(index_d), f'failed to load all selected models'
         
         return d
             
@@ -1626,6 +1657,8 @@ class Main_dialog_reporting(object):
         # load data
         #=======================================================================
         models_d = self._get_selected_models(projDB_fp=projDB_fp)
+        
+        log.debug(f'plotting risk curve w/ {len(models_d)} models in \'{plot_mode}\' mode')
         
         #impacts summary
         impacts_summary_dx = self._load_model_tables(models_d, 'table_impacts_sum', projDB_fp=projDB_fp)        
@@ -1655,10 +1688,11 @@ class Main_dialog_reporting(object):
         #=======================================================================
         log.info(f'plotting risk curve w/ {plot_mode} mode w/ {len(result_ead_s)} models')
         args = (dx,)
-        skwargs = dict(logger=log)
+        skwargs = dict(logger=log, 
+                       consq_d = params_dx['consq_label'].to_dict()
+                       )
         
-        if plot_mode=='aggregate':
-            raise NotImplementedError(f'plot_mode: {plot_mode}')
+        if plot_mode=='aggregate': 
             fig = self._plot_risk_curve_aggregate(*args, **skwargs)
             
         elif plot_mode=='batch':
@@ -1672,10 +1706,14 @@ class Main_dialog_reporting(object):
         #=======================================================================
         
         self._fig_teardown(fig)
+        """
+        plt.show()
+        """
         
     def _plot_risk_curve_batch(self, dx,logger=None, 
                                line_style_d=None,
                                hatch_style_d=None,
+                               consq_d=None,
                                ):
         """from the suite results, matrix subplot layout for each model"""
         
@@ -1686,6 +1724,9 @@ class Main_dialog_reporting(object):
         log = logger.getChild('_plot_risk_curve_batch')
         log.debug(f'plotting {dx.shape}')
         
+        if consq_d is None:
+            consq_d=dict()
+        
         if line_style_d is None: 
             line_style_d = copy.deepcopy(parameters.plot_style_lib['risk_curve']['line'])
             
@@ -1694,9 +1735,7 @@ class Main_dialog_reporting(object):
         
         #=======================================================================
         # setup figure
-        #=======================================================================
- 
-        
+        #=======================================================================        
         with matplotlib.rc_context(parameters.rcParams):
             fig = plt.figure()
             
@@ -1732,10 +1771,11 @@ class Main_dialog_reporting(object):
                 """
                 plt.show()
                 """
-                ax.set_title(f'{i}')
+                ax.set_title(model_name)
                 
                 ax.set_xlabel('AEP')
-                ax.set_ylabel('EAD')
+                
+                ax.set_ylabel(consq_d.get(model_name, 'impacts'))
                 
                 ax.legend()
                 
@@ -1757,14 +1797,106 @@ class Main_dialog_reporting(object):
  
         
         
-    def _plot_risk_curve_aggregate(self, impacts_summary_dx, result_ead_s):
-        """plot the aggregate risk curve"""
-        log = self.logger.getChild('_plot_risk_curve_aggregate')
-        raise NotImplementedError()
+    def _plot_risk_curve_aggregate(self, dx,logger=None, 
+                               line_style_d=None,
+                               hatch_style_d=None,
+                               cmap=None,
+                               consq_d=None,
+                               ):
+        """from the suite results, single stacked plot of all model results"""
         
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log = logger.getChild('_plot_risk_curve_aggregate')
+        log.debug(f'plotting {dx.shape}')
+        
+        if line_style_d is None: 
+            line_style_d = copy.deepcopy(parameters.plot_style_lib['risk_curve']['line'])
+            
+        if hatch_style_d is None:
+            hatch_style_d = copy.deepcopy(parameters.plot_style_lib['risk_curve']['hatch'])
+            
+        if cmap is None:
+            cmap = cm.get_cmap(parameters.plot_style_lib['risk_curve']['cmap'], len(dx))
+            
+            
+        #=======================================================================
+        # setup figure
+        #=======================================================================        
+        with matplotlib.rc_context(parameters.rcParams):
+            fig = plt.figure()
+            
+            #add title
+            fig.suptitle('Risk Curves')
+            
+            ax = fig.add_subplot(111)
+            
+            #loop through each model and stack the plots
+ 
 
+            # Initialize an array to keep track of the cumulative y-values
+            cumulative_y_ar = np.zeros_like(dx.iloc[0, :].values, dtype=float)
+            previous_y_ar = np.zeros_like(cumulative_y_ar, dtype=float)  # Track previous cumulative values
+            
+            for i, ((model_name, EAD), row) in enumerate(dx.iterrows()):
+                log.debug(f'plotting model \'{model_name}\' w/ EAD {EAD}')
+            
+                #===============================================================
+                # get data
+                #===============================================================
+                x_ar, y_ar = row.index.values.astype(float), row.values
+            
+                # Add the current y-values to the cumulative array
+                cumulative_y_ar += y_ar
+            
+                #===============================================================
+                # add plot assets
+                #===============================================================
+                # Select the color for the current model
+                color = mcolors.to_hex(cmap(i))  # Convert to hex for consistent usage
+            
+                # Add the line for the cumulative values
+                ax.plot(x_ar, cumulative_y_ar, label=model_name,
+                        **{**line_style_d, **{'color': color}})
+            
+                # Add the hatch for the cumulative values
+                ax.fill_between(x_ar, previous_y_ar, cumulative_y_ar, 
+                                **{**hatch_style_d, **{'facecolor': color}})
+            
+                # Update the previous cumulative values
+                previous_y_ar = cumulative_y_ar.copy()
+
+    
+    
+                    
+            #===============================================================
+            # post format
+            #===============================================================
+            ax.set_xlabel('AEP')
+            #ax.set_ylabel('EAD')
+            #ylabel
+            if not consq_d is None:
+                l = list(set(consq_d.values()))
+                if len(l)==1:
+                    ax.set_ylabel(l[0])
+                else:
+                    log.warning(f'multiple consequences found: {len(l)}')
+                    ax.set_ylabel(', '.join(l))
+            else:
+                ax.set_ylabel('impacts')
+                    
+            
+            
+            ax.legend()
+            
+            log.debug(f'finished plotting {dx.shape}')
+            """
+            plt.show()
+            """
         
-        #return fig
+        return fig
     
     
     

@@ -902,33 +902,70 @@ class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory,
             # # index
             #===================================================================
             table_name = '06_vfunc_index'
+            
+            vfunc_index_df.set_index('tag', inplace=True)
+            
             df_old = sql_to_df(table_name, conn)
+            if len(df_old) >0:
+                assert df_old.index.name == 'tag', f'bad index name on {table_name}'
+            
+            bx = vfunc_index_df.index.isin(df_old.index)
             
             if len(df_old)==0:
-                df = vfunc_index_df
+                pass #no need to merge
+ 
             else:
-                raise NotImplementedError(f'need to merge the new vfunc index with the old')
-            
-            set_df(df.set_index('tag'), table_name)
+                
+                log.debug(f'found {bx.sum()}/{len(vfunc_index_df)} duplicates in the new vfunc indes')
+                
+                if bx.all():
+                    log.warning(f'no new vfuncs to add to {table_name}')
+                    vfunc_index_df = df_old
+                else:                    
+                    #marge the two dataframes and drop duplicates
+                    #WARNING: not tested
+                    vfunc_index_df = pd.concat([df_old, vfunc_index_df[~bx]],
+                                               verify_integrity=True)
+ 
+                
+                
+                #raise NotImplementedError(f'need to merge the new vfunc index with the old')
+            if not bx.all():
+                set_df(vfunc_index_df, table_name)
  
             #===================================================================
             # data
             #===================================================================
             
             table_name='07_vfunc_data'
-            df_old = sql_to_df(table_name, conn)
+            dx_old = sql_to_df(table_name, conn)
+            if len(dx_old)>0:
+                dx_old.set_index(['tag', 'exposure'], inplace=True)
+ 
+            bx= vfunc_data_dx.index.isin(dx_old.index)
+            
+            if len(dx_old)==0:
+                pass
+            else:
+                #merge the two dataframes and drop duplicates
+                if bx.all():
+                    log.warning(f'no new vfuncs to add to {table_name}')
+                    vfunc_data_dx = dx_old
+                else:
+                    #merge the two dataframes and drop duplicates
+                    #WARNING: not tested
+                    vfunc_data_dx = pd.concat([dx_old, vfunc_data_dx[~bx]],
+                                              verify_integrity=True)
+                
  
             
-            if len(df_old)==0:
-                df = vfunc_data_dx.reset_index()
-            else:
-                raise NotImplementedError(f'need to merge the new vfunc data with the old')
             
-            set_df(df, table_name)
+            
+            set_df(vfunc_data_dx.reset_index(), table_name)
     
  
             #final consistency check
-            #assert_projDB_conn(conn, check_consistency=True)
+            assert set(vfunc_index_df.index) == set(vfunc_data_dx.index.unique('tag')), f'index mismatch'
  
         
         #=======================================================================

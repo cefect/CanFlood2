@@ -15,8 +15,7 @@ import pprint
 from PyQt5.QtTest import QTest
 from PyQt5.Qt import Qt, QApplication, QPoint
 from PyQt5.QtWidgets import (
-    QAction, QFileDialog, QListWidget, QTableWidgetItem,
-    QComboBox,
+    QAction, QFileDialog, QListWidget, QTableWidgetItem, QComboBox,
     )
 
 from qgis.PyQt import QtWidgets
@@ -37,9 +36,7 @@ from canflood2.core import ModelNotReadyError
 import canflood2.parameters as parameters
 
 from tests.test_01_dialog_main import widget_data_d, dialog_main, dialog_loaded
-#from tests.test_01_dialog_main import dialog_loaded as dialog_main_loaded
- 
-from tests.test_01_dialog_main import oj as oj_main
+#from tests.test_01_dialog_main import oj as oj_main
 from tests.test_01_dialog_main import _04_MS_args, _04_MS_args_d
 #need to import the fixture from dialog_main
 
@@ -56,17 +53,19 @@ from .conftest import (
 test_data_dir = os.path.join(conftest.test_data_dir, 'dialog_model')
 os.makedirs(test_data_dir, exist_ok=True)
 
+
+#===============================================================================
+# PARAMS--------
+#===============================================================================
+overwrite_testdata=True #for writing tests
+interactive = False
 #===============================================================================
 # HELPERS----------
 #===============================================================================
-#for updating the projDB in the plugin tutorial data loader
-#see test_dial_model_05_run
-overwrite_testdata_plugin=True 
+ 
 
 
 
-
-overwrite_testdata=True #for writing tests
 def write_projDB(dialog_model, test_name): 
     projDB_fp = dialog_model.parent.get_projDB_fp()
     ofp = oj_out(test_name, projDB_fp)
@@ -96,7 +95,7 @@ def oj_out(test_name, result):
 #===============================================================================
 # dialog_model setup
 #===============================================================================
-interactive = False
+
 @pytest.fixture
 def dialog_model(
         dialog_loaded, #main dialog. loads layers (except finv) and projDB
@@ -113,8 +112,7 @@ def dialog_model(
         #Asset Inventory function group test data
          
         
-        #control
-        
+        #control fixtures        
         qtbot, monkeypatch,
         #backend init
         qgis_processing
@@ -748,17 +746,20 @@ def test_dial_model_20_run(dialog_model, model,
     write_projDB(dialog_model, test_name)
     
     #write to plugin test
-    if overwrite_testdata_plugin:
-        from canflood2.tutorials.tutorial_data_builder import test_data_dir as plugin_test_data_dir
-        
-        ofp = os.path.join(plugin_test_data_dir, 'projDBs', tutorial_name+'.canflood2')
-        #assert os.path.exists(ofp), f'expected to find a projDB file at \n    {ofp}'
-        
-        #copy over the .sqlite file
-        projDB_fp = dialog_model.parent.get_projDB_fp()
-        shutil.copyfile(projDB_fp, ofp) 
-        
-        dialog_model.logger.info(f'wrote projDB_fp to \n    {ofp}')
+    #moved this to test_05
+    #===========================================================================
+    # if overwrite_testdata_plugin:
+    #     from canflood2.tutorials.tutorial_data_builder import test_data_dir as plugin_test_data_dir
+    #     
+    #     ofp = os.path.join(plugin_test_data_dir, 'projDBs', tutorial_name+'.canflood2')
+    #     #assert os.path.exists(ofp), f'expected to find a projDB file at \n    {ofp}'
+    #     
+    #     #copy over the .sqlite file
+    #     projDB_fp = dialog_model.parent.get_projDB_fp()
+    #     shutil.copyfile(projDB_fp, ofp) 
+    #     
+    #     dialog_model.logger.info(f'wrote projDB_fp to \n    {ofp}')
+    #===========================================================================
         
         
     
@@ -766,9 +767,11 @@ def test_dial_model_20_run(dialog_model, model,
 
 _20_run_args = ("tutorial_name, projDB_fp", [
     pytest.param('cf1_tutorial_01',oj('test_20_run_c1-0-cf1_tuto_392609', 'projDB.canflood2'),),  
-    pytest.param('cf1_tutorial_02',oj('test_20_run_c1-0-cf1_tuto_13a988', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02b',oj('test_20_run_c1-0-cf1_tuto_802bc4', 'projDB.canflood2'),),
-    pytest.param('cf1_tutorial_02c',oj('test_20_run_c1-0-cf1_tuto_6e937d', 'projDB.canflood2'),),
+    #===========================================================================
+    # pytest.param('cf1_tutorial_02',oj('test_20_run_c1-0-cf1_tuto_13a988', 'projDB.canflood2'),),
+    # pytest.param('cf1_tutorial_02b',oj('test_20_run_c1-0-cf1_tuto_802bc4', 'projDB.canflood2'),),
+    # pytest.param('cf1_tutorial_02c',oj('test_20_run_c1-0-cf1_tuto_6e937d', 'projDB.canflood2'),),
+    #===========================================================================
     pytest.param('cf1_tutorial_02d',oj('test_20_run_c1-0-cf1_tuto_45abf7', 'projDB.canflood2'),),
     ])
 

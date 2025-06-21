@@ -31,12 +31,16 @@ test_data_dir = os.path.join(conftest.test_data_dir, 'core')
 os.makedirs(test_data_dir, exist_ok=True)
 
 
-
 #===============================================================================
-# helpers
+# PARAMS------
 #===============================================================================
-
 overwrite_testdata=False
+
+#===============================================================================
+# helpers------
+#===============================================================================
+
+
 def write_projDB(model, test_name):
  
     projDB_fp = model.parent.get_projDB_fp()

@@ -142,3 +142,12 @@ A more complex model might incorporate a separate function to model the loss of 
 In this scenario, the model would have two function groups, one for the ground floor and one for the basement.
 Using this feature, a complex multi-use multi-story building can be modelled as a single asset with multiple function groups, each representing a different floor or use type (e.g., residential, commercial, etc.).
 These additional function groups are configured on the **Advanced Tab** of the **Asset Inventory** toolbox.
+
+
+Reporting
+--------------------------
+The reporting tab of the main dialog provides a set of functions to generate reports and plots from the results tables stored in the project database.
+When plotting multiple models, two modes are available that control how the data is combined in the plots:
+
+- **aggregate**: This mode combines the result values from all models into a single plot, providing a **total risk** figure for the model suite. This is only appropriate when the consequence types match between the selected models (e.g., $ and $)
+- **batch**: This mode plots the results of each model separately, allowing for comparison between models. This is useful when comparing different consequence types (e.g., $ and displaced persons) or different model configurations.

@@ -89,7 +89,7 @@ QLabel {
         </font>
        </property>
        <property name="text">
-        <string>Model:</string>
+        <string>id:</string>
        </property>
       </widget>
      </item>
@@ -109,7 +109,7 @@ QLabel {
        </property>
        <property name="maximumSize">
         <size>
-         <width>20</width>
+         <width>30</width>
          <height>16777215</height>
         </size>
        </property>
@@ -141,20 +141,20 @@ QLabel {
      <item>
       <widget class="QLabel" name="label_mod_consq">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>70</width>
+         <width>120</width>
          <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>70</width>
+         <width>200</width>
          <height>16777215</height>
         </size>
        </property>
@@ -162,6 +162,19 @@ QLabel {
         <string/>
        </property>
       </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
      </item>
      <item>
       <widget class="QLabel" name="label_13">
@@ -186,20 +199,20 @@ QLabel {
      <item>
       <widget class="QLabel" name="label_mod_asset">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>70</width>
+         <width>120</width>
          <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>70</width>
+         <width>150</width>
          <height>16777215</height>
         </size>
        </property>
@@ -288,7 +301,7 @@ QLabel {
       </size>
      </property>
      <property name="text">
-      <string>Configure</string>
+      <string>Config</string>
      </property>
     </widget>
    </item>
@@ -308,7 +321,7 @@ QLabel {
      </property>
      <property name="maximumSize">
       <size>
-       <width>50</width>
+       <width>100</width>
        <height>16777215</height>
       </size>
      </property>

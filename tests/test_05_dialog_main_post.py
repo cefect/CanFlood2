@@ -11,6 +11,7 @@ main dialog, post model config/run tests
 # IMPORTS----------
 #===============================================================================
 import pytest, time, sys, inspect, os, shutil, hashlib, copy, pprint
+import re
 
 from pandas.testing import assert_frame_equal
 from PyQt5.Qt import Qt, QApplication
@@ -18,6 +19,7 @@ from PyQt5.Qt import Qt, QApplication
 from qgis.core import QgsProject
 
 
+import tests.conftest as conftest
 from tests.conftest import (
     conftest_logger,
     result_write_filename_prep, click
@@ -26,7 +28,7 @@ from tests.conftest import (
 from tests.test_01_dialog_main import dialog_main, dialog_loaded #get the main dialog tests
 from tests.test_02_dialog_model import oj as oj_model #get the core
 from tests.test_02_dialog_model import _20_run_args as DM_run_args 
-from tests.test_02_dialog_model import _10_save_args as DM_save_args
+from tests.test_04_dialog_model_multi import _01_save_args as DM_save_args
 
 
 from canflood2.assertions import assert_projDB_fp, assert_hazDB_fp, assert_series_match
@@ -37,11 +39,63 @@ from canflood2.tutorials.tutorial_data_builder import tutorial_fancy_names_d, tu
 from canflood2.hp.qt import set_widget_value
 
 
+#===============================================================================
+# params-----
+#===============================================================================
+interactive = False #interactive dialogs for tests
+overwrite_testdata_plugin=True 
+overwrite_testdata=True #write test result projDB
+
+
+#===============================================================================
+# DATA--------
+#===============================================================================
+test_data_dir = os.path.join(conftest.test_data_dir, 'dialog_main_post')
+os.makedirs(test_data_dir, exist_ok=True)
+
+#===============================================================================
+# HELPERS-----
+#===============================================================================
+get_fn = lambda x: os.path.splitext(os.path.basename(x))[0]
+
+def oj(*args):
+    return os.path.join(test_data_dir, *args)
+
+gfp = lambda x:oj(x, 'projDB.canflood2')
+
+def oj_out(test_name, result):
+    return oj(result_write_filename_prep(test_name, clear_str='dialog_model_multi_'), os.path.basename(result))
+ 
+
+def write_projDB(dialog_main, test_name): 
+    projDB_fp = dialog_main.get_projDB_fp()
+    ofp = oj_out(test_name, projDB_fp)
+ 
+    if overwrite_testdata:
+        print(f'\n\nwriting projDB to \n    {test_name}\n{"="*80}')
+        os.makedirs(os.path.dirname(ofp), exist_ok=True)
+        
+        #copy over the .sqlite file
+        shutil.copyfile(projDB_fp, ofp) 
+ 
+        conftest_logger.info(f'wrote result to \n    {ofp}')
+        
+
+#===============================================================================
+# FIXTURES==========
+#===============================================================================
+@pytest.fixture(scope='function')
+def plot_mode_set(dialog_loaded, plot_mode):
+    assert plot_mode in ['aggregate', 'batch']
+    
+    set_widget_value(dialog_loaded.comboBox_R_mode, plot_mode)
+    
+    return plot_mode
 
 #===============================================================================
 # TESTS=======--------
 #===============================================================================
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name", [
     #'cf1_tutorial_01',
     'cf1_tutorial_02', 
@@ -99,7 +153,8 @@ def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_
     #===========================================================================
     print(f'\n\n{"=" * 80}\nchecking loaded data\n{"=" * 80}\n\n')
     
-    tut_data = tutorial_lib[tutorial_name]['data']
+    _get_MD_lib = lambda tut_name: copy.deepcopy(tutorial_lib[tut_name]['Main_dialog'])
+    tut_data = _get_MD_lib(tutorial_name)['data']
     """
     pprint.pprint(tut_data)
     """
@@ -132,6 +187,7 @@ def test_dial_main_dev_01_W_load_tutorial_data(dialog_main, tutorial_name, test_
     click(dialog.pushButton_tut_load)"""
     
 
+ 
 
 #===============================================================================
 # @pytest.mark.parametrize("tutorial_name, projDB_fp", [
@@ -201,17 +257,15 @@ def test_dial_main_03_model_run(dialog_loaded, tutorial_name, test_name,
 
 
 
-#===============================================================================
-# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-#     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
-#      ])
-#===============================================================================
 
 @pytest.mark.parametrize(*DM_save_args)
 def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
                                 ):
-    """test the run model button on the model widget 
+    """test the run all button
     (not to be confused with the model config dialog)
+    
+    
+    using this as an endpoint for the dialog tutorial data loader
     """
     #===========================================================================
     # setup
@@ -224,17 +278,47 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
     # execute
     #===========================================================================
     click(dialog.pushButton_MS_runAll)
+    
+    
+    #===========================================================================
+    # write---
+    #===========================================================================
+    write_projDB(dialog, test_name)
+    
+    if overwrite_testdata_plugin:
+        from canflood2.tutorials.tutorial_data_builder import test_data_dir as plugin_test_data_dir
+        
+        ofp = os.path.join(plugin_test_data_dir, 'projDBs', tutorial_name+'.canflood2')
+        #assert os.path.exists(ofp), f'expected to find a projDB file at \n    {ofp}'
+        if os.path.exists(ofp):
+            dialog.logger.warning(f'projDB exists... overwriting')
+            os.remove(ofp)
+        
+        #copy over the .sqlite file
+        projDB_fp = dialog.get_projDB_fp()
+        shutil.copyfile(projDB_fp, ofp)        
+        dialog.logger.info(f'wrote projDB_fp to \n    {ofp}')
+    
+    
 
 
 
-#===============================================================================
-# @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-#     ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_cdc677', 'projDB.canflood2'))
-#      ])
-#===============================================================================
- 
-@pytest.mark.parametrize(*DM_run_args)
+_03_run_args = ("tutorial_name, projDB_fp", [
+    pytest.param('cf1_tutorial_01',oj('test_dial_main_03_model_r_5da84d', 'projDB.canflood2'),),  
+    #===========================================================================
+    # pytest.param('cf1_tutorial_02',oj('test_20_run_c1-0-cf1_tuto_13a988', 'projDB.canflood2'),),
+    # pytest.param('cf1_tutorial_02b',oj('test_20_run_c1-0-cf1_tuto_802bc4', 'projDB.canflood2'),),
+    # pytest.param('cf1_tutorial_02c',oj('test_20_run_c1-0-cf1_tuto_6e937d', 'projDB.canflood2'),),
+    #===========================================================================
+    pytest.param('cf1_tutorial_02e',oj('test_dial_main_03_model_r_d58e3c', 'projDB.canflood2'),),
+    ])
+
+
+@pytest.mark.dev
+@pytest.mark.parametrize(*_03_run_args)
+@pytest.mark.parametrize("plot_mode", ['aggregate', 'batch'])
 def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
+                                        plot_mode_set,
 
                                 ):
     """run the model"""
@@ -252,7 +336,14 @@ def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
     click(dialog.pushButton_R_populate) #Main_dialog._populate_results_model_selection(
     
     #select teh first model
-    dialog.listView_R_modelSelection.check_byName(['c1_0'])
+    #build an index
+    lv = dialog.listView_R_modelSelection
+
+    
+
+    
+    #dialog.listView_R_modelSelection.check_byName(['c1_0'])
+    lv.check_all()
     
     #===========================================================================
     # execute
@@ -261,7 +352,7 @@ def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
     
     
 
-@pytest.mark.parametrize(*DM_run_args)
+@pytest.mark.parametrize(*_03_run_args)
 def test_dial_main_04_exportCSV(dialog_loaded, test_name,
                                 ):
     """run the model"""

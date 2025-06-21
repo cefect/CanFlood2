@@ -11,7 +11,7 @@ version=2.1.0
 author=Seth Bryant
 email=bryant.seth@ceflood.com
 
-about=Open source flood risk modelling toolbox for Canada v2
+about=CanFlood v2 is an object-based, transparent, open-source flood risk calculation tool built for Canada's Federal Guidelines for Flood Risk Assessment. This tool is designed to help you build, run, and evaluate a set of flood risk models from data you provide for your study area. 
 
 tracker=https://github.com/cefect/CanFlood2/issues
 repository=https://github.com/cefect/CanFlood2
@@ -21,7 +21,7 @@ repository=https://github.com/cefect/CanFlood2
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-# changelog= 2.1.0 [2025-06] alpha release
+changelog= 2.1.0 [2025-06] alpha release
 
 # Tags are comma separated with spaces allowed
 tags=flood risk, dikes, levees, annualized loss, flood, model

@@ -134,7 +134,7 @@ project_db_schema_d['02_project_parameters'] = pd.concat(
 #===============================================================================
 #03_model_suite_index
 """TODO: switch this to use a schema index"""
-index = pd.MultiIndex.from_arrays(
+ms_MultiIndex = pd.MultiIndex.from_arrays(
     [pd.Series([], dtype='str'), pd.Series([], dtype='int64')], 
     names=['category_code', 'modelid']
 )
@@ -146,7 +146,7 @@ project_db_schema_d['03_model_suite_index'] = pd.DataFrame({
                 'asset_label': pd.Series(dtype='str'),
                 'consq_label': pd.Series(dtype='str'),
                 'result_ead': pd.Series(dtype='float')
-                            },index=index)
+                            },index=ms_MultiIndex)
                             #.set_index(['modelid', 'category_code'] #doesnt seem like sqlite can handle multindex
                                         
 
@@ -160,14 +160,15 @@ project_db_schema_d['03_model_suite_index'].index.dtypes
 finv_index = pd.Index([], name='indexField', dtype='int64')
 finv_multiIndex = pd.MultiIndex.from_arrays(
     [pd.Series([], dtype='int64'), pd.Series([], dtype='int64')], 
-    names=['indexField', 'nestID']
+    names=['indexField', 'fg_index']
 )
 impacts_multiIndex = pd.MultiIndex.from_arrays(
     [pd.Series([], dtype='int64'), pd.Series([], dtype='int64'), pd.Series([], dtype='str')], 
-    names=['indexField', 'nestID', 'event_names']
+    names=['indexField', 'fg_index', 'event_names']
 )
 
 #these will be prefixed by the model name
+ 
 modelTable_params_d = {
     'table_parameters': {
         'df': pd.read_csv(
@@ -176,33 +177,34 @@ modelTable_params_d = {
         ).drop('note', axis=1),
         'phase': 'compile',
         'allowed': {
-                    'ead_highPtail':['extrapolate', 'none', 'user'],
-                    'ead_lowPtail':['flat', 'extrapolate', 'none', 'user'],    
-                    },
+            'ead_highPtail': ['extrapolate', 'none', 'user'],
+            'ead_lowPtail': ['flat', 'extrapolate', 'none', 'user'],
+        },
+        'required': True
     },
     'table_finv': {
         'df': pd.DataFrame({
-            #'nestID': pd.Series(dtype=int),
-            #'indexField': pd.Series(dtype=int),
             'scale': pd.Series(dtype=float),
             'elev': pd.Series(dtype=float),
-            'tag': pd.Series(dtype=str),
-            'cap': pd.Series(dtype=float)
+            'tag': pd.Series(dtype=str),  # optional
+            'cap': pd.Series(dtype=float)  # optional
         },
             index=finv_multiIndex),
         'phase': 'compile',
- 
+        'required': True
     },
     'table_expos': {
         'df': pd.DataFrame(index=finv_index),
-        'phase': 'compile'
+        'phase': 'compile',
+        'required': True
     },
     'table_gels': {
         'df': pd.DataFrame(
             {'dem_samples': pd.Series(dtype='float')},
             index=finv_index
         ),
-        'phase': 'compile'
+        'phase': 'compile',
+        'required': True
     },
     'table_impacts': {
         'df': pd.DataFrame({
@@ -210,39 +212,39 @@ modelTable_params_d = {
             'impact': pd.Series(dtype=float),
             'impact_scaled': pd.Series(dtype=float),
             'impact_capped': pd.Series(dtype=float),
-            #'event_names': pd.Series(dtype=str), #index
-            #'nestID': pd.Series(dtype=int), #index
-            #'indexField': pd.Series(dtype=int) #index
         },
-        index=impacts_multiIndex,
+            index=impacts_multiIndex,
         ),
-        'phase': 'run'
+        'phase': 'run',
+        'required': True
     },
     'table_impacts_prob': {
-        'df':pd.DataFrame(
+        'df': pd.DataFrame(
             index=finv_index,
-            ),
+        ),
         'phase': 'run',
-        },
-    
+        'required': True
+    },
     'table_ead': {
         'df': pd.DataFrame({
             'ead': pd.Series(dtype=float),
-            },
-            index=finv_index,
-            ),
-        'phase': 'run',
         },
-    
-    'table_impacts_sum': { #used for the risk model
+            index=finv_index,
+        ),
+        'phase': 'run',
+        'required': True
+    },
+    'table_impacts_sum': {
         'df': pd.DataFrame({
             'AEP': pd.Series(dtype=float),
             'impacts': pd.Series(dtype=float),
-            },
-            ),
+        }),
         'phase': 'run',
-        },
-    }
+        'required': True
+    },
+}
+
+ 
  
 #get an extract of just the dataframes
 projDB_schema_modelTables_d = {k: v['df'] for k, v in modelTable_params_d.items()}
@@ -312,7 +314,7 @@ project_db_schema_d['07_vfunc_data'] = pd.DataFrame({
 impact_max = 1e12
  
 #===============================================================================
-# PLOTTING============
+# PLOTTING--------
 #===============================================================================
 
 rcParams  = {
@@ -337,6 +339,7 @@ plot_style_lib = {
         'hatch':{
             'color':'blue', 'alpha':0.1, 'hatch':None
             },
+        'cmap':'Accent',
         }
     }
  

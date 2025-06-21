@@ -21,7 +21,9 @@ from .conftest import (
 
 from canflood2.parameters import modelTable_params_d
 
-modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed']) 
+modelTable_params_allowed_d = copy.copy(modelTable_params_d['table_parameters']['allowed'])
+
+from .test_02_dialog_model import _10_save_args as DM_save_args
 #===============================================================================
 # DATA--------
 #===============================================================================
@@ -29,12 +31,16 @@ test_data_dir = os.path.join(conftest.test_data_dir, 'core')
 os.makedirs(test_data_dir, exist_ok=True)
 
 
-
 #===============================================================================
-# helpers
+# PARAMS------
 #===============================================================================
-
 overwrite_testdata=False
+
+#===============================================================================
+# helpers------
+#===============================================================================
+
+
 def write_projDB(model, test_name):
  
     projDB_fp = model.parent.get_projDB_fp()
@@ -113,17 +119,18 @@ def model(dialog,
 # tests---
 #===============================================================================
 
-@pytest.mark.parametrize("projDB_fp", [oj_dModel('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2')])
-def test_core_01_init(model):
+#@pytest.mark.parametrize("projDB_fp", [oj_dModel('test_04_save_c1-0-cf1_tut_07e00a', 'projDB.canflood2')])
+@pytest.mark.parametrize(*DM_save_args)
+def test_core_01_init(model,
+                      tutorial_name, #ddummy for args
+                      ):
     """simple init test"""
     assert isinstance(model.parent, Main_dialog_projDB) 
     print(model.get_index_d())
 
 
 
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj_dModel('test_04_compile_c1-0-cf1__1d9571', 'projDB.canflood2'))
-])
+@pytest.mark.parametrize(*DM_save_args)
 def test_core_02_table_impacts_to_db(model,
                      tutorial_name, #dont really need this
                      test_name,
@@ -134,12 +141,14 @@ def test_core_02_table_impacts_to_db(model,
     
     write_projDB(model, test_name)
     
-    
-    
+
+ 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_dc5192', 'projDB.canflood2'))
-])
+    ('cf1_tutorial_01', oj('02_table_impacts_to_db_cf_762fde', 'projDB.canflood2')),
+    ('cf1_tutorial_02', oj('02_table_impacts_to_db_cf_b1d2b5', 'projDB.canflood2')),
+    ('cf1_tutorial_02d', oj('02_table_impacts_to_db_cf_f6190b', 'projDB.canflood2')),
+     ])
 def test_core_03_table_impacts_prob_to_db(model,
                      tutorial_name, #dont really need this
                      test_name,
@@ -160,7 +169,9 @@ def test_core_03_table_impacts_prob_to_db(model,
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('03_table_impacts_prob_to__543fe7', 'projDB.canflood2'))
+    ('cf1_tutorial_01', oj('03_table_impacts_prob_to__6264a6', 'projDB.canflood2')),
+    ('cf1_tutorial_02', oj('03_table_impacts_prob_to__2ca9c8', 'projDB.canflood2')),
+    ('cf1_tutorial_02d', oj('03_table_impacts_prob_to__3f9cf6', 'projDB.canflood2')),
 ]
 )
 def test_core_04_table_ead_to_db(model,
@@ -182,9 +193,11 @@ def test_core_04_table_ead_to_db(model,
 
 
 
-@pytest.mark.dev 
+@pytest.mark.dev
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('04_table_ead_to_db_cf1_tu_1d95fe', 'projDB.canflood2'))
+    ('cf1_tutorial_01', oj('04_table_ead_to_db_cf1_tu_266f37', 'projDB.canflood2')),
+    #('cf1_tutorial_02', oj('04_table_ead_to_db_cf1_tu_72b058', 'projDB.canflood2')),
+    #('cf1_tutorial_02d', oj('04_table_ead_to_db_cf1_tu_116847', 'projDB.canflood2')),
 ])
 @pytest.mark.parametrize("ead_lowPtail, ead_highPtail, ead_lowPtail_user, ead_highPtail_user", [
     (None, None, None, None), #pull from parameters
@@ -207,4 +220,4 @@ def test_core_05_set_ead_total(model,
                          ead_lowPtail_user=ead_lowPtail_user, ead_highPtail_user=ead_highPtail_user,
                          )
     
-    write_projDB(model, test_name)
+    #write_projDB(model, test_name)

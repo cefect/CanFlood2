@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>979</width>
+    <width>1000</width>
     <height>1000</height>
    </rect>
   </property>
-  <property name="maximumSize">
+  <property name="minimumSize">
    <size>
-    <width>1000</width>
-    <height>1000</height>
+    <width>500</width>
+    <height>500</height>
    </size>
   </property>
   <property name="font">
@@ -30,17 +30,30 @@
 } 
 
 QDialog {
-    background-color: #99B7B3;
+    background-color: #DFECEB;
 }
 
 QPushButton {
-  background-color: #2B403F;
-  color: white;
+    background-color: #2B403F;          /* deep green-teal */
+    color: white;
+
+    /* “Pop-out” frame */
+    border: 2px solid #4E6F6D;          /* a shade lighter than the fill */
+    border-radius: 4px;                 /* gentle rounding */
+    padding: 4px 8px;                   /* keeps text from kissing the frame */
 }
 
-QPushButton:disabled { 
-    background-color: #99B7B3; /* Example: Gray background for disabled state */
-	color:#DDDDDD
+QPushButton:pressed {
+    background-color: #1E2F2F;                    /* darker shade */
+    border: 2px inset #3A5554;                    /* subtle inset look */
+    padding-top: 5px; padding-left: 11px;         /* shift content down/right slightly */
+    padding-bottom: 3px; padding-right: 9px;      /* keep overall size the same */
+}
+
+QPushButton:disabled {
+    background-color: rgba(43, 64, 63, 0.50);   /* same hue, 50 % opacity  */
+    color: rgba(255, 255, 255, 0.60);           /* soft-faded text          */
+    border: 2px solid rgba(78, 111, 109, 0.50); /* outline still visible    */
 }
 
  
@@ -70,24 +83,52 @@ QMainWindow {
 
  
  
+/* ----------------------------------------
+   Generic tab look
+   ---------------------------------------- */
 QTabBar::tab {
-    background-color: #2B403F;
-    color: white;
-    border: 1px solid gray; 
-    box-sizing: border-box;
-    padding: 5px;
-    margin-bottom: 2px; /* slight separation from the tab bar */
+    background: #DFECEB;                 /* unselected fill  */
+    color: black;                        /* legible on light bg */
+
+    border: 1px solid #99B7B3;           /* subtle outline   */
+    border-bottom: 1px solid #799793;    /* slight contrast  */
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+
+    min-height: 24px;                    /* tweak as needed  */
+    padding: 4px 12px;                   /* top/bottom  left/right */
 }
 
+/* ----------------------------------------
+   Hover (optional, just a small cue)
+   ---------------------------------------- */
+QTabBar::tab:hover {
+    background: #CFE4E2;                 /* a hint darker    */
+}
+
+/* ----------------------------------------
+   Selected (popped-out) tab
+   ---------------------------------------- */
 QTabBar::tab:selected {
-    background-color: #507A78; 
-    color: white;
-    border: 1px solid gray; /* thicker border for emphasis */
-    border-bottom: none;     /* remove the bottom border to simulate being raised */
-    margin-bottom: 0;        /* pull the selected tab closer to the tab bar */
-    /* Optionally add border-radius to differentiate the shape */
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+    background: #99B7B3;                 /* requested colour */
+    color: black;                        /* better contrast  */
+
+    border: 1px solid #4E6F6D;           /* stronger outline */
+    border-bottom: none;                 /* merge with page  */
+
+    /* Pull it 1 px down so its bottom edge sits flush with
+       the QTabWidget pane, giving a raised effect */
+    margin-bottom: -1px;
+}
+
+/* ----------------------------------------
+   Frame around the tab-pages (optional but
+   often necessary so the gap under the
+   selected tab isn’t obvious)
+   ---------------------------------------- */
+QTabWidget::pane {
+    border: 1px solid #4E6F6D;
+    top: -1px;                           /* pull up to hide seam */
 }
 
  
@@ -126,7 +167,7 @@ p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:14px; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt; Welcome to CanFlood v2!    &lt;/span&gt;&lt;/p&gt;
 &lt;p align=&quot;center&quot; style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;    &lt;/span&gt;&lt;img src=&quot;:/canflood2/img/logo_20210510_22x22.png&quot; /&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;    &lt;/span&gt;&lt;/p&gt;
-&lt;p align=&quot;center&quot; style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:26pt; font-weight:600; color:#ff0000;&quot;&gt;PROTOTYPE&lt;/span&gt;&lt;/p&gt;
+&lt;p align=&quot;center&quot; style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:18pt; color:#ff0000;&quot;&gt;Alpha Version&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:12pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;CanFlood v2 is an object-based, transparent, open-source flood risk calculation tool built for Canada's Federal Guidelines for Flood Risk Assessment.&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;This tool is designed to help you build, run, and evaluate a set of flood risk models from data you provide for your study area. &lt;/span&gt;&lt;/p&gt;
@@ -135,14 +176,14 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;The tool assumes you have a basic understanding of flood risk modelling as described in the Federal Guidelines for Flood Risk Assessment. For more information, see the &lt;/span&gt;&lt;a href=&quot;https://canflood2.readthedocs.io/en/latest/&quot;&gt;&lt;span style=&quot; font-size:12pt; text-decoration: underline; color:#0000ff;&quot;&gt;documentation&lt;/span&gt;&lt;/a&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt; (or click the help button).  &lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;    &lt;br /&gt;Data required for CanFlood:&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;- &lt;/span&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Asset Inventory(s)&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;: a vector layer describing each of the asset types in your risk model suite&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;- &lt;/span&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Hazard Event Water Level Grids&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;: a set of rasters describing the exposure (typically maximum flood water surface elevation) for each of your hazard events.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;- &lt;/span&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Hazard Event Water Grids&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;: a set of rasters describing the exposure (typically maximum flood water surface elevation) for each of your hazard events.&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;- &lt;/span&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Hazard Event Probabilities&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;: the probability associated with each of the hazard events.&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:12pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;Optional data:&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:12pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;- &lt;/span&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;DEM&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;: a raster of elevations for your study area for models with relative heights.&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;- &lt;/span&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Study Area&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;: a polygon of your study area used for clipping asset data [NOT IMPLEMENTED]&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;- &lt;/span&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Vulnerability Functions&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;: for depth-dependent models (exposure level 2), a set of CanFlood format vulnerability functions are required (matching the 'tag' values of your asset inventory)&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;- &lt;/span&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Vulnerability Functions&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;: for depth-dependent models, a set of CanFlood format vulnerability functions are required (matching the 'tag' values of your asset inventory)&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:12pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;     &lt;br /&gt;  &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
@@ -223,10 +264,16 @@ p, li { white-space: pre-wrap; }
             <item>
              <widget class="QPushButton" name="pushButton_tut_load">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>0</height>
+               </size>
               </property>
               <property name="text">
                <string>Load</string>
@@ -285,6 +332,18 @@ p, li { white-space: pre-wrap; }
             </item>
             <item>
              <widget class="QPushButton" name="pushButton_PS_projDB_new">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
                <string>New</string>
               </property>
@@ -295,6 +354,18 @@ p, li { white-space: pre-wrap; }
               <property name="enabled">
                <bool>true</bool>
               </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="text">
                <string>Load</string>
               </property>
@@ -304,6 +375,18 @@ p, li { white-space: pre-wrap; }
              <widget class="QPushButton" name="pushButton_PS_projDB_export">
               <property name="enabled">
                <bool>false</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>0</height>
+               </size>
               </property>
               <property name="text">
                <string>Export</string>
@@ -718,7 +801,7 @@ p, li { white-space: pre-wrap; }
           </size>
          </property>
          <property name="title">
-          <string>Hazard Event Water Level Grids</string>
+          <string>Hazard Event Water Grids</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_20">
           <item>
@@ -830,6 +913,12 @@ p, li { white-space: pre-wrap; }
          <layout class="QHBoxLayout" name="horizontalLayout_6">
           <item>
            <widget class="QPushButton" name="pushButton_HZ_hrlay_load">
+            <property name="minimumSize">
+             <size>
+              <width>140</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>↓ Populate Table ↓</string>
             </property>
@@ -839,6 +928,12 @@ p, li { white-space: pre-wrap; }
            <widget class="QPushButton" name="pushButton_HZ_populate_clear">
             <property name="enabled">
              <bool>true</bool>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>140</width>
+              <height>0</height>
+             </size>
             </property>
             <property name="text">
              <string>Clear</string>
@@ -902,7 +997,7 @@ p, li { white-space: pre-wrap; }
             <item>
              <widget class="QRadioButton" name="radioButton_ELaep">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1013,6 +1108,12 @@ p, li { white-space: pre-wrap; }
          <layout class="QHBoxLayout" name="horizontalLayout_10">
           <item>
            <widget class="QPushButton" name="pushButton_MS_clear">
+            <property name="minimumSize">
+             <size>
+              <width>130</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Clear</string>
             </property>
@@ -1020,15 +1121,27 @@ p, li { white-space: pre-wrap; }
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_MS_createTemplates">
+            <property name="minimumSize">
+             <size>
+              <width>130</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Create Templates</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_18">
+           <widget class="QPushButton" name="pushButton_MS_runAll">
             <property name="enabled">
              <bool>false</bool>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>130</width>
+              <height>0</height>
+             </size>
             </property>
             <property name="text">
              <string>Run All</string>
@@ -1058,8 +1171,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>941</width>
-            <height>618</height>
+            <width>275</width>
+            <height>356</height>
            </rect>
           </property>
           <property name="styleSheet">
@@ -1247,6 +1360,12 @@ QGroupBox {
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_R_browse">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Browse</string>
             </property>
@@ -1254,6 +1373,12 @@ QGroupBox {
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_R_open">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Open</string>
             </property>
@@ -1455,6 +1580,9 @@ QGroupBox {
                      <height>0</height>
                     </size>
                    </property>
+                   <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;controls how plot data is combined when multiple models are selected&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   </property>
                    <item>
                     <property name="text">
                      <string>batch</string>
@@ -1578,9 +1706,9 @@ QGroupBox {
                 </spacer>
                </item>
                <item>
-                <widget class="QPushButton" name="pushButton_3">
+                <widget class="QPushButton" name="pushButton_R_exportCSV">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="text">
                   <string>Export to csv</string>
@@ -1610,7 +1738,7 @@ QGroupBox {
      <property name="minimumSize">
       <size>
        <width>0</width>
-       <height>85</height>
+       <height>100</height>
       </size>
      </property>
      <property name="title">
@@ -1627,18 +1755,6 @@ QGroupBox {
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>55</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>60</height>
-           </size>
-          </property>
           <property name="widgetResizable">
            <bool>true</bool>
           </property>
@@ -1647,8 +1763,8 @@ QGroupBox {
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>771</width>
-             <height>58</height>
+             <width>780</width>
+             <height>76</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -1663,32 +1779,14 @@ QGroupBox {
              <height>55</height>
             </size>
            </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>100</height>
-            </size>
-           </property>
            <layout class="QVBoxLayout" name="verticalLayout_18">
             <item>
              <widget class="QLabel" name="progressText">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>500</width>
-                <height>50</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>200</height>
-               </size>
               </property>
               <property name="styleSheet">
                <string notr="true">/* For more specific elements */
@@ -1714,11 +1812,59 @@ QLabel {
        </layout>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_help">
-        <property name="text">
-         <string>Help</string>
-        </property>
-       </widget>
+       <layout class="QVBoxLayout" name="verticalLayout_24">
+        <item>
+         <widget class="QPushButton" name="pushButton_help">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>80</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Help</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_debugLog">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>80</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Log</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_11">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_19">
@@ -1727,13 +1873,19 @@ QLabel {
           <item>
            <widget class="QPushButton" name="pushButton_close">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
-             <string>Close</string>
+             <string>Exit</string>
             </property>
            </widget>
           </item>
@@ -1742,10 +1894,35 @@ QLabel {
             <property name="enabled">
              <bool>false</bool>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Save</string>
             </property>
            </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_12">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </item>

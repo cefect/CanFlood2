@@ -28,6 +28,7 @@
 
 import os, sys, re, gc, shutil, webbrowser, copy, hashlib, time
 import sqlite3
+import pprint
 import pandas as pd
 import numpy as np
 
@@ -51,6 +52,8 @@ from qgis.core import (
 #matplotlib
 import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 
 from .hp.plug import (
@@ -83,7 +86,12 @@ from .dialog_model import Model_config_dialog
 
 
 #tutorial dev loaders
-from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d, widget_values_lib
+#from .tutorials.tutorial_data_builder import tutorial_data_lib, tutorial_fancy_names_d, widget_values_lib
+from .tutorials.tutorial_data_builder import tutorial_lib, tutorial_fancy_names_d
+
+
+import tempfile
+temp_dir = tempfile.gettempdir()
 
 #===============================================================================
 # load UI and resources
@@ -101,7 +109,7 @@ assert os.path.exists(ui_fp), f'UI file not found: {ui_fp}'
 FORM_CLASS, _ = uic.loadUiType(ui_fp, resource_suffix='') #Unknown C++ class: Qgis
 
 
-
+get_fn = lambda x: os.path.splitext(os.path.basename(x))[0]
 
 #===============================================================================
 # Dialog class------------------
@@ -140,9 +148,7 @@ class Main_dialog_projDB(object):
         assert isinstance(projDB_fp, str)
         assert os.path.exists(projDB_fp)
     
-        with sqlite3.connect(projDB_fp) as conn:
-            #assert_projDB_conn(conn)
- 
+        with sqlite3.connect(projDB_fp) as conn: 
             dfs = {name: sql_to_df(name, conn, template_prefix=template_prefix) for name in table_names}
     
         if result_as_dict:
@@ -264,29 +270,58 @@ class Main_dialog_projDB(object):
         
 
     def update_model_index_dx(self, model, **kwargs):
-        """update the model index table with the model"""
+        """Update the model-suite index table for a single model."""
+        # ------------------------------------------------------------------
+        # 1. Load the table and enforce the reference dtypes up front
+        # ------------------------------------------------------------------
         dx = self.projDB_get_tables(['03_model_suite_index'])[0]
- 
- 
-        #retrieve the parameters from teh models parameter table
-        s = model.get_model_index_ser()
- 
+    
+        # Expected dtypes from your schema definition
+        schema_dtypes = (
+            parameters.project_db_schema_d['03_model_suite_index']
+            .dtypes
+            .to_dict()
+        )
+        dx = dx.astype(schema_dtypes)
+    
+        # ------------------------------------------------------------------
+        # 2. Build a 1-row DataFrame for the incoming model record
+        # ------------------------------------------------------------------
+        s = model.get_model_index_ser()            # original Series
+    
+        # Promote to DataFrame (keeps column order) …
         
+        row_df = pd.DataFrame([s]).set_index(project_db_schema_d['03_model_suite_index'].index.names).astype(schema_dtypes)
+        
+        #make the MultiIndex types match the expectation
+        """dont know why this is so complicated...."""
+        for i, target_type in enumerate(parameters.ms_MultiIndex.dtypes):
+            row_df.index = row_df.index.set_levels(row_df.index.levels[i].astype(target_type),level=i)
+        
+        
+        # Ensure the data types of the MultiIndex levels match the expected types
+        for i, (actual_dtype, expected_dtype) in enumerate(zip(row_df.index.levels, parameters.ms_MultiIndex.dtypes)):
+            assert actual_dtype.dtype == expected_dtype, f"Mismatch in level {i}: {actual_dtype.dtype} != {expected_dtype}"
 
-        # Update the dx DataFrame where the MultiIndex names match the model's category_code and modelid
-        dx.loc[pd.IndexSlice[model.category_code, model.modelid], :] = s
+        #=======================================================================
+        # add
+        #=======================================================================
+        #add the indexer
+        dx = dx.reindex(dx.index.union(row_df.index)) 
+ 
+        dx.loc[row_df.index] = row_df.values  
+ 
+
+        #check the new indexer made it in there
+        assert row_df.index.isin(dx.index).all(), f'Failed to add model indexer {row_df.index} to the model suite index table'
         
-        #recast types from template
-        """necessary when we set a single row like the above"""
-        dx = dx.astype(parameters.project_db_schema_d['03_model_suite_index'].dtypes.to_dict())
-  
-        
-        """
-        dx.dtypes
-        dx.index.dtypes
-        """
-        #self.set_model_index_dx(dx, **kwargs)
-        self.projDB_set_tables({'03_model_suite_index':dx}, **kwargs) 
+        #check there are no duplicate indexes
+        assert dx.index.is_unique, f'Duplicate indexes found in model suite index table: {dx.index}'
+        # ------------------------------------------------------------------
+        # 4. Persist
+        # ------------------------------------------------------------------
+        self.projDB_set_tables({'03_model_suite_index': dx}, **kwargs)
+
         
  
 
@@ -310,11 +345,8 @@ class Main_dialog_dev(object):
         
         assert not tut_name_fancy == '', 'no tutorial selected'
         
-        tutorial_name = {v:k for k,v in tutorial_fancy_names_d.items()}[tut_name_fancy]
-        
-        
-        
-        
+        tutorial_name = tutorial_fancy_names_d[tut_name_fancy]
+ 
         
         log.debug(f'loading tutorial \'{tutorial_name}\'')
         
@@ -345,17 +377,44 @@ class Main_dialog_dev(object):
         #=======================================================================
         """here we load from the tutorial file data onto the QgisProject
         loading the projDB will attempt to popuolate the ui by selecting from loaded layers"""
-        data_d = tutorial_data_lib[tutorial_name]
+        tlib = copy.deepcopy(tutorial_lib[tutorial_name]) 
+        data_d = tlib['Main_dialog']['data']
         
         param_s = project_db_schema_d['02_project_parameters'].copy().set_index('varName')['widgetName']
         
-        def add_layer(data_key, param_name, Constructor, set_widget=True):           
+        def add_layer(data_key, param_name, Constructor, set_widget=True, fp_raw=None):           
 
             try:
-                if not data_key in data_d:
-                    raise KeyError(f'failed to find data key \'{data_key}\'')
+                if fp_raw is None:
+                    if not data_key in data_d:
+                        raise KeyError(f'failed to find data key \'{data_key}\'')
+                    
+                    fp_raw = data_d[data_key]
+                
+                #create a temporary, unique directory
+                
+
+
+                # Generate a unique temporary directory path using tutorial name, data key, and current time
+                temp_dir = os.path.join(
+                    tempfile.gettempdir(),
+                    hashlib.md5(f'{tutorial_name}_{data_key}_{int(time.time())}'.encode()).hexdigest()
+                )
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                
+                #copy over the data to a temporary directory
+                
+                fp = shutil.copyfile(fp_raw, os.path.join(temp_dir, os.path.basename(fp_raw)))
+                assert os.path.exists(fp), f'failed to copy file to temp dir: {fp}'
+
+                
+                
                 #load the layer
-                layer = Constructor(data_d[data_key], tutorial_name+'_'+data_key)
+                layer = Constructor(fp, 
+                                    #tutorial_name+'_'+data_key
+                                    get_fn(fp) #use the file name as the layer name
+                                    )
                 
                 # Check if the layer is valid before adding it to the project.
                 if not layer.isValid():
@@ -385,11 +444,11 @@ class Main_dialog_dev(object):
         #=======================================================================
         # from parametesr
         #=======================================================================
+        log.debug(f'loading w/ \n    {data_d}')
         """note... these layer names need to match what was set when teh projDB test was done
         see tests.data.tutorial_fixtures
         
         NOTE: order matters for legend
-        
         
         TODO: add styles
         """
@@ -397,15 +456,23 @@ class Main_dialog_dev(object):
         
         
         #aoi
-        add_layer('aoi', 'aoi_vlay_name', vlayConstructor)
+        if 'aoi' in data_d:
+            add_layer('aoi', 'aoi_vlay_name', vlayConstructor)
         
-        #FINV
-        add_layer('finv', 'finv_rlay_name', vlayConstructor,
-                  set_widget=False, #finv lives on the Model COnfig dialog
-                  )
+
  
         #DEM
-        add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
+        if 'dem' in data_d:
+            add_layer('dem', 'dem_rlay_name', QgsRasterLayer)
+            
+        
+        #FINV
+        for consequence_category, d0 in tlib["models"].items():
+            for modelid, d1 in d0.items(): 
+                add_layer('finv', 'NA', vlayConstructor,
+                          set_widget=False, #finv lives on the Model COnfig dialog
+                          fp_raw=d1["data"].get("finv")
+                          )
         
  
         #=======================================================================
@@ -852,11 +919,14 @@ class Main_dialog_modelSuite(object):
     }
     
     def _connect_slots_modelSuite(self, log):
+        """slot connection for the Model Suite tab"""
         
-        #inint the model config dialog
+        #=======================================================================
+        # Control
+        #=======================================================================
  
-        
         self.pushButton_MS_clear.clicked.connect(self._clear_all_models)
+        self.pushButton_MS_runAll.clicked.connect(self._run_all_models)
         
         
         #=======================================================================
@@ -867,8 +937,7 @@ class Main_dialog_modelSuite(object):
             assert len(self.model_index_d)==0, f'must clearn model suite before creating templates'
  
             
-            # Loop through each group box, and load the model template into it.
- 
+            # Loop through each group box, and load the model template into it. 
             for category_code, d in consequence_category_d.items():
                 gb = getattr(self, d['boxName'])
  
@@ -890,7 +959,7 @@ class Main_dialog_modelSuite(object):
         """initlizing this once when the parent starts
         this slows down the parent startup, 
         but should be better for user experience as this dialog is called multiple times
-        need to add some logic for reseting the dialog each time it is called by the ocnfigure button
+        need to add some logic for reseting the dialog each time it is called by the configure button
         """
         self.Model_config_dialog = Model_config_dialog(self.iface, parent=self, 
                                                        debug_logger=self.logger.debug_logger)
@@ -898,14 +967,15 @@ class Main_dialog_modelSuite(object):
 
     def _add_model_widget(self, model, layout, 
                           logger=None):
-        """add the widget for the model to the model suite tab"""
+        """add the widget for the model to the model suite tab
+        
+        called by self._add_model()
+        """
         #=======================================================================
         # defaults
         #=======================================================================
         if logger is None: logger=self.logger
-        log = logger.getChild('_add_model_widget')
-        
-        
+        log = logger.getChild('_add_model_widget')        
         
         modelid, category_code = model.modelid, model.category_code
         
@@ -914,8 +984,9 @@ class Main_dialog_modelSuite(object):
         # precheck
         #=======================================================================
         #check the layout is empty
+        """this is fine?
         if layout.count() > 0:
-            raise AssertionError(f'layout {layout.name()} is not empty')
+            raise AssertionError(f'layout {layout.name()} is not empty')"""
         
         assert model.widget_d is None, 'model already has widgets'
  
@@ -945,7 +1016,7 @@ class Main_dialog_modelSuite(object):
         self._update_model_widget_labels(model=model)
         
         #connect the buttons
-        widget.pushButton_mod_run.clicked.connect(lambda:self._run_model(category_code, modelid))
+        widget.pushButton_mod_run.clicked.connect(lambda:self._run_model(category_code, modelid)) #disabled
         widget.pushButton_mod_config.clicked.connect(lambda:self._launch_config_ui(category_code, modelid))
         widget.pushButton_mod_minus.clicked.connect(lambda:self._remove_model(category_code, modelid))
         widget.pushButton_mod_plus.clicked.connect(lambda:self._add_model(layout, category_code))
@@ -1017,6 +1088,9 @@ class Main_dialog_modelSuite(object):
         #=======================================================================
         model = self._add_model_widget(model, layout, logger=log) 
  
+        #activate the Run button (disabled by default)
+        model.widget_suite.pushButton_mod_run.setEnabled(True)
+        self.pushButton_MS_runAll.setEnabled(True)
         
         #=======================================================================
         # #add to the container
@@ -1038,6 +1112,10 @@ class Main_dialog_modelSuite(object):
                    check_projDB=False,
                    ):
         """start a model object, then add the template to the layout"""
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
         if logger is None: logger=self.logger.getChild('add_model')
         log = logger.getChild('add_model')
         if projDB_fp is None: projDB_fp = self.get_projDB_fp()
@@ -1124,19 +1202,14 @@ class Main_dialog_modelSuite(object):
         self.update_model_index_dx(model, projDB_fp=projDB_fp, logger=log)
  
             
-        #check it
- 
+        #check it 
         if check_projDB:
-            assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly'
- 
- 
+            assert model.get_table_names_all()==[table_name], 'model tabels were not added correctly' 
         
         #=======================================================================
         # #setup the UI        
         #=======================================================================
         model = self._add_model_widget(model, layout, logger=log)
-        
- 
  
         
         #=======================================================================
@@ -1183,7 +1256,7 @@ class Main_dialog_modelSuite(object):
         
         
     def _launch_config_ui(self, category_code, modelid):
-        """launch the configuration dialog"""
+        """launch the configuration dialog for the model"""
         log = self.logger.getChild('launch_config_ui')
         
         log.debug(f'user pushed model config for {category_code} {modelid}')
@@ -1212,15 +1285,81 @@ class Main_dialog_modelSuite(object):
  
         
         #launch teh dialog modally
-        result = dial.exec_()
+        #result = dial.exec_()
         
-        #move teardown onto the child dialog for cleaner testing
-        #dial.model=None #clear the model
+        #non modal
+        dial.show()
         
-    #===========================================================================
-    # def _run_model(self, category_code, modelid):
-    #     raise NotImplementedError('need to add the run logic')
-    #===========================================================================
+        #enable the Main dialog run button
+        model.widget_suite.pushButton_mod_run.setEnabled(True)
+        self.pushButton_MS_runAll.setEnabled(True)
+        
+        
+    def _run_model(self, category_code, modelid):
+        """ run the model next to the button
+        
+        see also dialog_model.Model_config_dialog._run_model()
+        """
+ 
+        log = self.logger.getChild('_run_model')
+        
+        log.info(f'running {category_code} {modelid}')
+        #=======================================================================
+        # retrival
+        #=======================================================================
+        #check ther eis a project database
+        projDB_fp = self.get_projDB_fp()
+        assert not projDB_fp is None, 'must set a project database file'
+ 
+        #get this model
+        model = self.model_index_d[category_code][modelid]
+        assert not model is None, 'no model loaded'
+        
+        progressBar = model.widget_d['progressBar_mod']['widget']
+        progressBar.setValue(5)  # Reset progress bar to 0
+        #=======================================================================
+        # execution
+        #=======================================================================
+        model.run_model(projDB_fp=projDB_fp, progressBar=progressBar, logger=log)
+        progressBar.setValue(100)  # Set progress bar to 100 after completion
+        
+    def _run_all_models(self):
+        """run all models in the index"""
+        log = self.logger.getChild('_run_all_models')
+        log.info('running all models')
+        
+        #=======================================================================
+        # check the project database
+        #=======================================================================
+        projDB_fp = self.get_projDB_fp()
+        assert not projDB_fp is None, 'must set a project database file'
+        
+        #=======================================================================
+        # loop through each model and run it
+        #=======================================================================
+        cnt=0
+        for category_code, d in self.model_index_d.items():
+            for modelid, model in d.items():
+                log.debug(f'running model {category_code}_{modelid}')
+                progressBar = model.widget_d['progressBar_mod']['widget']
+                progressBar.setValue(0)
+                try:
+                    #could use self._run_model instead.. but more elegent to call the model directoly
+                    model.run_model(projDB_fp=projDB_fp, progressBar=progressBar, logger=log)
+                    cnt+=1
+                    progressBar.setValue(100)
+                except Exception as e:
+                    log.error(f'failed to run model {category_code}_{modelid} w/ error:\n    {e}')
+                    progressBar.setValue(0)
+                    
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.info(f'ran {cnt} models')
+        
+    
+    
+    
         
     def _remove_model(self, category_code, modelid, 
                       clear_projDB=True,
@@ -1262,7 +1401,14 @@ class Main_dialog_modelSuite(object):
             self.projDB_drop_tables(*model_table_names_l, logger=log)
             
             #remove entry from model index table
-            dx = self.projDB_get_tables(['03_model_suite_index'] )[0].drop(index=(category_code, modelid))
+            dx = self.projDB_get_tables(['03_model_suite_index'])[0]
+            if len(dx)==0:
+                raise AssertionError('model index table is empty')
+            
+            try:
+                dx = dx.drop(index=(category_code, modelid))
+            except Exception as e:
+                raise IOError(f'failed to remove model from index table: {e}')
  
             self.projDB_set_tables({'03_model_suite_index':dx}, logger=log)
         
@@ -1407,6 +1553,11 @@ class Main_dialog_reporting(object):
         #=======================================================================
         self.pushButton_R_riskCurve.clicked.connect(self._plot_risk_curve)
         
+        #=======================================================================
+        # export
+        #=======================================================================
+        self.pushButton_R_exportCSV.clicked.connect(self._exportCSV)
+        
     def _populate_results_model_selection(self):
         """from the projDB, populate the model selection table"""
         
@@ -1420,7 +1571,10 @@ class Main_dialog_reporting(object):
         #=======================================================================
         model_index_dx = self.projDB_get_tables(['03_model_suite_index'])[0]
         
-        model_df = model_index_dx.reset_index().loc[:, 
+        #just those w/ results
+        bx = model_index_dx['result_ead'].notna()
+        
+        model_df = model_index_dx[bx].reset_index().loc[:, 
             ['name', 'category_code', 'modelid', 'asset_label', 'consq_label', 'result_ead']]
         
         log.debug(f'filtered model index table to {model_df.shape}')
@@ -1433,27 +1587,41 @@ class Main_dialog_reporting(object):
         data_l = [f'model: {e}' for e in string_s.values.tolist()]"""
         
         #just using the names for now
-        data_l = model_df['name'].to_list()
+        l = list()
+        for i, r in model_df.iterrows():
+            l.append('[%s] %s ~ %s'%(
+                r['name'], 
+                #r['category_code'], r['modelid'], 
+                r['asset_label'], r['consq_label']))
+        #data_l = model_df['name'].to_list()
  
         
-        self.listView_R_modelSelection.set_data(data_l)
+        self.listView_R_modelSelection.set_data(l)
         
         """
+        pprint.pprint(l)
+        model_df.columns
         view(model_df)
         """
+        
+    def _get_model_selection_index(self):
+        """re-indexing by model name to workaround the list widget"""
+        lv = self.listView_R_modelSelection
+        return {re.search(r'\[(.*?)\]', k).group(1):k  for k in lv.get_all_items() if re.search(r'\[(.*?)\]', k)}
         
     def _get_selected_models(self, projDB_fp=None):
         """return the models container for those selected in the listView"""
         
         #retrieve selected names from the widget
-        names_l = self.listView_R_modelSelection.get_checked_items()
+        #names_l = self.listView_R_modelSelection.get_checked_items()
+        index_d = self._get_model_selection_index()
         
         #locate these in the model index
         dx = self.projDB_get_tables(['03_model_suite_index'], projDB_fp=projDB_fp)[0]
         
-        bx = dx['name'].isin(names_l)
+        bx = dx['name'].isin(list(index_d.keys()))
         
-        assert bx.sum()==len(names_l), f'failed to find all selected models'
+        assert bx.sum()==len(index_d), f'failed to find all selected models'
  
         
         selected_models_df = dx[bx].reset_index().loc[:, ['name', 'category_code', 'modelid']]
@@ -1470,7 +1638,7 @@ class Main_dialog_reporting(object):
             d[row['name']] = self.model_index_d[row['category_code']][row['modelid']]
             cnt+=1
             
-        assert cnt==len(names_l), f'failed to load all selected models'
+        assert cnt==len(index_d), f'failed to load all selected models'
         
         return d
             
@@ -1489,6 +1657,8 @@ class Main_dialog_reporting(object):
         # load data
         #=======================================================================
         models_d = self._get_selected_models(projDB_fp=projDB_fp)
+        
+        log.debug(f'plotting risk curve w/ {len(models_d)} models in \'{plot_mode}\' mode')
         
         #impacts summary
         impacts_summary_dx = self._load_model_tables(models_d, 'table_impacts_sum', projDB_fp=projDB_fp)        
@@ -1518,10 +1688,11 @@ class Main_dialog_reporting(object):
         #=======================================================================
         log.info(f'plotting risk curve w/ {plot_mode} mode w/ {len(result_ead_s)} models')
         args = (dx,)
-        skwargs = dict(logger=log)
+        skwargs = dict(logger=log, 
+                       consq_d = params_dx['consq_label'].to_dict()
+                       )
         
-        if plot_mode=='aggregate':
-            raise NotImplementedError(f'plot_mode: {plot_mode}')
+        if plot_mode=='aggregate': 
             fig = self._plot_risk_curve_aggregate(*args, **skwargs)
             
         elif plot_mode=='batch':
@@ -1535,10 +1706,14 @@ class Main_dialog_reporting(object):
         #=======================================================================
         
         self._fig_teardown(fig)
+        """
+        plt.show()
+        """
         
     def _plot_risk_curve_batch(self, dx,logger=None, 
                                line_style_d=None,
                                hatch_style_d=None,
+                               consq_d=None,
                                ):
         """from the suite results, matrix subplot layout for each model"""
         
@@ -1549,6 +1724,9 @@ class Main_dialog_reporting(object):
         log = logger.getChild('_plot_risk_curve_batch')
         log.debug(f'plotting {dx.shape}')
         
+        if consq_d is None:
+            consq_d=dict()
+        
         if line_style_d is None: 
             line_style_d = copy.deepcopy(parameters.plot_style_lib['risk_curve']['line'])
             
@@ -1557,9 +1735,7 @@ class Main_dialog_reporting(object):
         
         #=======================================================================
         # setup figure
-        #=======================================================================
- 
-        
+        #=======================================================================        
         with matplotlib.rc_context(parameters.rcParams):
             fig = plt.figure()
             
@@ -1595,10 +1771,11 @@ class Main_dialog_reporting(object):
                 """
                 plt.show()
                 """
-                ax.set_title(f'{i}')
+                ax.set_title(model_name)
                 
                 ax.set_xlabel('AEP')
-                ax.set_ylabel('EAD')
+                
+                ax.set_ylabel(consq_d.get(model_name, 'impacts'))
                 
                 ax.legend()
                 
@@ -1620,14 +1797,106 @@ class Main_dialog_reporting(object):
  
         
         
-    def _plot_risk_curve_aggregate(self, impacts_summary_dx, result_ead_s):
-        """plot the aggregate risk curve"""
-        log = self.logger.getChild('_plot_risk_curve_aggregate')
-        raise NotImplementedError()
+    def _plot_risk_curve_aggregate(self, dx,logger=None, 
+                               line_style_d=None,
+                               hatch_style_d=None,
+                               cmap=None,
+                               consq_d=None,
+                               ):
+        """from the suite results, single stacked plot of all model results"""
         
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        if logger is None: logger=self.logger
+        log = logger.getChild('_plot_risk_curve_aggregate')
+        log.debug(f'plotting {dx.shape}')
+        
+        if line_style_d is None: 
+            line_style_d = copy.deepcopy(parameters.plot_style_lib['risk_curve']['line'])
+            
+        if hatch_style_d is None:
+            hatch_style_d = copy.deepcopy(parameters.plot_style_lib['risk_curve']['hatch'])
+            
+        if cmap is None:
+            cmap = cm.get_cmap(parameters.plot_style_lib['risk_curve']['cmap'], len(dx))
+            
+            
+        #=======================================================================
+        # setup figure
+        #=======================================================================        
+        with matplotlib.rc_context(parameters.rcParams):
+            fig = plt.figure()
+            
+            #add title
+            fig.suptitle('Risk Curves')
+            
+            ax = fig.add_subplot(111)
+            
+            #loop through each model and stack the plots
+ 
 
+            # Initialize an array to keep track of the cumulative y-values
+            cumulative_y_ar = np.zeros_like(dx.iloc[0, :].values, dtype=float)
+            previous_y_ar = np.zeros_like(cumulative_y_ar, dtype=float)  # Track previous cumulative values
+            
+            for i, ((model_name, EAD), row) in enumerate(dx.iterrows()):
+                log.debug(f'plotting model \'{model_name}\' w/ EAD {EAD}')
+            
+                #===============================================================
+                # get data
+                #===============================================================
+                x_ar, y_ar = row.index.values.astype(float), row.values
+            
+                # Add the current y-values to the cumulative array
+                cumulative_y_ar += y_ar
+            
+                #===============================================================
+                # add plot assets
+                #===============================================================
+                # Select the color for the current model
+                color = mcolors.to_hex(cmap(i))  # Convert to hex for consistent usage
+            
+                # Add the line for the cumulative values
+                ax.plot(x_ar, cumulative_y_ar, label=model_name,
+                        **{**line_style_d, **{'color': color}})
+            
+                # Add the hatch for the cumulative values
+                ax.fill_between(x_ar, previous_y_ar, cumulative_y_ar, 
+                                **{**hatch_style_d, **{'facecolor': color}})
+            
+                # Update the previous cumulative values
+                previous_y_ar = cumulative_y_ar.copy()
+
+    
+    
+                    
+            #===============================================================
+            # post format
+            #===============================================================
+            ax.set_xlabel('AEP')
+            #ax.set_ylabel('EAD')
+            #ylabel
+            if not consq_d is None:
+                l = list(set(consq_d.values()))
+                if len(l)==1:
+                    ax.set_ylabel(l[0])
+                else:
+                    log.warning(f'multiple consequences found: {len(l)}')
+                    ax.set_ylabel(', '.join(l))
+            else:
+                ax.set_ylabel('impacts')
+                    
+            
+            
+            ax.legend()
+            
+            log.debug(f'finished plotting {dx.shape}')
+            """
+            plt.show()
+            """
         
-        #return fig
+        return fig
     
     
     
@@ -1671,13 +1940,38 @@ class Main_dialog_reporting(object):
         os.makedirs(out_dir, exist_ok=True)
         return out_dir
     
+    def _exportCSV(self, *args):
+        
+        #=======================================================================
+        # defaults
+        #=======================================================================
+        log = self.logger.getChild('_exportCSV')
+        projDB_fp = self.get_projDB_fp()
+        
+        out_dir=self._get_out_dir()
+        
+        log.debug(f'on {projDB_fp}')
+        
+        with sqlite3.connect(projDB_fp) as conn: 
+            table_names = get_table_names(conn)
             
-        
-        
-        
-        
-        
-        
+            log.info(f'exporting {len(table_names)} tables')
+            
+            for table_name in table_names:
+                try:
+                    #load with the templates (wont work for models)
+                    df = sql_to_df(table_name, conn, template_prefix=None)
+                except:
+                    df = pd.read_sql(f'SELECT * FROM [{table_name}]', conn)
+                
+                ofp = os.path.join(out_dir, table_name+'.csv')
+                
+                df.to_csv(ofp)
+                
+                log.debug(f'wrote {df.shape} to \n    {ofp}')
+                
+        log.push(f'wrote {len(table_names)} data tables to csv')
+ 
  
     
 class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite, 
@@ -1741,15 +2035,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         # GEN=======================----------------
         #=======================================================================
         
-        
-        def close_dialog():
-            self.logger.push(f'dialog reset')
-            if not self.parent is None:
-                self.parent.dlg=None
-                self.parent.first_start=True #not ideal
-            self.close()
-        
-        self.pushButton_close.clicked.connect(close_dialog)
+        self.pushButton_close.clicked.connect(self._close)
         
         
         self.pushButton_save.clicked.connect(self._save_ui_to_projDB)
@@ -1770,6 +2056,10 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         
         from canflood2 import __version__
         self.label_version.setText(f'v{__version__}')
+        
+        #QGIS_LOG_FILE
+        self.pushButton_debugLog.clicked.connect(self.launch_QGIS_LOG_FILE)
+        
         #=======================================================================
         # WELCOME======================--------------
         #=======================================================================
@@ -1779,9 +2069,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         
         
         #populate the comboBox
-        self.comboBox_tut_names.addItems(
-            [tutorial_fancy_names_d[k] for k in tutorial_data_lib.keys()]
-            )
+        self.comboBox_tut_names.addItems(list(tutorial_fancy_names_d.keys()))
         #reverr to index -1
         self.comboBox_tut_names.setCurrentIndex(-1)
         
@@ -2135,6 +2423,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
             #===================================================================
             # write all the tables
             #===================================================================
+            log.debug(f'wrigin {df_d.keys()} to project database')
             for k, df in df_d.items():
                 assert k in project_db_schema_d.keys(), k
                 df_to_sql(df, k, conn, if_exists='replace')
@@ -2184,6 +2473,15 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
                     raise ValueError(f'failed to set widget \'{widgetName}\' to \'{value}\': \n    {e}')
                     log.error(f'failed to set widget \'{widgetName}\' to \'{value}\': \n'+\
                                f'    {e}\nprojDB may be out of sync')
+                    
+                #specials
+                if widgetName=='radioButton_ELari':
+                    if value=='1':
+                        self.radioButton_ELari.setChecked(True)
+                    elif value=='0':
+                        self.radioButton_ELaep.setChecked(True)
+                    else:
+                        raise ValueError(f'bad value for radioButton_ELari: {value}')
                 
         else:
             log.warning(f'no project parameters found in projDB')
@@ -2206,16 +2504,21 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
         for _, row in haz_events_df.iterrows():
             layer_match = get_unique_layer_by_name(row['event_name'], layer_type=QgsRasterLayer)
             if layer_match is None:
-                log.warning(f'failed to find matching raster for: {row["event_name"]}')
-            
-            haz_rlay_d[row['event_name']] = layer_match
+                #NOTE: this will fail if TWO layer names are found
+                log.warning(f'failed to find unique matching raster for: {row["event_name"]}')
+            else:
+                haz_rlay_d[row['event_name']] = layer_match
         
         #select these
-        """later, we assert that the selection matches the event meta table widget"""
-        self.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
-        
-        #load the event meta onto the widget
-        self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(haz_events_df)  
+        if len(haz_rlay_d)>0:
+            """later, we assert that the selection matches the event meta table widget"""
+            self.listView_HZ_hrlay.check_byName([layer.name() for layer in haz_rlay_d.values()])
+            
+            #load the event meta onto the widget
+            self.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(haz_events_df)  
+        else:
+            log.warning(f'hazard events failed to load')
+ 
                 
         #=======================================================================
         # set the model suite
@@ -2266,6 +2569,35 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
              
         return rlay
     
+    
+    def launch_QGIS_LOG_FILE(self):
+        """retrive the userse QGIS_LOG_FILE environment variable, 
+        then launch with the default text application"""
+        log = self.logger.getChild('launch_QGIS_LOG_FILE')
+        log.debug('launching qgis debug log')
+        
+        #get the path
+        QGIS_LOG_FILE_fp = os.getenv('QGIS_LOG_FILE')
+        if not QGIS_LOG_FILE_fp is None:
+            if os.path.exists(QGIS_LOG_FILE_fp):
+                os.startfile(QGIS_LOG_FILE_fp)
+            else:
+                log.warning(f'QGIS_LOG_FILE file not found: {QGIS_LOG_FILE_fp}')
+        else:
+            log.warning(f'QGIS_LOG_FILE environment variable not set')
+            
+    def _close(self):
+        log = self.logger.getChild('_close')
+        
+        self.listView_HZ_hrlay.clear_view() #clear the hazard raster listview
+        
+        
+        log.push(f'dialog reset')
+        if not self.parent is None:
+            self.parent.dlg=None
+            self.parent.first_start=True #not ideal
+        self.close()
+    
 
                 
 
@@ -2284,12 +2616,7 @@ class Main_dialog(Main_dialog_projDB, Main_dialog_haz, Main_dialog_modelSuite,
 #===============================================================================
 # helpers-----
 #===============================================================================
-
-
-        
  
-    
-    
 # Load the widget from the .ui file
 def load_model_widget_template(
     model_template_ui = os.path.join(os.path.dirname(__file__), 'canflood2_model_widget.ui'), 

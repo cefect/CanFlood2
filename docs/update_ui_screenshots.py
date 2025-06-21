@@ -22,11 +22,26 @@ from PyQt5.Qt import Qt
 
 from tests.conftest import *
 from tests.test_01_dialog_main import dialog_loaded, dialog_main, oj
-from tests.test_02_dialog_model import oj as oj_model
 from tests.test_02_dialog_model import dialog_model, model 
+from tests.test_02_dialog_model import _20_run_args as _DM_run_args
 
 
 from canflood2.parameters import src_dir
+
+#===============================================================================
+# parameters
+#===============================================================================
+
+#output projDB from test_02_dialog_model.test_dial_model_05_run()
+#grab only the **first** case ───────────────────────────────
+_run_args = (
+    _DM_run_args[0],          # the column-name string
+    _DM_run_args[1][1:2],      # a new list that contains just the second pytest.param
+)
+
+#===============================================================================
+# helpers
+#===============================================================================
 
 
 def _write_dialog_screenshot(dialog, output_image):
@@ -112,11 +127,10 @@ def _write_toolbox_figure(dialog, output_image, page_name):
 
 
 
+
     
 @pytest.mark.dev
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
-     ])
+@pytest.mark.parametrize(*_run_args)
 @pytest.mark.parametrize('output_image, tab_widget_name', [
     ('01-dialog-welcome', 'tab_01_welcome'),
     ('02-dialog-projectSetup', 'tab_02_PS'),
@@ -146,9 +160,7 @@ def test_capture_tab_screenshot(dialog_loaded,
 
  
 
-@pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02',oj_model('test_05_run_c1-0-cf1_tuto_3fc21f', 'projDB.canflood2'))
-     ])
+@pytest.mark.parametrize(*_run_args)
 @pytest.mark.parametrize('output_image, page_widget_name', [
     ('06-dialog-MC-AssetInventory', 'page_01_AI'),
     ('07-dialog-MC-Vulnerability', 'page_02_Vuln'),

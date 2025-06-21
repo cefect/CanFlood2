@@ -80,6 +80,9 @@ def set_widget_value(widget, value):
         
     elif isinstance(widget, QgsFieldComboBox): 
         if isinstance(value, str):
+            #check the value is a valid field name
+            if value not in widget.fields().names():
+                raise KeyError(f'requested field name (\'{value}\') not in comboBox')
             widget.setField(value)
         else:
             raise NotImplementedError(type(value))
@@ -99,8 +102,18 @@ def set_widget_value(widget, value):
             raise NotImplementedError(type(value))
     elif isinstance(widget, QCheckBox):
         widget.setChecked(bool(value))
+        
+        
+        
     elif isinstance(widget, QRadioButton):
-        widget.setChecked(bool(value))
+        assert isinstance(value, str), f'bad value type: {type(value)}'
+        if value =='0':
+            widget.setChecked(False)
+        elif value =='1':
+            widget.setChecked(True)
+        else:
+            raise NotImplementedError(value)
+ 
     else:
         raise TypeError(f"Unsupported widget type: {type(widget)}")
 

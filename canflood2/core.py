@@ -65,20 +65,36 @@ class Model_run_methods(object):
     
     def run_model(self,
                   projDB_fp=None,
+                  progressBar=None,
+                  logger=None,
                   ):
         """run the model"""
  
         #=======================================================================
         # defaults
         #=======================================================================
-        log = self.logger.getChild('run_model')
-        start_time= datetime.now()
-        
-        self.assert_is_ready(logger=log)
+        if logger is None: logger=self.logger
+        log = logger.getChild('run_model')
+        start_time= datetime.now()        
  
+                
+        def add_to_prog(increment):
+            """helper for adding to the progress bar"""
+            if progressBar is not None:
+                current_value = progressBar.value()
+                if current_value<100:
+                    progressBar.setValue(current_value + increment)
+                
+        add_to_prog(5)
         
         if projDB_fp is None:
             projDB_fp = self.parent.get_projDB_fp()
+            
+            
+        #=======================================================================
+        # prechecks
+        #=======================================================================
+        self.assert_is_ready(logger=log)
         
         assert_projDB_fp(projDB_fp, check_consistency=True)
         log.info(f'running model from {os.path.basename(projDB_fp)}')
@@ -89,7 +105,7 @@ class Model_run_methods(object):
         
             assert_projDB_conn(conn, check_consistency=True)
         """
-            
+        add_to_prog(5)
         #=======================================================================
         # run sequence
         #=======================================================================
@@ -97,15 +113,19 @@ class Model_run_methods(object):
         
         #compute damages 
         self._table_impacts_to_db(**skwargs)
+        add_to_prog(10)
         
         #simplify and add EAD to clumns
         self._table_impacts_prob_to_db(**skwargs)
+        add_to_prog(10)
         
         #row-wise EAD
         self._table_ead_to_db(**skwargs)
+        add_to_prog(10)
         
         #model-wide EAD
         result = self._set_ead_total(**skwargs)
+        add_to_prog(10)
         
  
         
@@ -121,6 +141,8 @@ class Model_run_methods(object):
         #=======================================================================
         if logger is None: logger = self.logger
         log = logger.getChild('_table_impacts_to_db')
+        
+        
         
         #=======================================================================
         # load data-------
@@ -144,22 +166,44 @@ class Model_run_methods(object):
         #=======================================================================
         # #DEM
         #=======================================================================
-        if self.param_d['finv_elevType']=='ground':
+        finv_elevType = self.get_parameter_value('finv_elevType', projDB_fp=projDB_fp)
+        if finv_elevType=='relative':
             dem_df = self.get_tables(['table_gels'], projDB_fp=projDB_fp)[0]
             assert_finv_match(dem_df.index)
- 
+        elif finv_elevType=='absolute':
+            #table may still exist.. but should be all nulls
+            dem_df = None 
         else:
-            dem_df = None
+            raise KeyError(f'bad finv_elevType: {finv_elevType}')
+        
+        log.debug(f'finv_elevType=\'{finv_elevType}\' got dem_df: {dem_df.shape if dem_df is not None else None}')
+            
         
         #=======================================================================
         # #dfuncs
         #=======================================================================
-        if not 'L2' in self.param_d['expo_level']:
-            raise NotImplementedError(f'expo_level=\'{self.param_d["expo_level"]}\'')
- 
-        vfunc_index_df, vfunc_data_df = self.parent.projDB_get_tables(['06_vfunc_index', '07_vfunc_data'], projDB_fp=projDB_fp)
         
-        assert set(finv_dx['tag']).issubset(vfunc_index_df.index), 'missing tags'
+        if 'L2' in self.param_d['expo_level']:             
+ 
+            vfunc_index_df, vfunc_data_df = self.parent.projDB_get_tables(['06_vfunc_index', '07_vfunc_data'], projDB_fp=projDB_fp)
+        
+            assert len(vfunc_index_df)>0, 'no Vulnerability Functions found'
+        
+            assert set(finv_dx['tag']).issubset(vfunc_index_df.index), 'missing tags'
+            
+            #get grouper for vfuncs
+            g_vfunc = vfunc_data_df.round(precision).groupby('tag')
+            
+        elif 'L1' in self.param_d['expo_level']:
+            log.debug(f'L1 model vfunc patching')
+            
+            assert len(finv_dx['tag'].unique())==1, 'L1 models must have a single dummy tag'
+            
+            finv_dx['tag'] = 'L1_dummy' #patch the tag for L1 models'
+ 
+        
+        else:
+            raise KeyError(f'unrecognized expo_level: {self.param_d["expo_level"]}')
         
  
         #=======================================================================
@@ -167,7 +211,7 @@ class Model_run_methods(object):
         #=======================================================================
         #loop on each tag (unique damage function)
         result_d = dict()
-        g_vfunc = vfunc_data_df.round(precision).groupby('tag')
+        
         g = finv_dx.groupby('tag')
         log.info(f'computing damages for {len(g)} ftags')
         for i, (tag, gdf) in enumerate(g):
@@ -180,9 +224,7 @@ class Model_run_methods(object):
             #get these depths
             expoi_df = expos_df.loc[expos_df.index.isin(gdf.index.unique('indexField')), :]
  
-
-
-            
+ 
             #===================================================================
             # #adjust for DEM
             #===================================================================
@@ -196,8 +238,9 @@ class Model_run_methods(object):
                 deps_df = expoi_df.subtract(gels_s, axis=0)
                 
             #===================================================================
-            # #adjust for asset height (elv)            
+            # #adjust for asset height (elev)            
             #===================================================================
+            """ TODO: support WSH"""
             #join the exposures onto the assets
             dep_elev_df = gdf['elev'].to_frame().join(deps_df, on='indexField')
             
@@ -205,7 +248,7 @@ class Model_run_methods(object):
             deps_df = dep_elev_df.drop(columns='elev').subtract(dep_elev_df['elev'], axis=0)
             deps_df.columns.name = 'event_names'
 
-            negative_bx = deps_df<0
+            negative_bx = deps_df<0 #does not count nulls
             if negative_bx.any().any():
                 log.warning(f'got {negative_bx.sum().sum()}/{deps_df.size} negative depths for tag \'{tag}\'')
             #===================================================================
@@ -214,63 +257,71 @@ class Model_run_methods(object):
             #stack into a series
             deps_s = deps_df.round(precision).stack().rename('exposure')
  
-            #get unique
-            deps_ar = np.unique(deps_s.dropna().values) #not sorting
-
- 
             #===================================================================
-            # prep dfunc----------
+            # L2 
             #===================================================================
-            dd_ar = g_vfunc.get_group(tag).sort_values('exposure').loc[:, ['exposure', 'impact']].astype(float).T.values
-            
-            #check monotonocity
-            assert np.all(np.diff(dd_ar[0])>0), 'exposure values must be increasing' #redundant with sort_values?
-            assert np.all(np.diff(dd_ar[1])>=0), 'impact values must be non-decreasing'
-            
-            #===================================================================
-            # compute damages
-            #===================================================================
-            #===================================================================
-            # get_dmg = lambda depth: np.interp(depth, #depth find damage on
-            #                                 dd_ar[0], #depths (xcoords)
-            #                                 dd_ar[1], #damages (ycoords)
-            #                                 left=0, #depth below range
-            #                                 right=max(dd_ar[1]), #depth above range
-            #                                 )
-            # get_dmg(deps_ar)
-            # e_impacts_d = {dep:get_dmg(dep) for dep in deps_ar}
-            #===================================================================
-            expo_ar = np.interp(deps_ar, #depth find damage on
-                    dd_ar[0], #depths (xcoords)
-                    dd_ar[1], #damages (ycoords)
-                    left=0, #depth below range
-                    right=max(dd_ar[1]), #depth above range
-                    )
-            
-            """
-            plot_line_from_array(dd_ar, deps_ar)
-            """
-            
-            #join back onto the depths
-            result_dx = deps_s.to_frame().join(pd.Series(expo_ar, index=deps_ar, name='impact'), on='exposure')
-            
-
+            if 'L2' in self.param_d['expo_level']: 
+                #get unique
+                deps_ar = np.unique(deps_s.dropna().values) #not sorting
+    
+     
+                #===================================================================
+                # prep dfunc----------
+                #===================================================================
+                dd_ar = g_vfunc.get_group(tag).sort_values('exposure').loc[:, ['exposure', 'impact']].astype(float).T.values
                 
+                #check monotonocity
+                assert np.all(np.diff(dd_ar[0])>0), 'exposure values must be increasing' #redundant with sort_values?
+                assert np.all(np.diff(dd_ar[1])>=0), 'impact values must be non-decreasing'
+                
+                #===================================================================
+                # compute damages
+                #===================================================================
+     
+                expo_ar = np.interp(deps_ar, #depth find damage on
+                        dd_ar[0], #depths (xcoords)
+                        dd_ar[1], #damages (ycoords)
+                        left=0, #depth below range
+                        right=max(dd_ar[1]), #depth above range
+                        )
+                
+                """
+                plot_line_from_array(dd_ar, deps_ar)
+                """
+                
+                #join back onto the depths
+                result_dx = deps_s.to_frame().join(pd.Series(expo_ar, index=deps_ar, name='impact'), on='exposure')
+                """
+                                               exposure      impact
+                indexField nestID event_names                      
+                14879      0      haz_0050       -1.572  263.775000
+                                  haz_0100       -1.029  311.968000
+                  """
             
+            #===================================================================
+            # L1
+            #===================================================================
+            else:
+                log.debug(f'computing L1 exposure as floats')
+                expoB_s = (deps_s>0.0).rename('impact').astype(float)
+                result_dx = deps_s.to_frame().join(expoB_s)
+ 
+                
+                            
                 
             
             #===================================================================
             # scale
             #===================================================================
             #apply the scale
-            dx = result_dx.join(gdf['scale'], on=gdf.index.names).drop('exposure', axis=1)
+            dx = result_dx.join(gdf['scale'].fillna(1.0), on=gdf.index.names).drop('exposure', axis=1)
             result_dx['impact_scaled'] = dx['impact']*dx['scale']
             
             #===================================================================
             # cap
             #===================================================================
             dx = result_dx.join(gdf['cap'], on=gdf.index.names).loc[:, ['impact_scaled', 'cap']]
-            result_dx['impact_capped'] = dx.min(axis=1)
+            result_dx['impact_capped'] = dx.min(axis=1) #ignores nans
             
             #===================================================================
             # #add any missing entries that were all null
@@ -306,25 +357,37 @@ class Model_run_methods(object):
             #===================================================================
             log.debug(f'finished computing damages for tag \'{tag}\' w/ {len(result_dx)} records')
             result_d[tag] = result_dx
+            """
+            view(result_dx)
+            """
             
         #=======================================================================
         # collectg
         #=======================================================================
-        mresult_dx = pd.concat(result_d, names=['tag'])#.reorder_levels(['indexField', 'nestID', 'tag', 'event_names']).sort_index()
+        mresult_dx = pd.concat(result_d, names=['tag'])#.reorder_levels(['indexField', 'fg_index', 'tag', 'event_names']).sort_index()
+        
+        """
+        view(mresult_dx)
+        """
         
         # Check if the 'tag' level is redundant against all other indexers
         assert mresult_dx.index.droplevel('tag').nunique() == mresult_dx.index.nunique(), "The 'tag' level is not redundant"
  
         # Drop the 'tag' level from the index
-        mresult_dx = mresult_dx.droplevel('tag').reorder_levels(['indexField', 'nestID', 'event_names']).sort_index()
+        mresult_dx = mresult_dx.droplevel('tag').reorder_levels(['indexField', 'fg_index', 'event_names']).sort_index()
+        """
+                                       exposure  ...  impact_capped
+        indexField nestID event_names            ...               
+        14879      0      haz_0050       -1.572  ...   31122.812250
+ 
+        
+        Index(['exposure', 'impact', 'impact_scaled', 'impact_capped'], dtype='object')
+        """
  
         #=======================================================================
         # #check
-        #=======================================================================
-
-        
-        #check the index matches the finv_dx
-        
+        #=======================================================================        
+        #check the index matches the finv_dx        
         mresult_dx_index_check = mresult_dx.index.droplevel('event_names').drop_duplicates().sort_values()
         assert_finv_match(mresult_dx_index_check)
         #assert mresult_dx_index_check.equals(finv_dx.index.sort_values()), 'Index mismatch'
@@ -350,7 +413,18 @@ class Model_run_methods(object):
         
         this is a condensed and imputed version of the impacts table
         decided to make this separate as users will expect something like this
-            but we want to maintain the compelte table for easier backend calcs
+            but we want to maintain the complete table for easier back end calcs
+            
+            
+        Returns
+        ----------------
+        pd.DataFrame
+        AEP                 0.001          0.005          0.010          0.020
+        indexField                                                            
+        14879       111300.000000   57468.542564   56809.104320   51122.812250
+        14880       153703.764320   66621.862874   64998.016299   63850.222080
+        14925       110750.039342   55132.276676   55068.322880   20000.000000
+        14926        91891.289907   48750.970880   47298.223002   20000.000000
         """
         #=======================================================================
         # defaults
@@ -373,8 +447,9 @@ class Model_run_methods(object):
         # simplifyt
         #=======================================================================
         
-        #sum on nestID and retrieve impacts
-        df = impacts_dx['impact_capped'].groupby(['indexField', 'event_names']).sum().unstack('event_names').fillna(0.0)
+        #sum on fg_index and retrieve impacts
+        df = impacts_dx['impact_capped'].groupby(['indexField', 'event_names']).sum()
+        df = df.unstack('event_names').fillna(0.0)
         
         
         #=======================================================================
@@ -387,11 +462,16 @@ class Model_run_methods(object):
         
         haz_events_s = haz_events_df.set_index('event_name')['prob']
         
-        #get probability type
-    
+        #get probability type    
         haz_meta_s = self.parent.projDB_get_tables(['04_haz_meta'], projDB_fp=projDB_fp)[0].set_index('varName')['value']
         
-        probability_type = 'ARI' if bool(haz_meta_s['probability_type']) else 'AEP'
+        if haz_meta_s['probability_type']=='0':
+            probability_type = 'AEP'
+        elif haz_meta_s['probability_type']=='1':
+            probability_type = 'ARI'
+        else:
+            raise KeyError(f'bad probability_type: {haz_meta_s["probability_type"]}')
+ 
 
         log.debug(f'retrieved {len(haz_events_s)} events w/ probability_type=\'{probability_type}\'')
         
@@ -421,6 +501,8 @@ class Model_run_methods(object):
         #=======================================================================
         self.set_tables({'table_impacts_prob':impacts_prob_df}, projDB_fp=projDB_fp)
         
+        return impacts_prob_df
+        
  
         
         
@@ -432,6 +514,17 @@ class Model_run_methods(object):
         """compute the row-wise EAD from the damages and write to the database
         
         see CanFloodv1: riskcom.RiskModel.calc_ead()
+        
+        Returns
+        ----------------
+        pd.DataFrame
+                            ead
+            indexField             
+            14879       1274.190785
+            14880       1567.645909
+            14925       1093.357785
+            14926        949.789911
+            14927       1497.024365
         """
         
         #=======================================================================
@@ -506,7 +599,21 @@ class Model_run_methods(object):
                          ):
         """compute the model-wide EAD with fancy tails
         
-        NOTE: we don't use the row-wise EAD as we want to fancier tails
+        NOTE: we don't use the row-wise EAD as we want fancier tails
+        
+        Returns
+        ----------------
+        pd.DataFrame
+             AEP       impacts
+            0  0.000  3.706048e+06
+            1  0.001  3.462964e+06
+            2  0.005  2.490627e+06
+            3  0.010  2.005584e+06
+            4  0.020  1.591033e+06
+            
+            
+        float
+            sum of impacts column
         """
         
         #=======================================================================
@@ -651,7 +758,7 @@ class Model_run_methods(object):
         
         log.info(f'finished computing EAD w/ {result_ead}')
         
-        return result_ead
+        return df, result_ead
         
 class Model_table_assertions(object):
     """organizer for the model table assertions"""
@@ -680,7 +787,7 @@ class Model_table_assertions(object):
         #=======================================================================
         try:
             if isinstance(index_test, pd.MultiIndex):
-                if not index_test.names == ['indexField', 'nestID']:
+                if not index_test.names == ['indexField', 'fg_index']:
                     raise AssertionError(f'bad index_test names: {index_test.names}')
                 assert_index_match(index_test, finv_index)
                 
@@ -902,10 +1009,7 @@ class Model(Model_run_methods, Model_table_assertions):
         assert isinstance(table_names_l, list), type(table_names_l)
         names_d = self.get_table_names(table_names_l, result_as_dict=True)
         
-        full_names = list(names_d.values())
-        
- 
-             
+        full_names = list(names_d.values())             
         
                 
         tables =  self.parent.projDB_get_tables(full_names,template_prefix=self.template_prefix_str, **kwargs)
@@ -917,9 +1021,25 @@ class Model(Model_run_methods, Model_table_assertions):
         
     
     def get_table_parameters(self, **kwargs):
+        """special loader for the parameters"""
         df_raw = self.get_tables(['table_parameters'], **kwargs)[0]
         
         return format_table_parameters(df_raw)
+    
+    def get_table_parameters_fg(self, params_df=None):
+        """get function Group parameters"""
+        if params_df is None:
+            params_df = self.get_table_parameters()
+        df1 = params_df[params_df['fg_index'].notna()].set_index('varName')
+        df1 = df1.drop(['required', 'dynamic', 'model_index'], axis=1)
+        df1 = df1.astype({'fg_index':'int64'}).sort_values('fg_index')
+        
+        #unlike other parameters, these are only included if specified
+        assert not df1['value'].isna().any(), 'missing FG parameters' 
+        
+        #add tags
+        df1['tag'] = df1.index.str.replace(r"f(\d+)_", "", regex=True)
+        return df1 
     
  
     
@@ -972,8 +1092,7 @@ class Model(Model_run_methods, Model_table_assertions):
         #recase the names
 
         # Get the table names
-        table_names = self.get_table_names(list(df_d.keys()))
-        
+        table_names = self.get_table_names(list(df_d.keys()))       
  
         
         # Recast the DataFrame dictionary with the correct table names
@@ -1029,10 +1148,9 @@ class Model(Model_run_methods, Model_table_assertions):
         """
         self.param_d = df.set_index('varName')['value'].dropna().to_dict()
         
-    
-    
-    
-
+ 
+        
+ 
     def _get_status(self, param_df=None):
         """determine the status of the model
         
@@ -1048,7 +1166,10 @@ class Model(Model_run_methods, Model_table_assertions):
             
         """
         if param_df is None:
-            param_df = self.get_table_parameters()
+            #load the model parameter table from the projDB
+            #WARNING: this may be coming from some test pickle
+            param_df = self.get_table_parameters() 
+            
             
         self.update_parameter_d()
             
@@ -1121,9 +1242,6 @@ class Model(Model_run_methods, Model_table_assertions):
     def compute_status(self, logger=None):
         """load info from the projDB and use to determine status
         
-
-        
-        
         """
         #=======================================================================
         # defaults
@@ -1137,7 +1255,10 @@ class Model(Model_run_methods, Model_table_assertions):
         #=======================================================================
         status, msg = self._get_status()
             
-        log.debug(f'status={status}\n    {msg}')
+        if not msg is None:
+            log.debug(f'status={status}\n    {msg}')
+        else:
+            log.debug(f'status={status}')
             
             
         #=======================================================================

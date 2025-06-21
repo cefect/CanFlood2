@@ -49,12 +49,19 @@ from canflood2.hp.qt import set_widget_value
 test_data_dir = os.path.join(conftest.test_data_dir, 'dialog_main')
 os.makedirs(test_data_dir, exist_ok=True)
 
- 
+from canflood2.tutorials.tutorial_data_builder import tutorial_lib
 
+tut_names = list(tutorial_lib.keys())
+
+#===============================================================================
+# PARAMS---------
+#===============================================================================
+interactive=False
+overwrite_testdata=True #udpate test projDB
 #===============================================================================
 # HELPERS=========---------
 #===============================================================================
-overwrite_testdata=False
+
 def write_projDB(dialog_main, test_name):
  
     projDB_fp = dialog_main.get_projDB_fp()
@@ -64,14 +71,15 @@ def write_projDB(dialog_main, test_name):
         os.makedirs(os.path.dirname(ofp), exist_ok=True)
         
         #copy over the .sqlite file
-        shutil.copyfile(projDB_fp, ofp) 
- 
+        shutil.copyfile(projDB_fp, ofp)  
         conftest_logger.info(f'wrote result to \n    {ofp}')
         
 
 
 def oj(*args):
     return os.path.join(test_data_dir, *args)
+
+gfp = lambda x:oj(x, 'projDB.canflood2')
 
 def oj_out(test_name, result):
     return oj(result_write_filename_prep(test_name), os.path.basename(result))
@@ -136,14 +144,11 @@ use fixtures to parameterize in blocks
     
 @pytest.fixture(scope='function') 
 def dialog_main(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
-        
+        qtbot,
            ):
     """dialog_main fixture.
     
-    setup should be handled by calling fixtures from within your test
-    
- 
-        
+    setup should be handled by calling fixtures from within your test        
     """
     
     #===========================================================================
@@ -156,17 +161,22 @@ def dialog_main(qgis_iface, qgis_new_project, logger, tmpdir,monkeypatch,
  
  
     print(f'\n\n{"=" * 80}\nDIALOG fixture setup complete\n{"=" * 80}\n\n')
+    if interactive: qtbot.waitExposed(dialog_main)  # wait until the dialog is visible
+    
     return dialog_main
 
 @pytest.fixture
 def dialog_loaded(dialog_main,  
                 aoi_vlay,dem_rlay, #instancing loads to project. dialog_projDB_load loads to UI
                 haz_rlay_d, #load to project. _load_projDB_to_ui checks for name match
-                projDB_fp, monkeypatch,tmpdir,
+                projDB_fp, 
+                monkeypatch,tmpdir,
                 ):
     """setup the project and load the dialog from the projDB
     
     TODO: rename this as a projDB fixture?
+    
+    excluding finv_vlay as this is model specific
     
     """
     
@@ -175,10 +185,13 @@ def dialog_loaded(dialog_main,
     #===========================================================================
     """done by fixtures"""
     
+    dialog_main.lineEdit_R_outdir.setText(str(tmpdir))
+    
     #===========================================================================
     # load ui from projDB
     #===========================================================================
     #patch and click load projDB
+    assert os.path.exists(projDB_fp), f'projDB_fp does not exist: {projDB_fp}'
     projDB_fp = shutil.copyfile(projDB_fp, os.path.join(tmpdir, os.path.basename(projDB_fp))) #assert_projDB_fp(projDB_fp)
     #patch the load button
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda*args, **kwargs:(projDB_fp, ''))
@@ -187,6 +200,11 @@ def dialog_loaded(dialog_main,
     
     return dialog_main
     
+""" 
+dialog_main.show()
+QApp = QApplication(sys.argv) #initlize a QT appliaction (inplace of Qgis) to manually inspect    
+sys.exit(QApp.exec_()) #wrap
+"""
  
  
 @pytest.fixture
@@ -206,7 +224,7 @@ def widget_data_d(dialog_main, widget_Main_dialog_data_d):
 def aoi_vlay_set(aoi_vlay, dialog_main):
     """set the aoi_vlay on teh combobox"""
     dialog_main.comboBox_aoi.setLayer(aoi_vlay)
-    return True
+    return aoi_vlay
 
 
 @pytest.fixture
@@ -217,7 +235,8 @@ def dem_rlay_set(dem_rlay, dialog_main):
 
     
 @pytest.fixture
-def event_meta_set(eventMeta_df, dialog_main, haz_rlay_d):
+def event_meta_set(eventMeta_df, dialog_main, haz_rlay_d, probability_type,
+                   qtbot):
     """set the eventMeta_df onto the dialog
     
     this shortcuts selecting, loading, and entering in the values
@@ -230,7 +249,25 @@ def event_meta_set(eventMeta_df, dialog_main, haz_rlay_d):
     assert set(eventMeta_df.iloc[:,0]) == set(haz_rlay_d.keys()), 'eval_d keys do not match haz_rlay_d keys'
  
 
-    dialog_main.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)  
+    dialog_main.tableWidget_HZ_eventMeta.set_df_to_QTableWidget_spinbox(eventMeta_df)
+    
+    #===========================================================================
+    # #set the probability type
+    #===========================================================================
+    if probability_type == '1':
+        #click(dialog_main.radioButton_ELari)
+        dialog_main.radioButton_ELari.setChecked(True)
+        assert dialog_main.radioButton_ELari.isChecked(), 'ARI not checked' 
+    elif probability_type == '0':
+ 
+        dialog_main.radioButton_ELaep.setChecked(True)        
+        assert dialog_main.radioButton_ELaep.isChecked(), 'AEP not checked'
+        assert not dialog_main.radioButton_ELari.isChecked(), 'ARI checked'
+        
+    else:
+        raise ValueError(f'unknown probability type: {probability_type}')
+
+ 
     return True
  
  
@@ -249,8 +286,10 @@ def test_dial_main_00_init(dialog_main,):
     assert hasattr(dialog_main, 'logger')
     
     
-
-
+def test_dial_main_00_launch_QGIS_LOG_FILE(dialog_main):
+    """test that the QGIS log file is created"""
+    
+    click(dialog_main.pushButton_debugLog)
 
  
 def test_dial_main_01_create_new_projDB(monkeypatch, dialog_main, tmpdir, test_name):
@@ -267,13 +306,13 @@ def test_dial_main_01_create_new_projDB(monkeypatch, dialog_main, tmpdir, test_n
     result = dialog_main.get_projDB_fp()
     assert_projDB_fp(result, check_consistency=True)
     
-    write_projDB(dialog_main, test_name)
+    #write_projDB(dialog_main, test_name)
      
      
     
  
 
-@pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
+@pytest.mark.parametrize('tutorial_name', tut_names)
 def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_name,
                                                haz_rlay_d, #loads to project
                                                #eventMeta_df,
@@ -327,22 +366,31 @@ def test_dial_main_02_load_to_eventMeta_widget(dialog_main, tutorial_name, test_
 
 
 
-#@pytest.mark.parametrize("projDB_fp", [oj('01_create_new_projDB', 'projDB.canflood2')])
-@pytest.mark.parametrize('tutorial_name', ['cf1_tutorial_02'])
+ 
+#===============================================================================
+# @pytest.mark.parametrize('tutorial_name', [
+#     #'cf1_tutorial_01',
+#     #'cf1_tutorial_02b', #AEP instead of ARI
+#     'cf1_tutorial_02c', #datum
+#     ])
+#===============================================================================
+
+@pytest.mark.parametrize("tutorial_name", tut_names)
 def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name, monkeypatch, 
                           widget_data_d, #widget values set during instance
                           aoi_vlay_set, dem_rlay_set, #combobox set during instance
                           event_meta_set, #eventMeta_df set during instance, loads haz_rlay_d
                           
                           #for testing
-                          aoi_vlay, dem_rlay, eventMeta_df,
+                          #aoi_vlay, 
+                          dem_rlay, eventMeta_df,
                                                   ):
     """
     load tutorial and other data onto dialog
     Create New ProjDB
     test saving the projDB
     
-    
+    start point for test data
  
     """
     #===========================================================================
@@ -360,6 +408,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
     #===========================================================================
     # #create a new projDB
     #===========================================================================
+ 
     dialog_create_new_projDB(monkeypatch, dialog_main, tmpdir)
  
  
@@ -391,7 +440,7 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
         
     
     #check that the aoi_vlay is on comboBox_aoi
-    assert dialog_main.comboBox_aoi.currentLayer() == aoi_vlay
+    assert dialog_main.comboBox_aoi.currentLayer() == aoi_vlay_set
      
     #check hte dem_rlay is on comboBox_dem
     assert dialog_main.comboBox_dem.currentLayer() == dem_rlay
@@ -410,7 +459,9 @@ def test_dial_main_02_save_ui_to_project_database(dialog_main,tmpdir, test_name,
 
 
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
+    ('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
+    #('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
+    ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2'))
 ])
 def test_dial_main_03_load_projDB(dialog_loaded,
                                   
@@ -456,15 +507,26 @@ def test_dial_main_03_load_projDB(dialog_loaded,
 
 
 
-@pytest.mark.dev
+
 @pytest.mark.parametrize("tutorial_name, projDB_fp", [
-    ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2'))
+    ('cf1_tutorial_01', oj('02_save_ui_to_project_dat_62b9e2', 'projDB.canflood2')),
+   ('cf1_tutorial_02', oj('02_save_ui_to_project_dat_85ad36', 'projDB.canflood2')),
+   ('cf1_tutorial_02b', oj('02_save_ui_to_project_dat_b33feb', 'projDB.canflood2')), 
+   ('cf1_tutorial_02c', oj('02_save_ui_to_project_dat_7b3a19', 'projDB.canflood2')),
+   ('cf1_tutorial_02d', oj('02_save_ui_to_project_dat_6f16b9', 'projDB.canflood2')),
 ])
 def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
-
                                          tutorial_name,
                                          ):
-    """test creation and clearing of the model suite"""
+    """test creation and clearing of the model suite
+    
+    
+    loads from test_dial_main_02_save_ui_to_project_database
+    
+    output used for tests in test_dial_model
+    
+    NOTE: no configuration of models.. just template creation
+    """
     
  
     #===========================================================================
@@ -485,7 +547,7 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     # #create the model suite templates
     #===========================================================================
     dialog=dialog_loaded
-    click(dialog.pushButton_MS_createTemplates)
+    click(dialog.pushButton_MS_createTemplates) #Main_dialog._connect_slots_modelSuite()
  
     
     #check they have been added to the dialog index
@@ -520,8 +582,84 @@ def test_dial_main_04_MS_createTemplates(dialog_loaded, test_name,
     #===========================================================================3
     write_projDB(dialog, test_name)
     
+
+
+
+
+
+_04_MS_args = ("tutorial_name, projDB_fp", [
+    ('cf1_tutorial_01', gfp('04_MS_createTemplates_cf1_4b9cc3')), 
+    ('cf1_tutorial_02', gfp('04_MS_createTemplates_cf1_f72317')),
+    ('cf1_tutorial_02b', gfp('04_MS_createTemplates_cf1_ea97b3')),
+    ('cf1_tutorial_02c', gfp('04_MS_createTemplates_cf1_1ae7e8')),
+    ('cf1_tutorial_02d', gfp('04_MS_createTemplates_cf1_eae93b')),
+])
+
     
 
+_04_MS_args_d = {item[0]: item[1] for item in _04_MS_args[1]}
+
+
+
+
+
+
+
+
+
+
+@pytest.mark.dev
+@pytest.mark.parametrize(*_04_MS_args)
+def test_dial_main_05_MS_create(dialog_loaded, test_name,
+                                         tutorial_name,
+                                         ):
+    """adding/deleteing models from the suite"""
+    
+    dialog=dialog_loaded
+    
+    #check they have been added to the dialog index
+    assert set(dialog.model_index_d.keys()) == set(consequence_category_d.keys())
+
+
+    consequence_category = 'c1'
+    og_model_index_keys =  list(dialog.model_index_d[consequence_category].keys())
+    
+    new_modelid = len(og_model_index_keys)
+    #===========================================================================
+    # add a new model------
+    #===========================================================================
+    
+    #get the first model
+    model = dialog.model_index_d[consequence_category][0]
+    
+    #click the add model
+    click(model.widget_d['pushButton_mod_plus']['widget'])
+    
+    #===========================================================================
+    # check its htere
+    #===========================================================================
+    assert len(dialog.model_index_d[consequence_category])== len(og_model_index_keys) + 1
+    assert new_modelid in dialog.model_index_d[consequence_category].keys(), \
+        f'new model id {new_modelid} not in {dialog.model_index_d[consequence_category].keys()}'
+    #===========================================================================
+    # remove it-----
+    #===========================================================================
+    model = dialog.model_index_d[consequence_category][new_modelid]
+    """
+    model.widget_d.keys()
+    """
+    click(model.widget_d['pushButton_mod_minus']['widget'])
+    
+    #===========================================================================
+    # check
+    #===========================================================================
+    assert not new_modelid in dialog.model_index_d[consequence_category].keys(), \
+        f'new model id {new_modelid} still in {dialog.model_index_d[consequence_category].keys()}'
+        
+    #check the new keys match the og
+    assert set(dialog.model_index_d[consequence_category].keys()) == set(og_model_index_keys), \
+        f'new model keys {dialog.model_index_d[consequence_category].keys()} do not match og {og_model_index_keys}'
+    
 #===============================================================================
 # TESTS: POST MODEL CONFIG----------
 #===============================================================================

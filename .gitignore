@@ -45,3 +45,4 @@ canflood2.zip
 
 #sphinx
 docs/build
+*.qmd

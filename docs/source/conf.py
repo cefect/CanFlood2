@@ -22,7 +22,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.githubpages'
+    'sphinx.ext.githubpages',
+    'sphinx.ext.mathjax',
 ]
 
 intersphinx_mapping = {
@@ -71,4 +72,7 @@ nitpick_ignore = [
     # ('py:class', 'SomeClassName'),
 ]
 
+math_number_all = True
+
+ 
 

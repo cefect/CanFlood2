@@ -10,6 +10,7 @@ ui dialog class for model config window
 #==============================================================================
 #python
 import sys, os, datetime, time, configparser, logging, sqlite3
+import pprint
 import pandas as pd
 
 from pandas.testing import assert_index_equal
@@ -24,6 +25,7 @@ from qgis.core import (
     QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayerProxyModel,
     QgsWkbTypes, QgsMapLayer, QgsLogger,
     )
+from qgis.gui import QgsFieldComboBox
 
 from .hp.basic import view_web_df as view
 from .hp.qt import set_widget_value, get_widget_value
@@ -77,18 +79,30 @@ class Model_compiler(object):
     def compile_model(self, **skwargs):
         """wrapper around compilation sequence"""
         
+        #=======================================================================
+        # prechecks
+        #=======================================================================
         assert not self.model.param_d is None, 'failed to load model parameters'
-        """run compilation sequence"""
+        
+        if not 'finv_elevType' in self.model.param_d.keys():
+            raise AssertionError(f'must set the \'Elevation Type\' on the \'Asset Inventory\' tab before compiling the model')
+ 
+ 
+        #=======================================================================
+        # compile sequence
+        #=======================================================================
         #asset inventory
         _ = self._table_finv_to_db(**skwargs)
         
-        #ground elevations
-        if self.model.param_d['finv_elevType'] == 'ground':
-            _ = self._table_gels_to_db(**skwargs)
+        #sample DEM
+        _ = self._table_gels_to_db(**skwargs)
             
         #asset exposures
         _ = self._table_expos_to_db(**skwargs)
         
+        #=======================================================================
+        # wrap
+        #=======================================================================
         assert_projDB_fp(self.parent.get_projDB_fp())
         
         self.update_labels()
@@ -106,19 +120,45 @@ class Model_compiler(object):
         log = self.logger.getChild('_table_finv_to_db')
  
         #=======================================================================
-        # load the data
+        # load data ---------
         #=======================================================================
-        #load field names from parameters table
- 
         
-        """only one nest for now
-        using this names_d as a lazy conversion from the model_parameters to the finv table names"""
-        names_d = {
-            'indexField':'finv_indexField',
-            'scale':'f01_scale','elev':'f01_elev','tag':'f01_tag','cap':'f01_cap',
-            }
+        #=======================================================================
+        # parameters
+        #=======================================================================
+        indexField = model.param_d['finv_indexField']
+        #load the parameter table
+        params_df = model.get_table_parameters_fg()
         
-        field_value_d = {k:model.param_d[v] for k,v in names_d.items()}
+        """
+        model.get_table_parameters()
+        """
+        
+        assert not params_df['value'].isnull().any(), 'parameters table must not have null values'
+        
+        
+        #=======================================================================
+        # NO! only those specieid by the user are included
+        # #check the length is divisible by 4
+        # assert len(params_df) % 4 == 0, 'parameters table must have a multiple of 4 rows'
+        #=======================================================================
+        
+        field_value_d = params_df['value'].to_dict()
+        
+        #add the indexer
+        field_value_d['indexField'] = indexField
+        #load field names from parameters table 
+        
+        
+        #check for double selection across function groups
+        if not params_df['value'].is_unique:
+            #this is allowed.. but complicates things
+            log.warning('multiple selections for the same inventory vector layer field across function groups. see log.')
+            log.debug(f'\n{params_df[params_df.duplicated(subset=["value"], keep=False)]}')
+        
+        #=======================================================================
+        # finv layer
+        #=======================================================================
  
         
         #get the vector layer
@@ -129,22 +169,105 @@ class Model_compiler(object):
         
         log.debug(f'loaded {df_raw.shape} from {vlay.name()}')
         #=======================================================================
-        # process 
+        # process--------- 
         #=======================================================================
-        #check that all the field names are in the columns
-        #redundant as these come from the FieldBox?
-        assert set(field_value_d.values()).issubset(df_raw.columns), 'field not found'
+        #slice to finv fields
+
+        assert all(v in df_raw.columns for v in field_value_d.values()), 'Some fields are not found in the dataframe columns'
+ 
+#===============================================================================
+#         dxcol = df_raw.loc[:, params_df['value'].to_list() + [indexField]].set_index(indexField)
+#         dxcol.index.name='indexField'
+# v
+# 
+#         # Promote columns to a multi-index using 'fg_index' lookup
+# 
+#         fg_index_mapping = params_df.set_index('value')['fg_index'].rename('fg_index')
+#         tag_mapping = params_df.set_index('value')['tag'].rename('finvField')
+#         
+#         dxcol.columns = pd.MultiIndex.from_arrays(
+#             [dxcol.columns, dxcol.columns.map(fg_index_mapping), dxcol.columns.map(tag_mapping)],
+#             names=['fieldName', 'fg_index', 'finvField']
+#         )
+#===============================================================================
         
-        #standaraize the column names
-        df = df_raw.rename(columns={v:k for k,v in field_value_d.items()}).loc[:, field_value_d.keys()]
+        # -----------------------------------------------------------------------------    
+        # 1. Build the *column* index directly from params_df
+        #    ------------------------------------------------
+        col_index = pd.MultiIndex.from_frame(
+            params_df[['value', 'fg_index', 'tag']]
+                .rename(columns={'value': 'fieldName', 'tag': 'finvField'}),
+            names=['fieldName', 'fg_index', 'finvField']
+        )
         
-        #add the nestID
-        df['nestID'] = 0
+        if not col_index.is_unique:
+            raise ValueError("The (fieldName, fg_index, finvField) combinations in "
+                             "`params_df` must be unique.")
         
-        #move nestID and indexField columns to front
-        df = df[['nestID', 'indexField'] + [c for c in df.columns if c not in ['nestID', 'indexField']]]
+        # -----------------------------------------------------------------------------    
+        # 2. Gather the data from df_raw (duplicates in `value` are allowed)
+        #    --------------------------------------------------------------
+        #    • .loc with a **list** preserves order *and* repeats, so the data columns
+        #      line up 1-for-1 with the rows of params_df.
+        #    • Add `indexField` to the index, then drop it from columns.
+        #
+        dxcol = (
+            df_raw
+              .set_index(indexField)                 # rows keyed by indexField
+              .loc[:, col_index.get_level_values('fieldName')]   # pull columns (duplicates allowed)
+        )
         
-        df = df.astype({'indexField':'int64', 'nestID':'int64'}).set_index(['indexField', 'nestID'])
+        # 3. Attach the new MultiIndex
+        dxcol.columns = col_index
+        
+        # Optional: keep the index’s label tidy
+        dxcol.index.name = 'indexField'
+
+
+        
+        #reorder the column levels
+        dxcol = dxcol.reorder_levels(['fg_index', 'finvField', 'fieldName'], axis=1)
+        
+        log.debug(f'converted {dxcol.shape} dataframe to multi-index with fg_index and tag')
+        
+        
+        #add empty columns for any finvFields that are missing from the dataframe 
+        cnt=0
+        for finvField in self.functionGroups_finv_tags_d.values():
+            if not finvField in dxcol.columns.get_level_values('finvField'):
+                #add a column with NA values
+                for fg_index in dxcol.columns.get_level_values('fg_index').unique():
+                    dxcol[(fg_index, finvField, f'f{fg_index}_{finvField}')] = pd.NA
+                    cnt += 1
+                    
+        if cnt > 0:log.debug(f'added {cnt} empty columns for missing finvFields')
+        #makes data consistency checks easier
+        #no longer needed?
+        #=======================================================================
+        # for k in names_d.keys():
+        #     if k not in df.columns:
+        #         df[k] = pd.NA
+        #=======================================================================
+        """
+        view(dxcol)
+        """
+
+        #=======================================================================
+        # unstack
+        #=======================================================================
+        #pivot 'fg_index' onto the index (as a multi-Index)
+        dx = dxcol.droplevel('fieldName', axis=1).stack(level='fg_index') 
+        
+        
+        #force int dtype on to index levels
+        dx.index = dx.index.set_levels(
+            [dx.index.levels[0].astype('int64'), dx.index.levels[1].astype('int64')],
+            level=[0, 1]
+        )
+        
+
+ 
+ 
         
         """
         df.dtypes
@@ -153,10 +276,10 @@ class Model_compiler(object):
         #=======================================================================
         # #write it to the database
         #=======================================================================
-        model.set_tables({'table_finv':df}, logger=log)
+        model.set_tables({'table_finv':dx}, logger=log)
         
-        log.debug(f'finished')
-        return df
+        log.debug(f'finished on table_finv with {dx.shape} records')
+        return dx
     
     def _table_gels_to_db(self, model=None, logger=None):
         """build the ground eleveations table"""
@@ -166,22 +289,15 @@ class Model_compiler(object):
         if logger is None: logger = self.logger
         if model is None: model = self.model
         
-        log = self.logger.getChild('_table_gels_to_db')
+        log = self.logger.getChild('_table_gels_to_db')        
+        
+        finv_elevType = model.param_d['finv_elevType']
+ 
+        
+        log.debug(f'building table_gels for finv_elevType={finv_elevType}')
         
         
-        #=======================================================================
-        # precheck
-        #=======================================================================
-        assert model.param_d['finv_elevType'] == 'ground', 'bad elevation type'
-        
-        
-        #=======================================================================
-        # load DEM
-        #=======================================================================
-        dem_rlay = self.parent.get_dem_vlay()
-        assert dem_rlay is not None, 'must select a DEM for finv_elevType=\'ground\''
-        log.debug(f'loaded dem {dem_rlay.name()}')
-        
+                    
         #=======================================================================
         # load finv
         #=======================================================================
@@ -191,21 +307,52 @@ class Model_compiler(object):
         assert finv_indexField in finv_vlay.fields().names(), 'bad finv_indexField'
         
         #=======================================================================
-        # sample
+        # build from DEM
         #=======================================================================
-        with ProcessingEnvironment(logger=log) as pe: 
-            result = pe.run("qgis:rastersampling",
-                        { 'COLUMN_PREFIX' : 'dem_', 
-                        'INPUT' : finv_vlay, 
-                        'OUTPUT' : os.path.join(pe.temp_dir, 'rastersampling_table_gels_to_db.gpkg'), 
-                        'RASTERCOPY' : dem_rlay }
-                                   )
+        if finv_elevType == 'relative':
+            #=======================================================================
+            # load DEM
+            #=======================================================================
+            dem_rlay = self.parent.get_dem_vlay()
+            assert dem_rlay is not None, f'must select a DEM for finv_elevType=\'{finv_elevType}\''
+            log.debug(f'loaded dem {dem_rlay.name()}')
+
             
-            samples_fp = result['OUTPUT']
+            #=======================================================================
+            # sample
+            #=======================================================================
+            with ProcessingEnvironment(logger=log) as pe: 
+                result = pe.run("qgis:rastersampling",
+                            { 'COLUMN_PREFIX' : 'dem_', 
+                            'INPUT' : finv_vlay, 
+                            'OUTPUT' : os.path.join(pe.temp_dir, 'rastersampling_table_gels_to_db.gpkg'), 
+                            'RASTERCOPY' : dem_rlay }
+                                       )
+                
+                samples_fp = result['OUTPUT']
+                
+            #retrieve values
+            samples_s = vlay_to_df(QgsVectorLayer(samples_fp, 'samples')).set_index(finv_indexField
+                                                                    )['dem_1'].rename('dem_samples')
+            samples_s.index.name = finv_index.name
             
-        #retrieve values
-        samples_s = vlay_to_df(QgsVectorLayer(samples_fp, 'samples')).set_index(finv_indexField)['dem_1'].rename('dem_samples')
-        samples_s.index.name = finv_index.name
+        elif finv_elevType == 'absolute':
+            log.debug(f'building blank table_gels for finv_elevType={finv_elevType}')
+            #===================================================================
+            # blank dummy table
+            #===================================================================
+            #extract a series from the vector layer
+            #df_raw = vlay_to_df(finv_vlay)
+            
+            #load the finv table from the databawse
+            #note: table_finv is multindex, but table_gels is not
+            index = model.get_tables(['table_finv'])[0].index.get_level_values('indexField')
+ 
+            samples_s = pd.Series(pd.NA,index=index, name='dem_samples')
+            
+        else:
+            raise KeyError(f'unknown finv_elevType: {finv_elevType}')
+            
         #=======================================================================
         # write resulting table
         #=======================================================================
@@ -288,8 +435,280 @@ class Model_compiler(object):
         return expos_df
     
  
+class Model_config_dialog_assetInventory(object):
+    """organizer for Asset Inventory toolbox"""
+    functionGroups_widget_type_d= {
+        'label_functionGroupID':QLabel,
+        'mFieldComboBox_cap':QgsFieldComboBox,
+        'mFieldComboBox_elev':QgsFieldComboBox,
+        'mFieldComboBox_scale':QgsFieldComboBox,
+        'mFieldComboBox_tag':QgsFieldComboBox,
+        'pushButton_mod_minus':QPushButton,
+        'pushButton_mod_plus':QPushButton,
         
         
+        }
+    
+    functionGroups_finv_tags_d = { #see also parameters.modelTable_params_d['table_finv']
+        'mFieldComboBox_cap':'cap',
+        'mFieldComboBox_elev':'elev',
+        'mFieldComboBox_scale':'scale',
+        'mFieldComboBox_tag':'tag',
+        
+        }
+    
+    
+    
+    def _connect_slots_assetInventory(self, log):
+        """asset inventory related slot connections"""
+        
+        
+        #connect the vector layer
+        bind_MapLayerComboBox(self.comboBox_finv_vlay, 
+                              iface=self.iface, 
+                              layerType=QgsMapLayerProxyModel.VectorLayer)
+ 
+        
+        #bind the exposure geometry label
+        def update_finv_geometry_label():
+            layer = self.comboBox_finv_vlay.currentLayer()
+            if not layer is None:
+                self.label_EX_geometryType.setText(QgsWkbTypes.displayString(layer.wkbType()))
+            
+        self.comboBox_finv_vlay.layerChanged.connect(update_finv_geometry_label)
+        
+
+        
+        #=======================================================================
+        # Finv 
+        #=======================================================================
+        self.functionGroups_index_d=dict()
+        
+        #create the first function group
+        """
+        this is a mirror of the main function group on the Data Selection tab
+        connecting all the DataSelection comboboxes so they update these ones"""
+        _, _, FG_widget_d = self._add_function_group()
+        
+        #disable the delete button on fg0
+        FG_widget_d['pushButton_mod_minus']['widget'].setEnabled(False)
+ 
+        #build the first group widget bindings dict (on main Data Selection tab)
+        self.functionGroup0_widget_d = {
+            'xid': self.mFieldComboBox_cid,
+            'scale': self.mFieldComboBox_AI_01_scale,
+            'tag': self.mFieldComboBox_AI_01_tag,
+            'elev': self.mFieldComboBox_AI_01_elev,
+            'cap': self.mFieldComboBox_AI_01_cap,
+        }
+
+ 
+        
+        #=======================================================================
+        # #finv bindings
+        #=======================================================================
+        #loop through and connect all the field combo boxes to the finv map layer combo box
+        for tag, comboBox in self.functionGroup0_widget_d.items():
+            
+ 
+            
+            bind_QgsFieldComboBox(comboBox, 
+                                  signal_emitter_widget=self.comboBox_finv_vlay,
+                                  fn_str=tag)
+            
+            #connect Advanced Tab as downstream widgets
+            if not tag=='xid':
+                #retreive the AdvancedTab widget
+                w= None
+                for k,d in FG_widget_d.items():
+                    if d['tag']==tag:
+                        w = d['widget']
+                assert not w is  None, 'failed to find widget for tag %s'%tag
+                
+                #disable the downstream
+                w.setEnabled(False)
+ 
+                #connect it to the advganced tab downstream widget
+                comboBox.connect_downstream_combobox(w)
+                
+            if tag in ['tag', 'cap', 'scale']:
+                w.setAllowEmptyFieldName(True)
+                w.setCurrentIndex(-1)
+                #set the optionals
+                comboBox.setAllowEmptyFieldName(True)
+                comboBox.setCurrentIndex(-1)
+                
+                
+                
+            
+ 
+        
+        #bind the asset label to the update_labels such that any time it changes the function runs
+        """not sure about this... leaving this dependent on teh projDB fo rnow
+        self.labelLineEdit_AI_label.tesxtChanged(self.update_labels)
+        #self.label_mod_asset.setText(s['asset_label'])"""
+        
+
+        
+    def get_finv_vlay(self):
+        """get the asset inventory vector layer"""
+        vlay = self.comboBox_finv_vlay.currentLayer()
+        assert not vlay is None, 'no vector layer selected'
+        
+        assert isinstance(vlay, QgsVectorLayer), f'bad type: {type(vlay)}'
+        
+        #check that it is a point layer
+        if not vlay.geometryType() == QgsWkbTypes.PointGeometry:
+            raise NotImplementedError(f'geometry type not supported: {QgsWkbTypes.displayString(vlay.wkbType())}')
+         
+        
+        return vlay
+    
+    def _add_function_group(self):
+        """ui endpoint for add a function group widget to the advanced tab
+        
+        NOTE: for adding from the projDB, see self.load_model()
+        """
+        log = self.logger.getChild('_add_function_group')
+        log.debug('adding function group widget')
+        
+        #get the index
+        fg_index = len(self.functionGroups_index_d)
+        assert not fg_index in self.functionGroups_index_d, f'index {fg_index} already exists'        
+        
+        #build the UI
+        log.debug(f'adding function group {fg_index}')
+        widget, widget_d = self._add_function_group_ui(fg_index)
+            
+            
+        #add to the index
+        self.functionGroups_index_d[fg_index] = {'widget':widget, 'child_d':widget_d}
+        
+        log.info(f'added function group {fg_index+1}/{len(self.functionGroups_index_d)} to the advanced tab')
+        
+        return fg_index, widget, widget_d
+        
+    def _add_function_group_ui(self, fg_index):
+        """setup the UI for the function group
+        called by _add_function_group()
+        making this separate for assigning actions
+        """
+        
+        log = self.logger.getChild('_add_function_group_ui')
+        layout = self.groupBox_AI_03_functionGroups.layout()            
+        
+        #load the widget
+        widget = load_functionGroup_widget_template()
+        layout.addWidget(widget)
+        
+        #loop through each widget element and make a reference
+        widget_d = dict()
+        for name, widget_type in self.functionGroups_widget_type_d.items():
+            child_widget = widget.findChild(widget_type, name)
+            assert isinstance(child_widget, widget_type), f'failed to find widget: {name}'
+            widget_d[name] = {'name':name, 'widget':child_widget}
+            
+            if name in self.functionGroups_finv_tags_d.keys():
+                widget_d[name]['tag'] = self.functionGroups_finv_tags_d[name]
+            else:
+                widget_d[name]['tag'] = None    
+            
+        
+        log.debug(f'added   {len(widget_d)} widgets') 
+            
+        #=======================================================================
+        # bindings
+        #=======================================================================
+        #set the label
+        widget.label_functionGroupID.setText(str(fg_index))
+            
+        #bind the new buttons
+        widget.pushButton_mod_minus.clicked.connect(
+            lambda: self._remove_function_group(fg_index)
+            )
+        
+        widget.pushButton_mod_plus.clicked.connect(
+            lambda: self._add_function_group()
+            )
+        
+        #vbind the field combo boxes to the finv vector layer
+        cnt = 0
+        for name, widget_type in self.functionGroups_widget_type_d.items():
+            if widget_type == QgsFieldComboBox:
+                w = widget_d[name]['widget']
+                tag = widget_d[name]['tag']
+                bind_QgsFieldComboBox(w, 
+                                      signal_emitter_widget=self.comboBox_finv_vlay,
+                                      fn_str=tag)
+                
+                cnt += 1
+                
+                #set optionals
+                #===============================================================
+                # if tag in ['cap', 'tag']:
+                #     w.setAllowEmptyFieldName(True)
+                #     w.setCurrentIndex(-1)
+                #===============================================================
+        
+        log.debug(f'bound {cnt} field combo boxes to the finv vector layer')
+                
+        
+ 
+        
+ 
+        
+        return widget, widget_d
+        
+    def _remove_function_group(self, fg_index):
+        """
+        remove a function group widget from the advanced tab
+        """
+        log = self.logger.getChild('_remove_function_group')
+        log.debug(f'removing function group {fg_index}')
+        
+        d = self.functionGroups_index_d[fg_index]
+        widget, child_d = d['widget'], d['child_d']
+        
+        #=======================================================================
+        # remove the widget
+        #=======================================================================
+ 
+        
+        parent = widget.parent()
+ 
+        if parent is not None:
+            layout = parent.layout()  # Get the parent's layout
+            if layout is not None:
+                layout.removeWidget(widget)
+        widget.setParent(None)   # Detach the widget from its parent
+        widget.deleteLater()     # Schedule the widget for deletion
+        widget=None
+        
+        self.functionGroups_index_d[fg_index]['widget'] = None  # Clear the reference to the widget
+        
+        #=======================================================================
+        # clear the index entry   
+        #=======================================================================
+        del self.functionGroups_index_d[fg_index]
+        
+        log.debug('removed function group %d'%fg_index)
+        
+    def _remove_function_group_all(self):
+        """remove all function groups from the advanced tab"""
+        log = self.logger.getChild('_remove_function_group_all')
+        
+        log.debug('removing all function groups')
+        
+        #loop through and remove each
+        cnt=0
+        for fg_index in sorted(self.functionGroups_index_d.keys(), reverse=True):
+            self._remove_function_group(fg_index)
+            cnt+1
+            
+        assert len(self.functionGroups_index_d) == 0, 'failed to remove all function groups'
+        log.debug(f'removed {cnt} function groups')
+        
+        self.functionGroups_index_d=dict()
             
         
         
@@ -297,7 +716,8 @@ class Model_compiler(object):
  
 
 
-class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
+class Model_config_dialog(Model_compiler, Model_config_dialog_assetInventory, 
+                          QtWidgets.QDialog, FORM_CLASS):
     
     
     
@@ -337,44 +757,15 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         # generic-------
         #=======================================================================
-        self.pushButton_ok.clicked.connect(self._save_and_close)
+        self.pushButton_save.clicked.connect(self._save)
+        
         self.pushButton_close.clicked.connect(self._close)
         self.pushButton_run.clicked.connect(self._run_model)
         
         #=======================================================================
         # Asset Inventory--------
         #=======================================================================
-        bind_MapLayerComboBox(self.comboBox_finv_vlay, iface=self.iface, layerType=QgsMapLayerProxyModel.VectorLayer)
- 
-        
-        #bind the exposure geometry label
-        def update_finv_geometry_label():
-            layer = self.comboBox_finv_vlay.currentLayer()
-            if not layer is None:
-                self.label_EX_geometryType.setText(QgsWkbTypes.displayString(layer.wkbType()))
-            
-        self.comboBox_finv_vlay.layerChanged.connect(update_finv_geometry_label)
-        
-        #=======================================================================
-        # #finv bindings
-        #=======================================================================
-        #loop through and connect all the field combo boxes to the finv map layer combo box
-        for comboBox, fn_str in {
-            self.mFieldComboBox_cid:'xid',
-            self.mFieldComboBox_AI_01_scale:'f0_scale',
-            self.mFieldComboBox_AI_01_tag:'f0_tag',
-            self.mFieldComboBox_AI_01_elev:'f0_elev',
-            self.mFieldComboBox_AI_01_cap:'f0_cap',
-            }.items():
-            
-            bind_QgsFieldComboBox(comboBox, 
-                                  signal_emmiter_widget=self.comboBox_finv_vlay,
-                                  fn_str=fn_str)
-        
-        #bind the asset label to the update_labels such that any time it changes the function runs
-        """not sure about this... leaving this dependent on teh projDB fo rnow
-        self.labelLineEdit_AI_label.tesxtChanged(self.update_labels)
-        #self.label_mod_asset.setText(s['asset_label'])"""
+        self._connect_slots_assetInventory(log)
         
         #=======================================================================
         # Vulnerability-----------
@@ -393,6 +784,11 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
              
         self.pushButton_V_vfunc_load.clicked.connect(load_vfunc_fp)
         
+        #set the pushButton_V_vfunc_load button to enable when comboBox_expoLevel='L2'
+        self.pushButton_V_vfunc_load.setEnabled(False)
+        self.comboBox_expoLevel.currentIndexChanged.connect(
+            lambda: self.pushButton_V_vfunc_load.setEnabled('L2' in self.comboBox_expoLevel.currentText())
+            )
         
         #=======================================================================
         # risk-------
@@ -506,33 +902,70 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
             # # index
             #===================================================================
             table_name = '06_vfunc_index'
+            
+            vfunc_index_df.set_index('tag', inplace=True)
+            
             df_old = sql_to_df(table_name, conn)
+            if len(df_old) >0:
+                assert df_old.index.name == 'tag', f'bad index name on {table_name}'
+            
+            bx = vfunc_index_df.index.isin(df_old.index)
             
             if len(df_old)==0:
-                df = vfunc_index_df
+                pass #no need to merge
+ 
             else:
-                raise NotImplementedError(f'need to merge the new vfunc index with the old')
-            
-            set_df(df.set_index('tag'), table_name)
+                
+                log.debug(f'found {bx.sum()}/{len(vfunc_index_df)} duplicates in the new vfunc indes')
+                
+                if bx.all():
+                    log.warning(f'no new vfuncs to add to {table_name}')
+                    vfunc_index_df = df_old
+                else:                    
+                    #marge the two dataframes and drop duplicates
+                    #WARNING: not tested
+                    vfunc_index_df = pd.concat([df_old, vfunc_index_df[~bx]],
+                                               verify_integrity=True)
+ 
+                
+                
+                #raise NotImplementedError(f'need to merge the new vfunc index with the old')
+            if not bx.all():
+                set_df(vfunc_index_df, table_name)
  
             #===================================================================
             # data
             #===================================================================
             
             table_name='07_vfunc_data'
-            df_old = sql_to_df(table_name, conn)
+            dx_old = sql_to_df(table_name, conn)
+            if len(dx_old)>0:
+                dx_old.set_index(['tag', 'exposure'], inplace=True)
+ 
+            bx= vfunc_data_dx.index.isin(dx_old.index)
+            
+            if len(dx_old)==0:
+                pass
+            else:
+                #merge the two dataframes and drop duplicates
+                if bx.all():
+                    log.warning(f'no new vfuncs to add to {table_name}')
+                    vfunc_data_dx = dx_old
+                else:
+                    #merge the two dataframes and drop duplicates
+                    #WARNING: not tested
+                    vfunc_data_dx = pd.concat([dx_old, vfunc_data_dx[~bx]],
+                                              verify_integrity=True)
+                
  
             
-            if len(df_old)==0:
-                df = vfunc_data_dx.reset_index()
-            else:
-                raise NotImplementedError(f'need to merge the new vfunc data with the old')
             
-            set_df(df, table_name)
+            
+            set_df(vfunc_data_dx.reset_index(), table_name)
     
  
             #final consistency check
-            #assert_projDB_conn(conn, check_consistency=True)
+            assert set(vfunc_index_df.index) == set(vfunc_data_dx.index.unique('tag')), f'index mismatch'
  
         
         #=======================================================================
@@ -542,6 +975,9 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         log.info(f'finished loading vfuncs from {os.path.basename(vfunc_fp)}')
 
         
+
+
+
     def load_model(self, model, projDB_fp=None):
         """load the model worker into the dialog"""
         #=======================================================================
@@ -564,27 +1000,113 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         
 
         #=======================================================================
-        # #load parameters from the table to the ui
+        # #load parameters from the table to the ui 
         #=======================================================================
         params_df = model.get_table_parameters(projDB_fp=projDB_fp)
         """
         view(params_df)
         """
         
+        #=======================================================================
+        # static
+        #=======================================================================
         #get just those with values
-        params_df = params_df.loc[:, ['widgetName', 'value']].dropna(subset=['value', 'widgetName']
+        df1 = params_df.loc[:, ['widgetName', 'value', 'dynamic']].dropna(subset=['value', 'widgetName']
                                        ).set_index('widgetName')
+                                       
+        static_d = df1.loc[~df1['dynamic']].drop('dynamic', axis=1).iloc[:, 0].to_dict()                              
+                                       
+                                       
  
-        if len(params_df)>0:
-            log.debug(f'loading {len(params_df)} parameters for model {model.name}')
-            for k,row in params_df.iterrows():
+        if len(static_d)>0:
+            log.debug(f'loading {len(static_d)} parameters for model {model.name}')
+            for k,v in static_d.items():
+                if not hasattr(self, k):
+                    raise KeyError(f'widget {k} not found in dialog')
                 widget = getattr(self, k)
-                set_widget_value(widget, row['value'])
+                set_widget_value(widget, v)
  
                 
         else:
             log.debug(f'paramter table empty for model {model.name}')
             
+        #=======================================================================
+        # dynamic: function Groups
+        #=======================================================================
+        if not params_df['fg_index'].notna().any():
+            log.warning('no function groups found in the parameters table... skipping load')
+            
+        else:           
+     
+            #load the group values from the parameter table
+            df1 = self.model.get_table_parameters_fg(params_df =params_df)
+            
+            #check that the fg_index is monotonic starting at zero
+            assert df1['fg_index'].min() == 0, 'fg_index must start at zero'
+            assert df1['fg_index'].max() == df1['fg_index'].nunique()-1, 'fg_index must be monotonic'
+            
+            #loop through each function group and populate the UI
+            
+            log.debug(f'loading {len(df1)} function groups for model {model.name}')
+            
+            cnt=0
+            for fg_index, gdf in df1.groupby('fg_index'):
+                gdf = gdf.reset_index().set_index('tag').sort_index().drop('fg_index', axis=1)
+                
+                #first group
+                if fg_index==0:
+                    """dont want to destroy/recreate the UI here as it is connected"""
+                    assert fg_index in self.functionGroups_index_d, 'expected FG0 to be on the advanced tab already'
+                    
+                    log.debug(f'adding FG0')
+                    #used for checking
+                    advanced_child_d = {d['tag']:d for k,d in self.functionGroups_index_d[fg_index]['child_d'].items() if not d['tag'] is None}
+                    
+                    #set the parameters on hte main widgets
+                    for k, v in gdf['value'].items():
+ 
+                        
+                        #get the main widget
+                        assert k in self.functionGroup0_widget_d.keys(), f'unknown tag: {k}'
+                        
+                        #set
+                        """NOTE: this should be linked to the advanced widget"""
+                        set_widget_value(self.functionGroup0_widget_d[k], v)
+                        
+                        #check the Advanced tab link
+                        advanced_w = advanced_child_d[k]['widget']
+                        assert get_widget_value(advanced_w) == v, f'widget {k} not set correctly: {get_widget_value(advanced_w)} != {v}'
+                    
+                    
+                #advanced gruops
+                #NOTE: only relevent for L2 models
+                else:
+                    #destroy any existing
+                    if fg_index in self.functionGroups_index_d.keys():
+                        self._remove_function_group(fg_index)
+                        log.debug(f'removed function group {fg_index}')
+                
+                    #build the UI
+                    log.debug(f'adding function group {fg_index}')
+                    widget, widget_d = self._add_function_group_ui(fg_index)
+                        
+                        
+                    #add to the index
+                    self.functionGroups_index_d[fg_index] = {'widget':widget, 'child_d':widget_d}
+                    
+                    #set the widget values from the parameters
+                    wTag_d = {d['tag']:d for k,d in widget_d.items() if not d['tag'] is None}
+                    for k, v in gdf['value'].items():                        
+                        set_widget_value(wTag_d[k]['widget'], v)
+                
+                #wrap
+                log.debug(f'finished adding function group {fg_index} with {len(gdf)} parameters')
+                cnt+=1
+            #wrap
+            log.debug(f'finished loading {cnt} function groups for model {model.name}')
+                        
+ 
+ 
             
             
         
@@ -647,6 +1169,9 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         
         if model is None: model = self.model
         
+        
+ 
+        
         #retrieve the parameter table
         params_df = model.get_tables(['table_parameters'])[0].set_index('varName')
         
@@ -654,7 +1179,7 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         view(params_df)
         """
         #=======================================================================
-        # collect from ui
+        # collect static--------
         #=======================================================================
         #loop through each widget and collect the state from the ui
         d = dict()
@@ -663,16 +1188,85 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
             widget = getattr(self, widgetName)
             d[i] = get_widget_value(widget)
             
-
-        
-        #=======================================================================
-        # wrap
-        #=======================================================================
-        
-        s = pd.Series(d, name='value').replace('', pd.NA)
+        #update
+        s = pd.Series(d, name='value').replace('', pd.NA) 
         
         #update the parameters table with the ui state
         params_df.loc[s.index, 'value'] = s
+        
+        
+        #=======================================================================
+        # collect dynamic: FunctionGroups-----
+        #=======================================================================
+        d=dict()
+        #those parameters not fo und in the params_df because they are generated
+        index_d = self.functionGroups_index_d
+        log.debug(f'collecting functionGroup params on {len(index_d)} function groups')
+        cnt = 0
+        for i, (fg_index, data_d) in enumerate(index_d.items()):
+
+            #loop through each child and collect
+            for j, (name, widget_d) in enumerate(data_d['child_d'].items()):
+                tag, widget = widget_d['tag'], widget_d['widget']
+                if not tag is None:
+                    cnt+=1
+                    #retrieve the fieldName from teh widget
+                    v = get_widget_value(widget)
+                    
+                    #check if the result is None or null
+                    if v is None or v == '':
+                        log.debug(f'    skipping {tag} for function group {fg_index} as it is empty')
+                        continue
+                    
+                    #store in the container
+                    k = 'f%d_%s'%(fg_index, tag)
+                    assert not k in d.keys(), f'key {k} already exists in the parameter dictionary'
+                    #d[k] = v
+                    log.debug(f'    got \'{k}\'={v}')
+ 
+                    d[cnt] = {'varName':k, 'widgetName':name, 'value':v, 
+                         'required':False, 'dynamic':True,
+                         'model_index':False, #whether the field should be included in the model_index table
+                         'fg_index':fg_index,                   
+                        }
+        
+        #check
+ 
+        log.debug(f'collected {len(d)} functionGroup parameters')
+        
+ 
+        
+        #update
+        if len(d)>0:
+            dyn_df = pd.DataFrame.from_dict(d, orient='index').set_index('varName')
+            
+            assert dyn_df['fg_index'].max()+1==len(index_d), 'fg_index mismatch'
+            
+            #check the columns are identical
+            assert set(params_df.columns) == set(dyn_df.columns), 'columns mismatch'
+            
+            #concatenate the two dataframes
+            params_df = pd.concat([params_df, dyn_df], axis=0)
+            
+        
+        #=======================================================================
+        # precheck
+        #=======================================================================
+        #=======================================================================
+        # """mostly for not-implemented things"""
+        # if not d['expo_level']== 'depth-dependent (L2)':
+        #     raise AssertionError(f'only depth-dependent (L2) exposure level is supported at this time')
+        #=======================================================================
+        
+            
+
+        
+        #=======================================================================
+        # update
+        #=======================================================================
+
+ 
+  
         
         #write to the parent
         model.set_tables({'table_parameters':params_df.reset_index()}, logger=log)
@@ -686,32 +1280,19 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         log.push(f'saved {len(s)} parameters for model {model.name}')
         
         
-    def get_finv_vlay(self):
-        """get the asset inventory vector layer"""
-        vlay = self.comboBox_finv_vlay.currentLayer()
-        assert not vlay is None, 'no vector layer selected'
-        
-        assert isinstance(vlay, QgsVectorLayer), f'bad type: {type(vlay)}'
-        
-        #check that it is a point layer
-        if not vlay.geometryType() == QgsWkbTypes.PointGeometry:
-            raise NotImplementedError(f'geometry type not supported: {QgsWkbTypes.displayString(vlay.wkbType())}')
-         
-        
-        return vlay
+
         
 
  
         
         
-    def _run_model(self, *args, compile_model=True):
+    def _run_model(self, *args,  ):
         """run the model
         
-        Params
-        ------
-        compile_model: bool
-            flag to compile the model before running
-            for testing purposes
+        no longer saves/compiles... user must save first
+            should probably add a 'have you saved yet' check/dialog
+        
+ 
     
         """
         
@@ -723,49 +1304,46 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         model = self.model        
         assert not model is None, 'no model loaded'
         
-        skwargs = dict(logger=log, model=model)
-        
  
         
-        log.info(f'running model {model.name}')
+        log.info(f'running model {model.name}')        
         
-        
-        #=======================================================================
-        # trigger save        
-        #=======================================================================
+ 
         try:
+            #store the UI state
             self.progressBar.setValue(5)
-            self._set_ui_to_table_parameters(**skwargs)
-            
-    
-            #=======================================================================
-            # compiling
-            #=======================================================================
-            self.progressBar.setValue(20)
-            if compile_model:
-                self.compile_model(**skwargs)
+ 
             
             #=======================================================================
             # run it
             #=======================================================================
-            self.progressBar.setValue(50)
-            model.run_model(projDB_fp=self.parent.get_projDB_fp())
+            #self.progressBar.setValue(50)
+            result = model.run_model(projDB_fp=self.parent.get_projDB_fp(),
+                            progressBar=self.progressBar)
             
             #=======================================================================
             # wrap
             #=======================================================================
             self.progressBar.setValue(100)
             log.push(f'finished running model {model.name}')
+            
+            
         except Exception as e:
             log.error(f'failed to run model {model.name}')
             log.info(f'failed to run model {model.name} w/ \n     {e}')
             
             self.progressBar.setValue(0)
             
+            raise
+        
+        return result
+            
         
 
-    def _save_and_close(self):
-        """save the dialog to the model parameters table"""
+    def xxx_save_and_close(self):
+        """save the dialog to the model parameters table
+        removed the OK button and replaced with save
+        """
  
         log = self.logger.getChild('_save_and_close')
         log.debug('closing')
@@ -777,16 +1355,54 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         #=======================================================================
         self.model.compute_status()
         
-        self._set_ui_to_table_parameters(model, logger=log)
+        self._set_ui_to_table_parameters(model, logger=log)     
+        
         
  
- 
+        #=======================================================================
+        # close
+        #=======================================================================
         self._custom_cleanup()
         log.info(f'finished saving model {model.name}')
         self.accept()
         
+    def _save(self, *args, model=None, logger=None):
+        """save the paramterse and compile the model"""
+ 
+        #defaults
+        if logger is None: logger = self.logger
+        
+        log = logger.getChild('_save')
+        log.info('saving model to ProjDB')
+        
+        if model is None: model = self.model
+        assert isinstance(model, Model)
+ 
+        self.progressBar.setValue(5)
+        
+        #=======================================================================
+        # retrieve, set, and save the paramter table
+        #=======================================================================
+        model.compute_status()
+        self.progressBar.setValue(30)
+        
+        self._set_ui_to_table_parameters(model=model, logger=log)
+        self.progressBar.setValue(50) 
+        
+        self.compile_model(model=model, logger=log) 
+        self.progressBar.setValue(100)        
+        
+ 
+        #=======================================================================
+        # wrap
+        #=======================================================================
+        log.info(f'finished saving model {model.name}')
+        self.progressBar.setValue(0)
+        
     def _close(self):
-        """close the dialog without saving"""
+        """close the dialog without saving
+        
+        TODO: save check with dialog"""
  
         self._custom_cleanup()
         self.reject()
@@ -799,9 +1415,20 @@ class Model_config_dialog(Model_compiler, QtWidgets.QDialog, FORM_CLASS):
         self.model=None
         
         
-        
-        
-        
+#===============================================================================
+# HERLPERS--------
+#===============================================================================
+ 
+def load_functionGroup_widget_template(
+    template_ui = os.path.join(os.path.dirname(__file__), 'canflood2_model_functionGroup_widget.ui'), 
+    parent=None,
+    ):
+    
+    """load the model widget template"""
+ 
+    widget = QtWidgets.QWidget(parent)
+    uic.loadUi(template_ui, widget)
+    return widget
         
         
         

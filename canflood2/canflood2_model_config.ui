@@ -6,81 +6,189 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>978</width>
-    <height>991</height>
+    <width>1000</width>
+    <height>1000</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Model Configuration</string>
+   <string>CanFlood Model Configuration</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton {
-  background-color: #2B403F;
-  color: white;
+   <string notr="true">QDialog {
+    background-color: #DFECEB;
 }
 
-QPushButton:disabled { 
-    background-color: #99B7B3; /* Example: Gray background for disabled state */
-	color:#DDDDDD
-}
-
- 
-QTextEdit {
-    background-color: #99B7B3; 
-}
-
-
- 
 QWidget { /* Targets most widgets */
     font-size: 14px;  
 } 
 
-/* For more specific elements */
+QTextEdit {
+    background-color:  #DFECEB; 
+}
+
 QLabel {
     font-size: 14px; 
 }
 
+QMainWindow {
+    background-color: #99B7B3;
+}
+
+
+QGroupBox{
+/* too much background-color: #99B7B3 */
+background-color: #DFECEB
+}
+
+/*ToolBox====================*/
+
+
+/*tiny bit of background between teh bars*/
 QToolBox {
-    background-color: #99B7B3;
+    background-color: #DFECEB;
 }
-QDialog {
+
+ 
+/* does nothing
+QToolBox::pane {
     background-color: #99B7B3;
-}
+}*/
+
+/* does nothing
+QToolBox &gt; QWidget QGroupBox,
+QToolBox &gt; QWidget QTabWidget    
+    background: #99B7B3;
+}*/
+
+
+/* changes too much
+QToolBox QWidget {
+  background-color: #99B7B3;
+}*/
+
+/* does nothing
 QToolBox &gt; QWidget {
-    background-color: #99B7B3;
+  background-color: #99B7B3;
 }
+*/
+
+/* too much
+QToolBox QGroupBox {
+  background-color: #99B7B3;
+}*/
+
+
+
+/*ToolBox Tab Display*/
 QToolBox::tab:selected {
-  background-color: #507A78;
-  color:white;
+  background-color: #99B7B3;
+  color:black;
  border: 2px solid gray; /* thicker border for emphasis */
  
 }
 
 
 QToolBox::tab {
-  background-color: #2B403F;
-  color: white;
+  background-color: #DFECEB;
+  color: black;
+border: 2px solid gray; /* thicker border for emphasis */
+padding: 4px 8px;      
 }
 
+
+/*PUSH BUTTONS====================*/
+
+QPushButton {
+    background-color: #2B403F;          /* deep green-teal */
+    color: white;
+
+    /* “Pop-out” frame */
+    border: 2px solid #4E6F6D;          /* a shade lighter than the fill */
+    border-radius: 4px;                 /* gentle rounding */
+    padding: 4px 8px;                   /* keeps text from kissing the frame */
+}
+
+QPushButton:pressed {
+    background-color: #1E2F2F;                    /* darker shade */
+    border: 2px inset #3A5554;                    /* subtle inset look */
+    padding-top: 5px; padding-left: 11px;         /* shift content down/right slightly */
+    padding-bottom: 3px; padding-right: 9px;      /* keep overall size the same */
+}
+
+QPushButton:disabled {
+    background-color: rgba(43, 64, 63, 0.50);   /* same hue, 50 % opacity  */
+    color: rgba(255, 255, 255, 0.60);           /* soft-faded text          */
+    border: 2px solid rgba(78, 111, 109, 0.50); /* outline still visible    */
+}
+
+ 
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+/* ----------------------------------------
+   Generic tab look
+   ---------------------------------------- */
 QTabBar::tab {
-    background-color: #2B403F;
-    color: white;
-    border: 1px solid gray; 
-    box-sizing: border-box;
-    padding: 5px;
-    margin-bottom: 2px; /* slight separation from the tab bar */
+    background: #DFECEB;                 /* unselected fill  */
+    color: black;                        /* legible on light bg */
+
+    border: 1px solid #99B7B3;           /* subtle outline   */
+    border-bottom: 1px solid #799793;    /* slight contrast  */
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+
+    min-height: 24px;                    /* tweak as needed  */
+    padding: 4px 12px;                   /* top/bottom  left/right */
 }
 
+/* ----------------------------------------
+   Hover (optional, just a small cue)
+   ---------------------------------------- */
+QTabBar::tab:hover {
+    background: #CFE4E2;                 /* a hint darker    */
+}
+
+/* ----------------------------------------
+   Selected (popped-out) tab
+   ---------------------------------------- */
 QTabBar::tab:selected {
-    background-color: #507A78; 
-    color: white;
-    border: 1px solid gray; /* thicker border for emphasis */
-    border-bottom: none;     /* remove the bottom border to simulate being raised */
-    margin-bottom: 0;        /* pull the selected tab closer to the tab bar */
-    /* Optionally add border-radius to differentiate the shape */
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-}</string>
+    background: #99B7B3;                 /* requested colour */
+    color: black;                        /* better contrast  */
+
+    border: 1px solid #4E6F6D;           /* stronger outline */
+    border-bottom: none;                 /* merge with page  */
+
+    /* Pull it 1 px down so its bottom edge sits flush with
+       the QTabWidget pane, giving a raised effect */
+    margin-bottom: -1px;
+}
+
+/* ----------------------------------------
+   Frame around the tab-pages (optional but
+   often necessary so the gap under the
+   selected tab isn’t obvious)
+   ---------------------------------------- */
+ QTabWidget { /* Targets the background of the tab widget's content area */
+    background-color: #99B7B3;  
+}
+
+ QTabWidget::pane { /* Targets the background of the tab widget's content area */
+    background-color: #99B7B3;  
+    border: 1px solid #4E6F6D;
+    top: -1px;                           /* pull up to hide seam */
+}
+
+ </string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -98,16 +206,6 @@ QTabBar::tab:selected {
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>-1</pointsize>
-            <weight>75</weight>
-            <bold>true</bold>
-           </font>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
           </property>
           <property name="text">
            <string> Category:</string>
@@ -243,7 +341,7 @@ QTabBar::tab:selected {
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Exposure Level</string>
+           <string>Exposure Mode</string>
           </property>
          </widget>
         </item>
@@ -272,7 +370,7 @@ QTabBar::tab:selected {
    <item>
     <widget class="QToolBox" name="toolBox">
      <property name="frameShape">
-      <enum>QFrame::Panel</enum>
+      <enum>QFrame::Box</enum>
      </property>
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
@@ -280,13 +378,16 @@ QTabBar::tab:selected {
      <property name="currentIndex">
       <number>0</number>
      </property>
+     <property name="tabSpacing">
+      <number>6</number>
+     </property>
      <widget class="QWidget" name="page_01_AI">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>574</height>
+        <width>978</width>
+        <height>554</height>
        </rect>
       </property>
       <attribute name="label">
@@ -308,10 +409,16 @@ QTabBar::tab:selected {
            <height>0</height>
           </size>
          </property>
+         <property name="autoFillBackground">
+          <bool>false</bool>
+         </property>
          <property name="currentIndex">
           <number>0</number>
          </property>
          <widget class="QWidget" name="tab_AI_01_DataSeledction">
+          <property name="autoFillBackground">
+           <bool>false</bool>
+          </property>
           <attribute name="title">
            <string>Data Selection</string>
           </attribute>
@@ -339,6 +446,9 @@ QTabBar::tab:selected {
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="autoFillBackground">
+              <bool>false</bool>
              </property>
              <property name="title">
               <string>Data Selection</string>
@@ -468,17 +578,20 @@ QTabBar::tab:selected {
                     <height>16777215</height>
                    </size>
                   </property>
+                  <property name="toolTip">
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies the information type of the elevation fields. 'relative' means the values are relative to the provided DEM (i.e., heights) while 'absolute' means values are relative to the project vertical datum (i.e., sea level).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
                   <property name="currentIndex">
-                   <number>-1</number>
+                   <number>0</number>
                   </property>
                   <item>
                    <property name="text">
-                    <string>ground</string>
+                    <string>relative</string>
                    </property>
                   </item>
                   <item>
                    <property name="text">
-                    <string>datum</string>
+                    <string>absolute</string>
                    </property>
                   </item>
                  </widget>
@@ -501,23 +614,20 @@ QTabBar::tab:selected {
               <item>
                <widget class="QGroupBox" name="groupBox_8">
                 <property name="title">
-                 <string>Function Group: 01</string>
+                 <string>Function Group: 1</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_18">
                  <item>
                   <widget class="QLabel" name="label_29">
                    <property name="text">
-                    <string>Select the fields from your inventory vector layer that provide the scale, elevation, tag, and cap information for each asset</string>
+                    <string>Specify the calculation fields from your inventory.  See the &quot;Advanced&quot; tab to add additional function groups.</string>
                    </property>
                   </widget>
                  </item>
                  <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_11">
                    <item>
-                    <widget class="QLabel" name="label_23">
-                     <property name="enabled">
-                      <bool>true</bool>
-                     </property>
+                    <widget class="QLabel" name="label_22">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                        <horstretch>0</horstretch>
@@ -525,12 +635,16 @@ QTabBar::tab:selected {
                       </sizepolicy>
                      </property>
                      <property name="text">
-                      <string>tag</string>
+                      <string>elevation</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag"/>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
                    </item>
                    <item>
                     <widget class="QLabel" name="label_21">
@@ -552,23 +666,6 @@ QTabBar::tab:selected {
                     <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_scale"/>
                    </item>
                    <item>
-                    <widget class="QLabel" name="label_22">
-                     <property name="text">
-                      <string>elevation</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_elev">
-                     <property name="enabled">
-                      <bool>true</bool>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
                     <widget class="QLabel" name="label_27">
                      <property name="enabled">
                       <bool>true</bool>
@@ -588,14 +685,29 @@ QTabBar::tab:selected {
                      </property>
                     </widget>
                    </item>
+                   <item>
+                    <widget class="QLabel" name="label_23">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="text">
+                      <string>tag</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QgsFieldComboBox" name="mFieldComboBox_AI_01_tag"/>
+                   </item>
                   </layout>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_32">
-                   <property name="text">
-                    <string>See the &quot;Advanced&quot; tab to add additional function groups</string>
-                   </property>
-                  </widget>
                  </item>
                 </layout>
                </widget>
@@ -605,6 +717,12 @@ QTabBar::tab:selected {
            </item>
            <item>
             <widget class="QGroupBox" name="groupBox_4">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="title">
               <string>Metadata</string>
              </property>
@@ -652,13 +770,23 @@ QTabBar::tab:selected {
                <layout class="QFormLayout" name="formLayout_2">
                 <item row="0" column="0">
                  <widget class="QLabel" name="dateLabel">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>0</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>Date</string>
                   </property>
                  </widget>
                 </item>
                 <item row="0" column="1">
-                 <widget class="QLineEdit" name="dateLineEdit_AI"/>
+                 <widget class="QLineEdit" name="dateLineEdit_AI">
+                  <property name="placeholderText">
+                   <string>YYYY MM DD</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -710,12 +838,12 @@ QTabBar::tab:selected {
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_14">
            <item>
-            <widget class="QGroupBox" name="groupBox_2">
+            <widget class="QGroupBox" name="groupBox_AI_03_functionGroups">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+              <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -727,150 +855,8 @@ QTabBar::tab:selected {
               <item>
                <widget class="QLabel" name="label_12">
                 <property name="text">
-                 <string>Specify the damage calculation fields from your inventory. Use the &quot;+&quot; to add a function group and &quot;-&quot; to remove.</string>
+                 <string>Specify calculation fields from your inventory. See the &quot;Data Selection&quot; tab to edit Group 1. Use +/- to add/remove groups.</string>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QGroupBox" name="groupBox_3">
-                <property name="title">
-                 <string/>
-                </property>
-                <layout class="QHBoxLayout" name="horizontalLayout">
-                 <item>
-                  <widget class="QLabel" name="label_6">
-                   <property name="text">
-                    <string>Function Group:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_AI_functionGroupID">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>30</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>01</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_7">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>scale</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox"/>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_9">
-                   <property name="text">
-                    <string>elevation</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_2"/>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_10">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="text">
-                    <string>tag</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_3">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_11">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="text">
-                    <string>cap</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFieldComboBox" name="mFieldComboBox_4">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_2">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>25</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>-</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_3">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>25</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>+</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
                </widget>
               </item>
              </layout>
@@ -913,8 +899,8 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>574</height>
+        <width>545</width>
+        <height>211</height>
        </rect>
       </property>
       <attribute name="label">
@@ -964,7 +950,7 @@ QTabBar::tab:selected {
        <item>
         <widget class="QGroupBox" name="groupBox_26">
          <property name="title">
-          <string>Vulnerability Functions</string>
+          <string>Vulnerability Functions (L2 models only)</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
@@ -972,7 +958,7 @@ QTabBar::tab:selected {
             <item>
              <widget class="QPushButton" name="pushButton_V_vfunc_load">
               <property name="enabled">
-               <bool>true</bool>
+               <bool>false</bool>
               </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1092,9 +1078,12 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>574</height>
+        <width>621</width>
+        <height>265</height>
        </rect>
+      </property>
+      <property name="autoFillBackground">
+       <bool>true</bool>
       </property>
       <attribute name="label">
        <string>3) Exposure</string>
@@ -1589,9 +1578,12 @@ QTabBar::tab:selected {
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>958</width>
-        <height>574</height>
+        <width>925</width>
+        <height>518</height>
        </rect>
+      </property>
+      <property name="autoFillBackground">
+       <bool>true</bool>
       </property>
       <attribute name="label">
        <string>4) Risk</string>
@@ -1887,14 +1879,14 @@ p, li { white-space: pre-wrap; }
    <item>
     <widget class="QGroupBox" name="groupBox_MainBottom">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
      <property name="minimumSize">
       <size>
-       <width>600</width>
+       <width>0</width>
        <height>80</height>
       </size>
      </property>
@@ -1912,6 +1904,18 @@ p, li { white-space: pre-wrap; }
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
          <widget class="QPushButton" name="pushButton_run">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>80</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="text">
            <string>Run</string>
           </property>
@@ -1964,9 +1968,21 @@ p, li { white-space: pre-wrap; }
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_10">
           <item>
-           <widget class="QPushButton" name="pushButton_ok">
+           <widget class="QPushButton" name="pushButton_save">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
-             <string>OK</string>
+             <string>Save</string>
             </property>
            </widget>
           </item>
@@ -1976,6 +1992,19 @@ p, li { white-space: pre-wrap; }
              <string>Close</string>
             </property>
            </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_9">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </item>

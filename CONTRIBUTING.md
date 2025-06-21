@@ -10,24 +10,19 @@ Typically, development should employ a virtual environment with pyqgis bindings.
 To build this requires:
 - 1) pyqgis bindings (see `./readme.md` for target version)
 - 2) Some additional packages used for testing and deployment are specified in `./requirements.txt`
-- 3) a `./definitions.py` file is needed for some of the testing data (see below for template)
-
+ 
 ### PYTHONPATH
 only the source directory should be included (`./CanFlood2` not `./CanFlood2/CanFlood2`)
 
 
 ### definitions.py
-
-```python
-#blank for now
- 
-```
+not using this
 
 ## Tests
 pytests are in `./tests`
 
 ## Compiling
-the only compiling typically requied is when the qt `resources.qrc` file is changed. 
+the only compiling typically required is when the qt `resources.qrc` file is changed. 
 This needs to be ported to a python module (typically using  `pyrcc5 -o resources.py resources.qrc`)
 
 
@@ -36,13 +31,14 @@ This needs to be ported to a python module (typically using  `pyrcc5 -o resource
 
 ### Active Development
 Typically a `dev` QGIS profile is maintained with a custom `QGIS_PLUGINPATH` pointed to the project source directory. 
-This facilitates plugin updating with the `plugin reloader` (ie no real deployment) 
+This facilitates plugin updating with the `plugin reloader` (i.e. no real deployment) 
 
 ### Pre-Release testing
 Pre-release testing (and full deployment) employs a zip of the plugin directory:
 1) remove all `__pychace__`
 2) zip/archive the plugin directory
 
+see `./env/plug_zip.bat`
 This zip file can then be distributed using a git-hub release (upload the zip file to the github release... NOT the git repo tracking)
 
 

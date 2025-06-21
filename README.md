@@ -19,6 +19,13 @@ tested against QGIS 3.40.6 and Qt 5.15.13
 [Documentation](https://canflood2.readthedocs.io/en/latest/#) is provided in English for the latest, development, and archive versions. 
 
 ## Updates
+[v2.1.0](https://github.com/cefect/CanFlood2/releases/tag/v2.1.0) alpha release with:
+- multi-model support and plotting
+- multiple function groups
+- binary (L1) exposure mode
+- absolute elevation values for inventories (felv_type=absolute)
+- run all button
+- improved colours and readability
 [v2.0.2](https://github.com/cefect/CanFlood2/releases/tag/v2.0.2) bug fixes and ui tweaks
 [v2.0.1](https://github.com/cefect/CanFlood2/releases/tag/v2.0.1) add documentation
 v2.0.0 prototype with the following features:

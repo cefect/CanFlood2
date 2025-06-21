@@ -21,22 +21,25 @@ For those looking to develop depth-damage functions, be sure to check out our si
 [Documentation](https://canflood2.readthedocs.io/en/latest/#) is provided in English for the latest, development, and archive versions. 
 
 ## Updates
-[v2.1.0](https://github.com/cefect/CanFlood2/releases/tag/v2.1.0) alpha release with:
-- multi-model support and plotting
-- multiple function groups
-- binary (L1) exposure mode
-- absolute elevation values for inventories (felv_type=absolute)
-- run all button
-- improved colours and readability
-[v2.0.2](https://github.com/cefect/CanFlood2/releases/tag/v2.0.2) bug fixes and ui tweaks
-[v2.0.1](https://github.com/cefect/CanFlood2/releases/tag/v2.0.1) add documentation
-v2.0.0 prototype with the following features:
-- *Welcome*: tutorial data loader. NOTE: this also loads a complete project database.
-- *Project Setup*: create/load project database file. select Study Area (not used) and DEM
-- *Hazard*: specify metadata, select hazard events from loaded raster layers, populate event data. Eventually, support of export/import of just the hazard data will be added (for easier hazard scenario comparisons).
-- *Model Suite*: Creating template models for each of the 7 categories and launching the model config dialog.
-- *Model Configuration*: depth-dependent (L2) model setup and running. 
-- *Reporting*: Generate a **Risk Curve** from a completed model. 
+- [v2.1.0](https://github.com/cefect/CanFlood2/releases/tag/v2.1.0) alpha release with:
+   - multi-model support and plotting
+   - multiple function groups
+   - binary (L1) exposure mode
+   - absolute elevation values for inventories (felv_type=absolute)
+   - run all button
+   - improved colours and readability
+   - upgrade to QGIS 3.40
+
+  
+- [v2.0.2](https://github.com/cefect/CanFlood2/releases/tag/v2.0.2) bug fixes and ui tweaks
+- [v2.0.1](https://github.com/cefect/CanFlood2/releases/tag/v2.0.1) add documentation
+- v2.0.0 prototype with the following features:
+   - *Welcome*: tutorial data loader. NOTE: this also loads a complete project database.
+   - *Project Setup*: create/load project database file. select Study Area (not used) and DEM
+   - *Hazard*: specify metadata, select hazard events from loaded raster layers, populate event data. Eventually, support of export/import of just the hazard data will be added (for easier hazard scenario comparisons).
+   - *Model Suite*: Creating template models for each of the 7 categories and launching the model config dialog.
+   - *Model Configuration*: depth-dependent (L2) model setup and running. 
+   - *Reporting*: Generate a **Risk Curve** from a completed model. 
   
 
 

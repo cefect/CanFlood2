@@ -167,7 +167,7 @@ t2e = tutorial_lib["cf1_tutorial_02e"]
 t2e["fancy_name"] = "Tutorial 2e (two models)"
 
 #just use data from tutorial1
-t2e["models"]["c2"] = copy.deepcopy(tutorial_lib["cf1_tutorial_01"]["models"]["c1"])
+t2e["models"]["c2"] = copy.deepcopy(tutorial_lib["cf1_tutorial_02c"]["models"]["c1"])
  
  
 # ───────────────────── helpers ─────────────────────

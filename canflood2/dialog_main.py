@@ -1688,7 +1688,9 @@ class Main_dialog_reporting(object):
         #=======================================================================
         log.info(f'plotting risk curve w/ {plot_mode} mode w/ {len(result_ead_s)} models')
         args = (dx,)
-        skwargs = dict(logger=log)
+        skwargs = dict(logger=log, 
+                       consq_d = params_dx['consq_label'].to_dict()
+                       )
         
         if plot_mode=='aggregate': 
             fig = self._plot_risk_curve_aggregate(*args, **skwargs)
@@ -1704,10 +1706,14 @@ class Main_dialog_reporting(object):
         #=======================================================================
         
         self._fig_teardown(fig)
+        """
+        plt.show()
+        """
         
     def _plot_risk_curve_batch(self, dx,logger=None, 
                                line_style_d=None,
                                hatch_style_d=None,
+                               consq_d=None,
                                ):
         """from the suite results, matrix subplot layout for each model"""
         
@@ -1717,6 +1723,9 @@ class Main_dialog_reporting(object):
         if logger is None: logger=self.logger
         log = logger.getChild('_plot_risk_curve_batch')
         log.debug(f'plotting {dx.shape}')
+        
+        if consq_d is None:
+            consq_d=dict()
         
         if line_style_d is None: 
             line_style_d = copy.deepcopy(parameters.plot_style_lib['risk_curve']['line'])
@@ -1765,7 +1774,8 @@ class Main_dialog_reporting(object):
                 ax.set_title(f'{i}')
                 
                 ax.set_xlabel('AEP')
-                ax.set_ylabel('EAD')
+                
+                ax.set_ylabel(consq_d.get(model_name, 'impacts'))
                 
                 ax.legend()
                 
@@ -1791,6 +1801,7 @@ class Main_dialog_reporting(object):
                                line_style_d=None,
                                hatch_style_d=None,
                                cmap=None,
+                               consq_d=None,
                                ):
         """from the suite results, single stacked plot of all model results"""
         
@@ -1823,11 +1834,11 @@ class Main_dialog_reporting(object):
             ax = fig.add_subplot(111)
             
             #loop through each model and stack the plots
+ 
 
             # Initialize an array to keep track of the cumulative y-values
             cumulative_y_ar = np.zeros_like(dx.iloc[0, :].values, dtype=float)
-            
- 
+            previous_y_ar = np.zeros_like(cumulative_y_ar, dtype=float)  # Track previous cumulative values
             
             for i, ((model_name, EAD), row) in enumerate(dx.iterrows()):
                 log.debug(f'plotting model \'{model_name}\' w/ EAD {EAD}')
@@ -1847,12 +1858,16 @@ class Main_dialog_reporting(object):
                 color = mcolors.to_hex(cmap(i))  # Convert to hex for consistent usage
             
                 # Add the line for the cumulative values
-                ax.plot(x_ar, cumulative_y_ar, label=model_name, 
+                ax.plot(x_ar, cumulative_y_ar, label=model_name,
                         **{**line_style_d, **{'color': color}})
             
                 # Add the hatch for the cumulative values
-                ax.fill_betweenx(cumulative_y_ar, x1=x_ar, x2=0, 
-                                 **{**hatch_style_d, **{'facecolor': color}})
+                ax.fill_between(x_ar, previous_y_ar, cumulative_y_ar, 
+                                **{**hatch_style_d, **{'facecolor': color}})
+            
+                # Update the previous cumulative values
+                previous_y_ar = cumulative_y_ar.copy()
+
     
     
                     
@@ -1860,7 +1875,19 @@ class Main_dialog_reporting(object):
             # post format
             #===============================================================
             ax.set_xlabel('AEP')
-            ax.set_ylabel('EAD')
+            #ax.set_ylabel('EAD')
+            #ylabel
+            if not consq_d is None:
+                l = list(set(consq_d.values()))
+                if len(l)==1:
+                    ax.set_ylabel(l[0])
+                else:
+                    log.warning(f'multiple consequences found: {len(l)}')
+                    ax.set_ylabel(', '.join(l))
+            else:
+                ax.set_ylabel('impacts')
+                    
+            
             
             ax.legend()
             
@@ -1868,6 +1895,8 @@ class Main_dialog_reporting(object):
             """
             plt.show()
             """
+        
+        return fig
     
     
     

@@ -86,7 +86,7 @@ def write_projDB(dialog_main, test_name):
 #===============================================================================
 @pytest.fixture(scope='function')
 def plot_mode_set(dialog_loaded, plot_mode):
-    assert plot_mode in ['aggregate', 'match']
+    assert plot_mode in ['aggregate', 'batch']
     
     set_widget_value(dialog_loaded.comboBox_R_mode, plot_mode)
     
@@ -304,7 +304,7 @@ def test_dial_main_03_model_run_all(dialog_loaded, tutorial_name, test_name,
 
 
 _03_run_args = ("tutorial_name, projDB_fp", [
-    #pytest.param('cf1_tutorial_01',oj('test_dial_main_03_model_r_5da84d', 'projDB.canflood2'),),  
+    pytest.param('cf1_tutorial_01',oj('test_dial_main_03_model_r_5da84d', 'projDB.canflood2'),),  
     #===========================================================================
     # pytest.param('cf1_tutorial_02',oj('test_20_run_c1-0-cf1_tuto_13a988', 'projDB.canflood2'),),
     # pytest.param('cf1_tutorial_02b',oj('test_20_run_c1-0-cf1_tuto_802bc4', 'projDB.canflood2'),),
@@ -316,7 +316,7 @@ _03_run_args = ("tutorial_name, projDB_fp", [
 
 @pytest.mark.dev
 @pytest.mark.parametrize(*_03_run_args)
-@pytest.mark.parametrize("plot_mode", ['aggregate', 'match'])
+@pytest.mark.parametrize("plot_mode", ['aggregate', 'batch'])
 def test_dial_main_04_report_risk_curve(dialog_loaded, test_name,
                                         plot_mode_set,
 
